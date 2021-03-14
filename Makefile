@@ -1,6 +1,7 @@
 all: check_node test clean bin/ledger
 
 SOURCE_CORE = $(shell find lib/core/ -type f -name '*.js')
+SOURCE_FS = $(shell find lib/fs/ -type f -name '*.js')
 SOURCE_CLI = $(shell find lib/cli/ -type f -name '*.js')
 
 NODE_VERSION := $(shell node --version 2>/dev/null)
@@ -26,7 +27,10 @@ core: ${SOURCE_CORE}
 cli: ${SOURCE_CLI}
 	cat $^ >> bin/ledger
 	
-bin/ledger: header core cli
+fs: ${SOURCE_FS}
+	cat $^ >> bin/ledger
+
+bin/ledger: header core fs cli
 	chmod +x bin/ledger
 
 test: bin/ledger
