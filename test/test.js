@@ -134,8 +134,8 @@ describe('FS', function() {
     });
   });
   describe('#fs_read_book, #fs_write_books', function() {
-    data_init_data();
     it('Should parse entries and write all books', async function() {
+      data_init_data();
       // await fs_read_book(2020);
       await data_open_books([2020]);
       assert.equal(data.books[2020][0].time * 1000, Date.parse('2020-03-14T00:00:00+00:00'));
@@ -168,11 +168,12 @@ describe('FS', function() {
 
       data.booksOpened[2020] = DATA_BOOK_DIRTY;
 
-      data_push_entry(entry);
+      fs_book_name = 'test/dump';
+      await data_push_entry(entry);
 
       // export
-      fs_book_name = 'test/dump';
       await fs_write_books();
+      await fs_write_config();
       assert.ok(fs.existsSync('test/dump.2020.ledg'));
       assert.ok(fs.existsSync('test/dump.2021.ledg'));
     });
