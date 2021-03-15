@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - changed bin/ledger to bin/ledg in Makefile
 - moved some modules from cli to core
 - git repo clean up
+- info now defaults to from:@month-start and to:@max
+- with modifiers applied, info uses from:@min and to:@max
 
 ### Fixed
 - uuid misalignments in some info reports
