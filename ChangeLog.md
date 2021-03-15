@@ -13,6 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ledg modify
 - ledg delete
 - ledg account rename
+- tabular api
+
+### Changed
+- changed bin/ledger to bin/ledg in Makefile
+- moved some modules from cli to core
+- git repo clean up
+
+### Fixed
+- uuid misalignments in some info reports
 
 
 ## [0.1.0] - 2021-03-15
