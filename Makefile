@@ -1,4 +1,4 @@
-all: check_node clean bin/ledger
+all: check_node clean bin/ledg
 
 SOURCE_CORE = $(shell find lib/core/ -type f -name '*.js')
 SOURCE_FS = $(shell find lib/fs/ -type f -name '*.js')
@@ -16,24 +16,24 @@ endif
 	
 
 clean:
-	rm -f bin/ledger
+	rm -f bin/ledg*
 	
 header:
-	echo "#!/usr/bin/env node" > bin/ledger
+	echo "#!/usr/bin/env node" > bin/ledg
 
 core: ${SOURCE_CORE}
-	cat $^ >> bin/ledger
+	cat $^ >> bin/ledg
 
 cli: ${SOURCE_CLI}
-	cat $^ >> bin/ledger
-	cat lib/cli/commands.js >> bin/ledger
-	cat lib/cli/index.js >> bin/ledger
+	cat $^ >> bin/ledg
+	cat lib/cli/commands.js >> bin/ledg
+	cat lib/cli/index.js >> bin/ledg
 	
 fs: ${SOURCE_FS}
-	cat $^ >> bin/ledger
+	cat $^ >> bin/ledg
 
-bin/ledger: header core fs cli
-	chmod +x bin/ledger
+bin/ledg: header core fs cli
+	chmod +x bin/ledg
 
-test: bin/ledger
+test: bin/ledg
 	./node_modules/mocha/bin/mocha
