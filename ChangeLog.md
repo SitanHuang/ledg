@@ -13,7 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ledg modify
 - ledg delete
 - ledg account rename
+- report modifier case sensitivity
 - tabular api
+
+### Added
+- parser now recognizes entries with missing uuid and auto assigns one (for manual entry without uuid)
+
 
 ### Changed
 - changed bin/ledger to bin/ledg in Makefile
