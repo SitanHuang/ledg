@@ -10,7 +10,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ledg edit \<new\>
   - edit existing + add new
   - direct back to edit if imbalanced
-- ledg delete
 - ledg account rename
 - tabular api
 - tags
@@ -22,8 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (ex. search for entries with Expense.* and ..Cash)
 - ledg modify which allows for transfers, desc and
   date modification
-  - \-\-remove-mod= available
-- report modifier match is now case insensitive
+  - \--remove-mod=A,B,C, --set-mod=A:cc,B:cc  available
+- ledg delete
 - \| operator in account fuzzy search
 
 ### Changed
@@ -33,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - info now defaults to from:@month-start and to:@max
 - with modifiers applied, info uses from:@min and to:@max
 - filter modifiers in any report/modification command will use regex
+- report modifier match is now case insensitive
 
 ### Fixed
 - uuid misalignments in some info reports
