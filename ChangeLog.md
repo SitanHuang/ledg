@@ -12,7 +12,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - direct back to edit if imbalanced
 - ledg delete
 - ledg account rename
-- report modifier case sensitivity
 - tabular api
 
 ### Added
@@ -20,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and auto assigns one (for manual entry without uuid)
 - ledg modify which allows for transfers, desc and
   date modification (other properties need the edit command)
+- report modifier match is now case insensitive
 
 ### Changed
 - changed bin/ledger to bin/ledg in Makefile
