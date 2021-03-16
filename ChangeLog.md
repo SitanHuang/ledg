@@ -10,15 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ledg edit \<new\>
   - edit existing + add new
   - direct back to edit if imbalanced
-- ledg modify
 - ledg delete
 - ledg account rename
 - report modifier case sensitivity
 - tabular api
 
 ### Added
-- parser now recognizes entries with missing uuid and auto assigns one (for manual entry without uuid)
-
+- parser now recognizes entries with missing uuid
+  and auto assigns one (for manual entry without uuid)
+- ledg modify which allows for transfers, desc and
+  date modification (other properties need the edit command)
 
 ### Changed
 - changed bin/ledger to bin/ledg in Makefile

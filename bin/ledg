@@ -71,16 +71,46 @@ async function data_remove_entry(entry) {
 }
 
 async function data_remove_entry(entry) {
-  
+  let y = new Date(entry.time * 1000).getFullYear();
+  await data_open_books([y]);
+  let book = data.books[y];
+  for (let i = 0;i < book.length;i++) {
+    if (book[i].uuid == entry.uuid) {
+      data.booksOpened[y] = DATA_BOOK_DIRTY;
+      book.splice(i, 1);
+      return;
+    }
+  }
 }
 
-// async function data_edit_entry(entry) {
-//   let range = await fs_get_data_range();
-//   await data_open_books(range);
-//   for (let y : range) {
-//     
-//   }
-// }
+async function data_modify_entry(entry) {
+  let y = new Date(entry.time * 1000).getFullYear();
+  await data_open_books([y]);
+  /* let range = await fs_get_data_range();
+   * await data_open_books(range);
+   * 
+   * (being able to edit means the entry must've been opened already)
+   */
+  FOR: for (let year in data.books) {
+    let book = data.books[year];
+    for (let i = 0;i < book.length;i++) {
+      if (book[i].uuid == entry.uuid) {
+        data.booksOpened[y] = DATA_BOOK_DIRTY;
+        data.booksOpened[year] = DATA_BOOK_DIRTY;
+        if (year == y) { // same book just update entry
+          book[i] = entry;
+          return;
+        } else {
+          // remove old
+          book.splice(i, 1);
+          // add new
+          data.books[y].push(entry);
+          return;
+        }
+      }
+    }
+  }
+}
 
 async function data_push_entry(entry) {
   let y = new Date(entry.time * 1000).getFullYear();
@@ -154,6 +184,22 @@ function entry_create(desc, transfers, opts, balanced) {
   return e;
 }
 
+function entry_modify_create(desc, transfers, opts, balanced) {
+  let e = {};
+  if (desc.trim().length)
+    e.description = desc;
+  Object.assign(e, opts);
+  
+  if (transfers && transfers.length) {
+    e.transfers = transfers;
+    if (!balanced) {
+      entry_balance(e);
+    }
+  }
+
+  return e;
+}
+
 function entry_balance(e) {
   let balance = entry_check_balance(e.transfers);
   if (balance) {
@@ -165,7 +211,7 @@ function entry_balance(e) {
 }
 
 function entry_datestr(entry) {
-  let date = new Date(entry.time * 1000);
+  let date = new Date((isNaN(entry) ? entry.time : entry) * 1000);
   return date.toISOString().split('T')[0];
 }
 
@@ -1734,7 +1780,7 @@ async function fs_read_book(year) {
           entry.uuid = nanoid(8);
           UUIDreassigned = true;
         } else {
-          entry.description = line.substring(11, line.length - 10);
+          entry.description = line.substring(11, line.length - 10).trim();
           entry.uuid = line.substr(line.length - 8, 8);
         }
         
@@ -1847,7 +1893,7 @@ function argsparser(_args) {
       args.flags[match[1]] = match[2];
     } else if (match = arg.match(/^--?([^=]+)(=(.*))?$/)) {
       let key = match[1];
-      if (!isNaN(Number(key))) {
+      if (!isNaN(Number(key))) { // key cannot be number
         args._.push(arg);
         continue;
       }
@@ -1869,9 +1915,9 @@ function argsparser(_args) {
 function print_entry_ascii(entry, maxWidth) {
   maxWidth = maxWidth || print_max_width_from_entries([entry]);
   
-  let alignrightwidth = 2 + maxWidth.transDesc + (maxWidth.transDesc ? 2 : 0) + maxWidth.acc + 2 + maxWidth.mon - 9 - 10 - entry.description.length;
-  let str = c.cyanBright.bold(entry_datestr(entry)) + ' ' + entry.description.trim() +
-            Array(Math.max(alignrightwidth, maxWidth.desc + 2 - entry.description.length)).fill(' ').join('') + c.cyan(' #' + entry.uuid);
+  let alignrightwidth = 2 + maxWidth.transDesc + (maxWidth.transDesc ? 2 : 0) + maxWidth.acc + 2 + maxWidth.mon - 9 - 10 - (entry.description ? entry.description.length : 0);
+  let str = c.cyanBright.bold(entry.time ? entry_datestr(entry) : '[time]') + ' ' + (entry.description || '[title]').trim() +
+            Array(Math.max(alignrightwidth, maxWidth.desc + 2 - (entry.description ? entry.description.length : 0))).fill(' ').join('') + c.cyan(entry.uuid ? (' #' + (entry.uuid)) : ' [uuid]');
   for (let key in entry) {
     if (key == 'description' || key == 'time' || key == 'uuid' || key == 'transfers') continue;
     str += c.green('\n  ;' + key + ':' + JSON.stringify(entry[key]));
@@ -1885,6 +1931,10 @@ function print_entry_ascii(entry, maxWidth) {
            Array(maxWidth.mon - mon.length + 2).fill(' ').join('') + print_color_money(t[2]) + '\n';
   }
   return str;
+}
+
+function print_entry_title(entry) {
+  return c.cyanBright(entry_datestr(entry)) + ' ' + c.yellowBright.bold(entry.description.trim()) + c.cyan(' #' + entry.uuid);
 }
 
 function print_header_style(str) {
@@ -1909,7 +1959,7 @@ function print_max_width_from_entries(entries) {
   let len = entries.length;
   while (len--) {
     let e = entries[len];
-    a.desc = Math.max(a.desc, e.description.length);
+    a.desc = Math.max(a.desc, e.description ? e.description.length : 0);
     
     let len2 = e.transfers.length;
     while (len2--) { 
@@ -2088,10 +2138,75 @@ async function cmd_info(args) {
     console.log(print_entry_ascii(e, maxWidth));
   }
 }
+async function cmd_modify(args) {
+  args.modifiers.from = args.modifiers.from || '@min';
+  args.modifiers.to = args.modifiers.to || '@max';
+  report_set_modifiers(args);
+  
+  let filteredEntries = [];
+  await report_traverse(args, async function(entry) {
+    filteredEntries.push(entry);
+  });
+  
+  if (!filteredEntries.length) {
+    console.log('No such entries found.');
+    console.log('Modifiers are used for query, not modification. Use edit command to edit entry modifiers');
+    return 1;
+  }
+  
+  
+  // =================================================
+  //                     cmd_add
+  // =================================================
+  
+  
+  let opts = await cmd_add(args, true);
+  if (typeof opts != 'object') return opts; // abnormal return code
+  
+  // =================================================
+  //            ask for which ones to modify
+  // =================================================
+  let targetEntries = [];
+  let skip = false;
+  
+  targetEntries.push(filteredEntries[0]);
+  for (let i = 1;i < filteredEntries.length;i++) {
+    let e = filteredEntries[i];
+    if (skip) { targetEntries.push(e); continue; }
+    
+    process.stdout.write(`Modify "${print_entry_title(e)}" (y/n/all/enter to abort)? `);
+    let ans = args.flags.y ? 'y' : (await readline_prompt()).toLowerCase();
+    if (args.flags.y) console.log('y');
+    switch (ans) {
+      case 'y':
+      case 'yes':
+        targetEntries.push(e);
+        break;
+      case 'n':
+      case 'no':
+        console.log('Skipped');
+        break;
+      case 'all':
+        skip = true;
+        targetEntries.push(e);
+        break;
+      default:
+        console.log('Abort.');
+        return 1;
+    }
+  }
+  
+  for (let e of targetEntries) {
+    Object.assign(e, opts);
+    await data_modify_entry(e);
+  }
+  
+  console.log(`${filteredEntries.length} entries are affected.`);
+} 
 async function cmd_version() {
   console.log(c.bold('ledg 0.1') + ' built for cli');
 }
-async function cmd_add(args) {
+async function cmd_add(args, modifyMode=false) {
   let desc = [];
   let transfers = [];
   let currentTransfer = null;
@@ -2106,7 +2221,8 @@ async function cmd_add(args) {
   
   args.flags.date = args.flags.date || args.flags.D;
   
-  opts.time = ((args.flags.date ? (Date.parse(report_replaceDateStr(args.flags.date) + 'T00:00:00') || new Date().getTime()) : new Date().getTime()) / 1000) | 0;
+  if (!modifyMode)
+    opts.time = ((args.flags.date ? (Date.parse(report_replaceDateStr(args.flags.date) + 'T00:00:00') || new Date().getTime()) : new Date().getTime()) / 1000) | 0;
   
   Object.keys(opts).forEach(k => {
     let n = Number(opts[k]);
@@ -2167,17 +2283,25 @@ async function cmd_add(args) {
   }
   if (currentTransfer) transfers.push(currentTransfer);
 
-  let entry = entry_create(desc.join(" "), transfers, opts);
-  console.log("\n" + print_entry_ascii(entry));
+  let entry = modifyMode ? entry_modify_create(desc.join(" "), transfers, opts) : entry_create(desc.join(" "), transfers, opts);
+  if (entry.transfers)
+    console.log("\n" + print_entry_ascii(entry));
+  else {
+    console.log(`${c.cyanBright(entry.time ? entry_datestr(entry.time) : '[date]')} ${c.yellowBright.bold(entry.description || '[title]')} ${c.cyan('[uuid]')}`);
+    for (let key in entry) {
+      if (key == 'description' || key == 'time' || key == 'uuid' || key == 'transfers') continue;
+      console.log(c.green('  ;' + key + ':' + JSON.stringify(entry[key])));
+    }
+  }
   
   // empty
-  if (entry.transfers.length == 0) {
+  if (transfers.length == 0 && !modifyMode) {
     console.log('Empty entry, abort.');
     return 1;
   }
   
   // handle imbalance
-  if (entry.transfers.filter(x => x[1] == data_acc_imb).length) {
+  if (transfers.filter(x => x[1] == data_acc_imb).length) {
     process.stdout.write(`Entry is imbalanced, continue? `);
     let ans = args.flags.y ? 'y' : (await readline_prompt()).toLowerCase();
     if (args.flags.y) console.log('y');
@@ -2186,6 +2310,8 @@ async function cmd_add(args) {
       return 1;
     }
   }
+  
+  if (modifyMode) return entry;
   await data_push_entry(entry);
   await fs_write_config();
   console.log('Entry added.');
@@ -2370,7 +2496,8 @@ var CMD_LIST = {
   'version': cmd_version,
   'add': cmd_add,
   'info': cmd_info,
-  'accounts': cmd_accounts
+  'accounts': cmd_accounts,
+  'modify': cmd_modify
 };
 const DEFAULT_COMMAND = 'version';
 
