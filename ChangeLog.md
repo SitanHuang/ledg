@@ -21,7 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (ex. search for entries with Expense.* and ..Cash)
 - ledg modify which allows for transfers, desc and
   date modification
-  - \--remove-mod=A,B,C, --set-mod=A:cc,B:cc  available
+  - \--remove-mod=A,B,C, --set-mod=A:cc,B:cc
+  - \--add-tag=A,B,C, \-remove-tag=A,B,C
 - ledg delete
 - \| operator in account fuzzy search
 

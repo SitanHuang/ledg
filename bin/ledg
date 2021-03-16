@@ -1251,6 +1251,21 @@ var Big;
 //   }
 })(this);
  
+function tag_add(entry, tag) {
+  entry.tags = new Set(entry.tags ? entry.tags.toString().split(",") : undefined);
+  entry.tags.add(tag);
+  entry.tags = Array.from(entry.tags).sort().join(",");
+}
+
+function tag_remove(entry, tag) {
+  entry.tags = new Set(entry.tags ? entry.tags.toString().split(",") : undefined);
+  entry.tags.delete(tag);
+  if (entry.tags.size)
+    entry.tags = Array.from(new Set(entry.tags)).sort().join(",");
+  else
+    delete entry.tags;
+}
+ 
 /*!
  * accounting.js v0.4.2
  * Copyright 2014 Open Exchange Rates
@@ -2258,12 +2273,22 @@ async function cmd_modify(args) {
     }
   }
   
-  //let tags_to_add = (args.flags['add-tag'] || '').split(",");
-  //let tags_to_remove = (args.flags['remove-tag'] || '').split(",");
+  let tags_to_add = (args.flags['add-tag'] || '').split(",").map(x => x.toUpperCase()).filter(x => x && x.length);
+  let tags_to_remove = (args.flags['remove-tag'] || '').split(",").map(x => x.toUpperCase()).filter(x => x && x.length);
   
   for (let e of targetEntries) {
     Object.assign(e, opts);
     mods_to_remove.forEach(x => delete e[x]);
+    if (tags_to_add.length) {
+      for (let tag of tags_to_add) {
+        tag_add(e, tag);
+      }
+    }
+    if (tags_to_remove.length) {
+      for (let tag of tags_to_remove) {
+        tag_remove(e, tag);
+      }
+    }
     await data_modify_entry(e);
   }
   
