@@ -1711,6 +1711,7 @@ async function report_traverse(args, callback, afterOpenCallback) {
     let len = book.length;
     WHILE: while (len--) {
       if ((book[len].time >= (f / 1000 | 0)) && (book[len].time < t / 1000 | 0)) {
+        if (args.flags['skip-book-close'] && book[len].bookClose && book[len].bookClose.toString() == 'true') continue WHILE;
         if (args.accounts && args.accounts.length) {
           let matchTimes = 0;
           FOR: for (let q of args.accounts) {
@@ -2123,7 +2124,8 @@ function cmd_git(args) {
     if (Object.keys(CMD_LIST).filter(x => x.indexOf(argv[i]) == 0).length == 1) break;
   }
   const ls = require('child_process').spawn("git", argv.slice(i + 1), {
-    cwd: fs_get_book_directory()
+    cwd: fs_get_book_directory(),
+    stdio: 'inherit'
   });
   ls.stdout.on("data", data => {
     process.stdout.write(data);
@@ -2142,19 +2144,93 @@ function cmd_git(args) {
   });
 }
 async function cmd_accounts(args) {
+  // ===============================================================
+  //                            add accounts
+  // ===============================================================
   if (args._[0] == 'add') {
     for (let i = 1;i < args._.length;i++) {
-      data.accounts[args._[i]] = 1;
+      let acc = args._[i];
+      if (isArgAccount(acc)) {
+        console.log('Please provide full account name. Do not include wildcards.');
+        return 1;
+      }
+      data.accounts[acc] = 1;
     }
     await fs_write_config();
     console.log('Saved to ' + fs_book_name + '.config.ledg');
     return;
   }
   
+  // ===============================================================
+  //                          rename accounts
+  // ===============================================================
+  if (args._[0] == 'rename') {
+    let source = args._[1];
+    let dst = args._[2];
+    
+    args.modifiers.from = args.modifiers.from || '@min';
+    args.modifiers.to = args.modifiers.to || '@max';
+    report_set_modifiers(args);
+    
+    let filteredEntries = [];
+    await report_traverse(args, async function(entry) {
+      for (let t of entry.transfers) {
+        if (t[1].match(source)) {
+          filteredEntries.push(entry);
+          break;
+        }
+      }
+    });
+    
+    let targetEntries = [];
+    let skip = false;
+    
+    if (filteredEntries.length == 1) targetEntries.push(filteredEntries[0]);
+    for (let i = targetEntries.length;i < filteredEntries.length;i++) {
+      let e = filteredEntries[i];
+      if (skip) { targetEntries.push(e); continue; }
+      
+      process.stdout.write(`Modify "${print_entry_title(e)}" (y/n/all/enter to abort)? `);
+      let ans = args.flags.y ? 'y' : (await readline_prompt()).toLowerCase();
+      if (args.flags.y) console.log('y');
+      switch (ans) {
+        case 'y':
+        case 'yes':
+          targetEntries.push(e);
+          break;
+        case 'n':
+        case 'no':
+          console.log('Skipped');
+          break;
+        case 'all':
+          skip = true;
+          targetEntries.push(e);
+          break;
+        default:
+          console.log('Abort.');
+          return 1;
+      }
+    }
+    
+    for (let e of targetEntries) {
+      for (let t of e.transfers) {
+        t[1] = t[1].replace(source, dst);
+      }
+      await data_modify_entry(e);
+    }
+    
+    await fs_write_config();
+    console.log('Saved to ' + fs_book_name + '.config.ledg');
+    return;
+  }
+  
+  
+  // ===============================================================
+  //                         sum up accounts
+  // ===============================================================
+  
   if (args.modifiers.from && args.modifiers.from.length) {
-    delete args.modifiers.from;
-    cmd_report_modifiers.from = '';
-    console.log("Warning: from modifier is ignored in account command\n");
+    console.log("Warning: using from modifier might result in wrong summation of asset and liability accounts\n");
   }
   
   let tree = args._[0] == 'tree';
@@ -2239,7 +2315,7 @@ async function cmd_modify(args) {
   args.modifiers.from = args.modifiers.from || '@min';
   args.modifiers.to = args.modifiers.to || '@max';
   report_set_modifiers(args);
-  report_extract_account(args);
+  //report_extract_account(args);
   
   let filteredEntries = [];
   await report_traverse(args, async function(entry) {
@@ -2392,6 +2468,10 @@ async function cmd_help() {
 \t\tset FILE as a prefix for ledg file locations:
 \t\tex. --file=Documents/book will point to Documents/book.*.ledg
 
+\t--skip-book-close[=false]
+\t\tDefault: false
+\t\tSkips all entries with bookClose:"true" or bookClose:true
+
 *FILTER*
 \t[ modifiers ] [ account filter, ...]
 \ta set of arguments that filters entries
@@ -2433,11 +2513,16 @@ async function cmd_help() {
 \t\t\t ledg info -> ledg inf
 
 \taccounts add <full account name>
-\t\t\tcreate new account and write to FILE.config.ledg
+\t\tcreate new account and write to FILE.config.ledg
+
+\taccounts rename <source> <dist> [ <filter> ]
+\t\tmodifies entries by replacing account source with dist
+\t\t-y
+\t\t\tdefaults confirmations to yes
 
 \taccounts [--sum-parent] [--hide-zero] [--max-depth=NUM] [ <filter> ] [tree]
 \t\tsums balances in selected accounts
-\t\tdue to the need to sum entries from the beginning of a book, from: modifier is ignored
+\t\tdue to the need to sum entries from the beginning of a book, from: modifier is defaulted to @min
 
 \t\t--sum-parent
 \t\t\tallows child account balances to add to parent accounts
@@ -2468,6 +2553,7 @@ async function cmd_help() {
 \tmodify <filter> [--date=yyyy-mm-dd] [--add-tag=A,B,C] [-remove-tag=A,B,C] [--set-mod=A:123,B:123] [--remove-mod=C,D,E]
          [-y] [description] [yyyy-mm-dd] [ <account filter> [account description] <amount> [, ...]]
 \t\tbatch modify entries, see more in "add" section
+\t\taccount query is not supported
 
 \tdelete [ <filter> ] [-y]
 \t\tbatch delete entries

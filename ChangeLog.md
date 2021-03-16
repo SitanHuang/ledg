@@ -15,6 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - ledg help
+- ledg account rename \<source\> \<dist\>
+- \--skip-book-close option
+
+### Changed
+- allow accounts command to accept from: modifier
+
+### Fixed
+- vim not working in ledg git commit
 
 ## [0.2.0] - 2021-03-16
 ### Added
