@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ledg account rename
 - tabular api
 
+### Added
+- ledg help
+
 ## [0.2.0] - 2021-03-16
 ### Added
 - parser now recognizes entries with missing uuid
