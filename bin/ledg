@@ -1673,7 +1673,8 @@ async function report_traverse(args, callback, afterOpenCallback) {
     WHILE: while (len--) {
       if ((book[len].time >= (f / 1000 | 0)) && (book[len].time < t / 1000 | 0)) {
         for (mod in args.modifiers) {
-          if (ignored.indexOf(mod) < 0 && args.modifiers[mod] != book[len][mod]) continue WHILE;
+          if (ignored.indexOf(mod) < 0 && args.modifiers[mod] && book[len][mod] &&
+            args.modifiers[mod].toLowerCase() != book[len][mod].toLowerCase()) continue WHILE;
         }
         await callback(book[len]);
       }
