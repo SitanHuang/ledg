@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - \--add-tag=A,B,C, \-remove-tag=A,B,C
 - ledg delete
 - \| operator in account fuzzy search
+- ledg git ... to use git on book's parent directory
 
 ### Changed
 - changed bin/ledger to bin/ledg in Makefile
