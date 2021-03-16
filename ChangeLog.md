@@ -13,13 +13,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ledg delete
 - ledg account rename
 - tabular api
+- tags
 
 ### Added
 - parser now recognizes entries with missing uuid
   and auto assigns one (for manual entry without uuid)
+- filter now supports multiple account conditions 
+  (ex. search for entries with Expense.* and ..Cash)
 - ledg modify which allows for transfers, desc and
-  date modification (other properties need the edit command)
+  date modification
+  - \-\-remove-mod= available
 - report modifier match is now case insensitive
+- \| operator in account fuzzy search
 
 ### Changed
 - changed bin/ledger to bin/ledg in Makefile
@@ -27,9 +32,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - git repo clean up
 - info now defaults to from:@month-start and to:@max
 - with modifiers applied, info uses from:@min and to:@max
+- filter modifiers in any report/modification command will use regex
 
 ### Fixed
 - uuid misalignments in some info reports
+- fix modify command only confirms for changes starting from the second entry
 
 
 ## [0.1.0] - 2021-03-15
