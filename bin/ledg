@@ -2209,12 +2209,19 @@ async function cmd_modify(args) {
     return 1;
   }
   
+  let mods_to_remove = (args.flags['remove-mod'] || '').split(",").filter(x => x != 'uuid' && x != 'time' && x != 'description' && x != 'transfers');
+  let mods_to_set = (args.flags['set-mod'] || '').split(",");
+  mods_to_set = argsparser(mods_to_set).modifiers;
+  delete mods_to_set.uuid;
+  delete mods_to_set.time;
+  delete mods_to_set.description;
+  delete mods_to_set.transfers;
   
   // =================================================
   //                     cmd_add
   // =================================================
   
-  
+  Object.assign(args.modifiers, mods_to_set);
   let opts = await cmd_add(args, true);
   if (typeof opts != 'object') return opts; // abnormal return code
   
@@ -2251,7 +2258,6 @@ async function cmd_modify(args) {
     }
   }
   
-  let mods_to_remove = (args.flags['remove-mod'] || '').split(",").filter(x => x != 'uuid' && x != 'time' && x != 'description' && x != 'transfers');
   //let tags_to_add = (args.flags['add-tag'] || '').split(",");
   //let tags_to_remove = (args.flags['remove-tag'] || '').split(",");
   
@@ -2261,7 +2267,58 @@ async function cmd_modify(args) {
     await data_modify_entry(e);
   }
   
-  console.log(`${filteredEntries.length} entries are affected.`);
+  console.log(`${targetEntries.length} entries are affected.`);
+} 
+async function cmd_delete(args) {
+  args.modifiers.from = args.modifiers.from || '@min';
+  args.modifiers.to = args.modifiers.to || '@max';
+  report_set_modifiers(args);
+  report_extract_account(args);
+  
+  let filteredEntries = [];
+  await report_traverse(args, async function(entry) {
+    filteredEntries.push(entry);
+  });
+  
+  if (!filteredEntries.length) {
+    console.log('No such entries found.');
+    return 1;
+  }
+  
+  let targetEntries = [];
+  let skip = false;
+  
+  for (let i = 0;i < filteredEntries.length;i++) {
+    let e = filteredEntries[i];
+    if (skip) { targetEntries.push(e); continue; }
+    
+    process.stdout.write(`Delete "${print_entry_title(e)}" (y/n/all/enter to abort)? `);
+    let ans = args.flags.y ? 'y' : (await readline_prompt()).toLowerCase();
+    if (args.flags.y) console.log('y');
+    switch (ans) {
+      case 'y':
+      case 'yes':
+        targetEntries.push(e);
+        break;
+      case 'n':
+      case 'no':
+        console.log('Skipped');
+        break;
+      case 'all':
+        skip = true;
+        targetEntries.push(e);
+        break;
+      default:
+        console.log('Abort.');
+        return 1;
+    }
+  }
+  
+  for (let e of targetEntries) {
+    await data_remove_entry(e);
+  }
+  
+  console.log(`${targetEntries.length} entries are affected.`);
 } 
 async function cmd_version() {
   console.log(c.bold('ledg 0.1') + ' built for cli');
@@ -2557,7 +2614,8 @@ var CMD_LIST = {
   'add': cmd_add,
   'info': cmd_info,
   'accounts': cmd_accounts,
-  'modify': cmd_modify
+  'modify': cmd_modify,
+  'delete': cmd_delete
 };
 const DEFAULT_COMMAND = 'version';
 
