@@ -1836,17 +1836,30 @@ async function fs_read_book(year) {
     };
     
     for await (let line of rl) {
-      entry = fs_raed_book_proc_line(entry, line, commitEntry);
+      entry = fs_read_book_proc_line(entry, line, commitEntry);
     }
     if (entry) { commitEntry(entry) }
   }
 }
 
-async function fs_read_entries_from_string(str) {
+function fs_read_entries_from_string(str) {
+  let lines = str.replace(/\r/g, "").split("\n");
+  let entries = [];
   
+  let entry = null;
+  const commitEntry = (entry) => {
+    entry_balance(entry); entries.push(entry);
+  };
+  
+  for (let line of rl) {
+    entry = fs_read_book_proc_line(entry, line, commitEntry);
+  }
+  if (entry) { commitEntry(entry) }
+  
+  return entries;
 }
 
-function fs_raed_book_proc_line(entry, line, commitEntry) {
+function fs_read_book_proc_line(entry, line, commitEntry) {
   if (line[4] == '-' && line[7] == '-') { // start entry
     if (entry) { commitEntry(entry) } // commit previous
 
@@ -2141,13 +2154,6 @@ function cmd_git(args) {
     cwd: fs_get_book_directory(),
     stdio: 'inherit'
   });
-  ls.stdout.on("data", data => {
-    process.stdout.write(data);
-  });
-
-  ls.stderr.on("data", data => {
-    process.stderr.write(data);
-  });
 
   ls.on('error', (error) => {
     console.log(`error: ${error.message}`);
@@ -2324,6 +2330,10 @@ async function cmd_info(args) {
   for (let e of entries) {    
     console.log(print_entry_ascii(e, maxWidth));
   }
+}
+ 
+async function cmd_edit(args) {
+  
 }
 async function cmd_modify(args) {
   args.modifiers.from = args.modifiers.from || '@min';
@@ -2869,13 +2879,17 @@ const create_color = () => {
 var c = create_color();
 var CMD_LIST = {
   'version': cmd_version,
+  'help': cmd_help,
+  
   'add': cmd_add,
-  'info': cmd_info,
-  'accounts': cmd_accounts,
   'modify': cmd_modify,
   'delete': cmd_delete,
-  'git': cmd_git,
-  'help': cmd_help
+  'edit': cmd_edit,
+  
+  'info': cmd_info,
+  'accounts': cmd_accounts,
+  
+  'git': cmd_git
 };
 const DEFAULT_COMMAND = 'version';
 
