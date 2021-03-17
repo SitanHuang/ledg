@@ -7,9 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Roadmap to 0.3.0
-- ledg edit \<new\>
-  - edit existing + add new
-  - direct back to edit if imbalanced
 - tabular api
 
 ### Added
@@ -17,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ledg account rename \<source\> \<dist\>
 - \--skip-book-close option
 - added generic api to parse book line by line
+- ledg edit \<new\>
+  - edit existing + add new
 
 ### Changed
 - allow accounts command to accept from: modifier
