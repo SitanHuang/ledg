@@ -1667,6 +1667,28 @@ var cmd_report_modifiers = {
   to: "@year-end", // exclusive
 };
 
+var cmd_report_accounts = {
+  income: 'Income*',
+  expense: 'Expense*',
+  equity: 'Equity*',
+  asset: 'Asset*',
+  liability: 'Liability*'
+};
+
+var cmd_report_accounts_compiled = {};
+
+function report_set_accounts(args) {
+  Object.keys(cmd_report_accounts).forEach(x => {
+    cmd_report_accounts[x] = args.flags[x] || cmd_report_accounts[x];
+  });
+}
+
+function report_compile_account_regex() {
+  Object.keys(cmd_report_accounts).forEach(x => {
+    cmd_report_accounts_compiled[x] = fzy_compile(cmd_report_accounts[x]);
+  });
+}
+
 function report_set_modifiers(args) {
   Object.keys(cmd_report_modifiers).forEach(x => {
     cmd_report_modifiers[x] = args.modifiers[x] || cmd_report_modifiers[x];
@@ -2018,6 +2040,78 @@ function argsparser(_args) {
   return args;
 }
 
+/*
+ * `data` structure:
+ * [
+ *   [[text, realWidth], [text, realWidth], header: true],
+ *   [[text, realWidth], [text, realWidth]],
+ * ]
+ */
+function tabulate(data, opts) {
+  if (!data.length) return;
+
+  let def = {
+    maxWidths: new Array(data[0].length).fill(Infinity),
+    minWidths: new Array(data[0].length).fill(0),
+    align: new Array(data[0].length).fill(TAB_ALIGN_LEFT),
+    colBorder: '  ',
+    alternateColor: true,
+    firstRowIsHeader: true,
+    colorizeColCallback: new Array(data[0].length)
+  };
+  Object.assign(def, opts);
+  opts = def;
+  
+  if (opts.firstRowIsHeader) data[0].header = true;
+  
+  let _longestWidths = Array.from(opts.minWidths);
+  for (let i = 0;i < data.length;i++) {
+    let row = data[i];
+    for (let j = 0;j < row.length;j++) {
+      if (typeof row[j] != 'object') {
+        row[j] = [(row[j]).toString(), (row[j]).toString().length];
+      }
+      let realWidth = row[j][1];
+      _longestWidths[j] = Math.min(opts.maxWidths[j], Math.max(_longestWidths[j], realWidth));
+    }
+  }
+  
+  let content = '';
+  
+  for (let i = 0;i < data.length;i++) {
+    let row = data[i];
+    let rowData = '';
+    for (let j = 0;j < row.length;j++) {
+      let col = row[j][0];
+      
+      let colWidth = _longestWidths[j];
+      // truncate only plaintext
+      if(row[j][1] == col.length && row[j][1] > colWidth) col = col.substring(0, 4);
+      // align
+      if (row[j][1] < colWidth) {
+        if (opts.align[j] == TAB_ALIGN_LEFT) {
+          col = print_pad_right(col, colWidth, row[j][1]);
+        } else {
+          col = print_pad_left(col, colWidth, row[j][1]);
+        }
+      }
+      
+      if (!row.header && opts.colorizeColCallback[j]) col = opts.colorizeColCallback[j](col, i, j);
+      
+      if (j + 1 < row.length) col += opts.colBorder;
+      rowData += col;
+    }
+    if (row.header) rowData = c.underline(rowData);
+    if (opts.alternateColor) rowData = print_alternate_row(rowData, i);
+    content += rowData + "\n";
+  }
+  
+  return content;
+}
+
+var TAB_ALIGN_LEFT = 1;
+var TAB_ALIGN_RIGHT = 2;
+
 function print_entry_ascii(entry, maxWidth) {
   maxWidth = maxWidth || print_max_width_from_entries([entry]);
   let alignrightwidth = 2 + maxWidth.transDesc + (maxWidth.transDesc ? 2 : 0) + maxWidth.acc + 2 + maxWidth.mon - 9 - 10 - (entry.description ? entry.description.length : 0);
@@ -2326,6 +2420,8 @@ async function cmd_info(args) {
     args.modifiers.to = args.modifiers.to || '@max';
   }
   
+  let flat = args._[0] == 'flat';
+  
   report_set_modifiers(args);
   report_extract_account(args);
   
@@ -2334,9 +2430,80 @@ async function cmd_info(args) {
     entries.push(entry);
   });
   entries = entries.sort((a, b) => a.time - b.time);
-  let maxWidth = print_max_width_from_entries(entries);
-  for (let e of entries) {    
-    console.log(print_entry_ascii(e, maxWidth));
+  
+  if (flat) {
+    report_set_accounts(args);
+    report_compile_account_regex();
+    
+    let data = [['Date', 'UUID', 'Description', 'Account', 'Amount']];
+    let align = [TAB_ALIGN_LEFT, TAB_ALIGN_LEFT, TAB_ALIGN_LEFT, TAB_ALIGN_RIGHT, TAB_ALIGN_RIGHT];
+    
+    let colorFuncs = [x => c.cyanBright(x),
+                      x => c.cyan(x),
+                      x => c.whiteBright(x),
+                      x => c.yellowBright(x),
+                      undefined
+                     ];
+    
+    for (let e of entries) {    
+      let account;
+      let desc = e.description + '        ';
+      let amount = 0;
+      if (e.transfers.length <= 2) {
+        for (let t of e.transfers) {
+          if (t[1].match(cmd_report_accounts.expense)) {
+            amount = -t[2];
+            account = t[1];
+            break;
+          }
+        }
+        if (!account) {
+          for (let t of e.transfers) {
+            if (t[1].match(cmd_report_accounts.liability)) {
+              amount = t[2];
+              account = t[1];
+              break;
+            }
+          }
+          if (!account) {
+            for (let t of e.transfers) {
+              if (t[1].match(cmd_report_accounts.income)) {
+                amount = -t[2];
+                account = t[1];
+                break;
+              }
+            }
+          }
+        }
+      }
+      if (!account) {
+        account = e.bookClose ? '=======  Book Close  ========' : '--- Split in ' + e.transfers.length + ' transfers ---';
+        desc = e.bookClose ? '===== ' + e.description + '[' + e.transfers.length + ']' + ' =====' : desc;
+        amount = new Big(0);
+        for (let t of e.transfers) {
+          if (t[2] > 0) amount = amount.plus(t[2]);
+        }
+        amount = '±' + print_format_money(amount.toNumber());
+        amount = [c.cyanBright(amount), amount.length];
+      } else {
+        amount = [print_color_money(amount), print_format_money(amount).length];
+      }
+      
+      data.push([
+        entry_datestr(e),
+        e.uuid,
+        desc,
+        account,
+        amount
+      ]);
+    }
+    
+    console.log(tabulate(data, {colorizeColCallback: colorFuncs, align: align}) + '\n');
+  } else {
+    let maxWidth = print_max_width_from_entries(entries);
+    for (let e of entries) {    
+      console.log(print_entry_ascii(e, maxWidth));
+    }
   }
 }
  
@@ -2564,6 +2731,11 @@ async function cmd_help() {
 \t\tset FILE as a prefix for ledg file locations:
 \t\tex. --file=Documents/book will point to Documents/book.*.ledg
 
+\t--income=<account filter>, --expense=<account filter>, --equity=<account filter>
+\t--asset=<account filter>, --liability=<account filter>
+\t\tDefault: Income*, Expense*, Asset*, Liability*, Equity*
+\t\tLet certain report commands to know what are the corresponding accounts
+
 \t--skip-book-close[=false]
 \t\tDefault: false
 \t\tSkips all entries with bookClose:"true" or bookClose:true
@@ -2634,8 +2806,11 @@ async function cmd_help() {
 \t\ttree
 \t\t\tdisplays account balances in tree view
 
-\tinfo [ <filter> ]
+\tinfo [ <filter> ] [flat]
 \t\tdisplays entries' information
+
+\t\tflat
+\t\t\tdisplays entries row by row rather than expanding individual transfers
 
 \tadd [--date=yyyy-mm-dd] [-y] [description] [yyyy-mm-dd] < <account filter> [account description] <amount> [, ...]>
 \t\tpush entry to book
