@@ -88,6 +88,11 @@ async function data_remove_entry(entry) {
   }
 }
 
+/*
+ * finds entry with same uuid, delete old one, and add new one to the right year
+ * returns true if found and modified
+ * returns false if nothing was found
+ */
 async function data_modify_entry(entry) {
   let y = new Date(entry.time * 1000).getFullYear();
   await data_open_books([y]);
@@ -104,17 +109,18 @@ async function data_modify_entry(entry) {
         data.booksOpened[year] = DATA_BOOK_DIRTY;
         if (year == y) { // same book just update entry
           book[i] = entry;
-          return;
+          return true;
         } else {
           // remove old
           book.splice(i, 1);
           // add new
           data.books[y].push(entry);
-          return;
+          return true;
         }
       }
     }
   }
+  return false;
 }
 
 async function data_push_entry(entry) {
@@ -1851,7 +1857,7 @@ function fs_read_entries_from_string(str) {
     entry_balance(entry); entries.push(entry);
   };
   
-  for (let line of rl) {
+  for (let line of lines) {
     entry = fs_read_book_proc_line(entry, line, commitEntry);
   }
   if (entry) { commitEntry(entry) }
@@ -1886,6 +1892,7 @@ function fs_read_book_proc_line(entry, line, commitEntry) {
     }
     
     if (UUIDreassigned) {
+      let year = new Date(entry.time * 1000).getFullYear();
       data.booksOpened[year] = DATA_BOOK_DIRTY;
       console.log(`While opening the ${year} book, an entry had incomplete UUID and had been reassigned.`);
     }
@@ -2165,10 +2172,11 @@ function cmd_git(args) {
 }
 async function cmd_accounts(args) {
   // ===============================================================
-  //                            add accounts
+  //                           add accounts
   // ===============================================================
   if (args._[0] == 'add') {
-    for (let i = 1;i < args._.length;i++) {
+    let i = 1;
+    for (;i < args._.length;i++) {
       let acc = args._[i];
       if (isArgAccount(acc)) {
         console.log('Please provide full account name. Do not include wildcards.');
@@ -2177,7 +2185,7 @@ async function cmd_accounts(args) {
       data.accounts[acc] = 1;
     }
     await fs_write_config();
-    console.log('Saved to ' + fs_book_name + '.config.ledg');
+    console.log(`Saved ${i - 1} account names to ` + fs_book_name + '.config.ledg');
     return;
   }
   
@@ -2333,7 +2341,71 @@ async function cmd_info(args) {
 }
  
 async function cmd_edit(args) {
+  args.modifiers.from = args.modifiers.from || '@min';
+  args.modifiers.to = args.modifiers.to || '@max';
   
+  report_set_modifiers(args);
+  report_extract_account(args);
+  
+  let content = '';
+  
+  if (args._[0] != 'new') {
+    await report_traverse(args, async function(entry) {
+      content += fs_serialize_entry(entry) + '\n';
+    });
+  }
+  
+  let path = fs_get_book_directory() + '/~temp.edit.ledg';
+  fs.writeFileSync(path, content);
+  
+  let EDITOR = process.env.EDITOR || 'vim';
+  let args2 = EDITOR == 'vim' ? ['+autocmd BufRead,BufNewFile *.*.ledg setlocal ts=55 sw=55 expandtab! softtabstop=-1 nowrap listchars="tab:→\ ,nbsp:␣,trail:•,extends:⟩,precedes:⟨" list noautoindent nocindent nosmartindent indentexpr=', path] : [path];
+  
+  const ls = require('child_process').spawn(process.env.EDITOR || 'vim', args2, {
+    cwd: fs_get_book_directory(),
+    stdio: 'inherit'
+  });
+
+  ls.on('error', (error) => {
+    console.log(`error: ${error.message}`);
+  });
+  
+  async function callback(code) {
+    content = fs.readFileSync(path).toString();
+    fs.unlinkSync(path);
+    
+    if (code != 0) {
+      console.log(`error: editor returned with code ${code}`);
+      process.exit(code);
+      return;
+    }
+    
+    let newEntries = 0;
+    let affectedEntries = 0;
+    
+    let entries = fs_read_entries_from_string(content);
+    for (let entry of entries) {
+      if (!(await data_modify_entry(entry))) { // new entry
+        process.stdout.write(print_entry_ascii(entry) + '\nCreate the above new entry? ');
+        let ans = args.flags.y ? 'y' : (await readline_prompt()).toLowerCase();
+        if (args.flags.y) console.log('y');
+        if (ans == 'y' || ans == 'yes') {
+          await data_push_entry(entry);
+          newEntries++;
+        } else {
+          console.log('Discarded 1 entry.');
+        }
+      } else affectedEntries++;
+    }
+    
+    await fs_write_books();
+    console.log(`Updated ${affectedEntries} entries and created ${newEntries} entries.`);
+    process.exit(code);
+  }
+
+  ls.on("close", code => {
+    callback(code);
+  });
 }
 async function cmd_modify(args) {
   args.modifiers.from = args.modifiers.from || '@min';
@@ -2535,6 +2607,11 @@ async function cmd_help() {
 \tCommands can be shortened as long as they are not ambiguous
 \tExample: ledg accounts -> ledg acc
 \t\t\t ledg info -> ledg inf
+
+\tedit <filters> [new]
+\t\tbrings up system editor to modify filtered entries
+\t\tnew
+\t\t\topens a blank file to manually enter new entries
 
 \taccounts add <full account name>
 \t\tcreate new account and write to FILE.config.ledg
@@ -2935,7 +3012,7 @@ async function index() {
 
 var readline_last_value;
 
-async function readline_prompt(muted) {
+async function readline_prompt() {
   stdin_rl.resume();
   const line1 = (await stdin_it.next()).value;
   readline_last_value = line1;
