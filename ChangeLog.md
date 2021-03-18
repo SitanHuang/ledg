@@ -1,16 +1,17 @@
  
 # Changelog
-All notable changes to this project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [Unreleased]
+### Fixed
+- budgets don't add up to parent accounts
 
 ## [0.4.0] - 2021-03-18
 ### Added
 - ledg budget (tracker and account based budgeting)
+- ledg budget edit to bring up system editor for budgets.ledg file
 
 ### Changed
 - ledg now saves config in with human readable format JSON
+
 
 ## [0.3.0] - 2021-03-16
 ### Added
