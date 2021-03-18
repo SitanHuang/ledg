@@ -1,8 +1,12 @@
  
 # Changelog
 ## [Unreleased]
+### Roadmap to 0.5.0
+- line chart for income/expense/profit, asset/liability/net worth
+
 ### Fixed
 - budgets don't add up to parent accounts
+- added missing MIT licenses for some libraries
 
 ## [0.4.0] - 2021-03-18
 ### Added
