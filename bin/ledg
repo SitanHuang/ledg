@@ -2957,7 +2957,10 @@ async function cmd_accounts(args) {
   args.flags['max-depth'] = args.flags['max-depth'] || Infinity;
   let countDots = (s) => {let m = s.match(/\./g); return m ? m.length + 1 : 1};
 
-  let sumParent = typeof args.flags['sum-parent'] === 'undefined' ? tree : args.flags['sum-parent']; // tree default to sum parent
+  let sumParent = !!args.flags['sum-parent'];
+  if (sumParent && args.flags.sum && args.flags['max-depth'] == Infinity) {
+    console.log("Warning: With --sum-parent and no --max-depth, --sum might produce wrong results.\n");
+  }
 
   report_extract_account(args);
   let balanceData = await report_sum_accounts(args, sumParent);
@@ -2997,12 +3000,12 @@ async function cmd_accounts(args) {
     accs.forEach((x) => {
       if (args.flags['hide-zero'] && balanceData[x] == 0) return;
       if (countDots(x) > args.flags['max-depth']) return;
-      sum = sum.plus(balanceData[x]);
+      if (balanceData[x]) sum = sum.plus(balanceData[x]);
       console.log(print_alternate_row(`${print_pad_right(x, width)} ${print_pad_left(print_color_money(balanceData[x]), width2, print_format_money(balanceData[x]).length)}`, i++));
     });
   }
   sum = sum.toNumber();
-  if (args.flags.sum) console.log(c.bold(`${print_pad_right('Sum', width)} ${print_pad_left(print_color_money(sum), width2, print_format_money(sum).length)}`));
+  if (args.flags.sum) console.log(c.bold(`${print_pad_right('Sum', width)} ${print_pad_left(print_format_money(sum), width2, print_format_money(sum).length)}`));
   console.log("");
 }
  
@@ -3402,9 +3405,29 @@ async function cmd_history(args) {
   if (showWeeks) { table[0].push('Week'); align.push(TAB_ALIGN_RIGHT) }
   if (showDays) { table[0].push('Day');  align.push(TAB_ALIGN_RIGHT)}
   let tab_left_length = table[0].length;
-  accounts.forEach(x => {
+  
+  
+  let cu_accounts = [];
+  
+  if (typeof args.flags['cumulative-columns'] != 'undefined') {
+    let sp = args.flags['cumulative-columns'].toString().split(',').map(x => parseInt(x));
+    for (let n of sp) {
+      if (isNaN(n)) {
+        console.log(`Error: "${n}" is not a column number. Use this format: --cumulative-columns=1,2,3`);
+        return 1;
+      }
+      cu_accounts.push(n - 1);
+    }
+  }
+  accounts.forEach((x, i) => {
     table[0].push(x.name[0].toUpperCase() + x.name.substring(1));
     align.push(TAB_ALIGN_RIGHT);
+    if (args.flags.cumulative || cu_accounts.indexOf(i) >= 0) {
+      x.val.forEach((z, j) => {
+        if (j == 0) return;
+        x.val[j] = x.val[j].plus(x.val[j - 1]);
+      });
+    }
     x.val = x.val.map(v => v.toNumber());
   });
 
@@ -3569,10 +3592,19 @@ async function cmd_help() {
 \t\tcreate new account and write to FILE.config.ledg
 
 \thistory [--daily] [--weekly] [--biweekly] [--monthly] [--quarterly]
-\t        [--yearly] [ <account filter 1> <account filter 2> ... ]
+\t        [--yearly] [--cumulative] [--cumulative-columns=num list]
+\t        [ <account filter 1> <account filter 2> ... ]
 \t\tDefaults: shows accounts specified by --income, --expense, --asset, --liability,
 \t\t          and --equity
 \t\tprints multicolumn time by selected interval
+\t\tNote: even with cumulative columns, history command does not sum everything from
+\t\t@min, and so unless from:@min is given, asset/liability calculation is not accurate
+
+\t\t--cumulative-columns=1,2,3...
+\t\t\tshows cumulative data for the given column numbers
+
+\t\t--cumulative
+\t\t\tshows cumulative data
 
 \taccounts rename <source> <dist> [ <filter> ]
 \t\tmodifies entries by replacing account source with dist
@@ -4632,10 +4664,10 @@ async function index() {
     let content = fs.readFileSync(`${process.env.HOME}/.ledgrc`).toString();
     argv = content.replace(/\r/g, '').split("\n").concat(argv.slice(2));
   }
-  
+
   var args = argsparser(argv);
   fs_book_name = args.flags.F || args.flags.file || fs_book_name;
-  
+
   await fs_get_data_range();
   await fs_attempt_load_budgets();
   if (fs.existsSync(fs_book_name + '.config.ledg'))
@@ -4647,7 +4679,7 @@ async function index() {
 
   report_set_modifiers(args);
   let cmd = CMD_LIST[(args.flags.help || args.flags.H || args.flags.h) ? 'help' : 'accounts'];
-  
+
   if (args._[0]) {
     let matches = Object.keys(CMD_LIST).filter(x => x.indexOf(args._[0]) == 0).sort();
     if (matches.length == 0) {
@@ -4658,7 +4690,7 @@ async function index() {
       process.exit(1);
     }
   }
-  
+
   if (cmd) {
     args._.splice(0,1);
     let c = await cmd(args);
@@ -4688,6 +4720,12 @@ if (require.main === module && typeof TEST == "undefined") {
   });
   stdin_it = stdin_rl[Symbol.asyncIterator]();
   stdin_rl.pause();
+  stdin_rl.on("SIGINT", function () {
+    process.emit("SIGINT");
+  });
+  process.on("SIGINT", function () {
+    process.exit(1);
+  });
   index();
 } else {
     // console.log('required as a module');
