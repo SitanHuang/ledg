@@ -1290,13 +1290,13 @@ var Big;
  
 function tag_add(entry, tag) {
   entry.tags = new Set(entry.tags ? entry.tags.toString().split(",") : undefined);
-  entry.tags.add(tag);
+  entry.tags.add(tag.toUpperCase());
   entry.tags = Array.from(entry.tags).sort().join(",");
 }
 
 function tag_remove(entry, tag) {
   entry.tags = new Set(entry.tags ? entry.tags.toString().split(",") : undefined);
-  entry.tags.delete(tag);
+  entry.tags.delete(tag.toUpperCase());
   if (entry.tags.size)
     entry.tags = Array.from(new Set(entry.tags)).sort().join(",");
   else
@@ -2323,6 +2323,14 @@ function tabulate(data, opts) {
   Object.assign(def, opts);
   opts = def;
   
+  if (cli_args.flags.csv || (opts && opts.csv)) {
+    let width = data[0].length;
+    return data.map(row => Array(width).fill('').map((x, i) => {
+      let col = row[i] || '';
+      return '"' + strip_ansi((typeof col == 'object' && col.length) ? col[0].toString() : col.toString()).trim().replace(/\"/g, "\"\"") + '"';
+    }).join(",")).join("\n");
+  }
+  
   if (opts.firstRowIsHeader) data[0].header = true;
   
   let _longestWidths = Array.from(opts.minWidths);
@@ -2553,6 +2561,8 @@ function _print_accountTree_subtree(pre, t, data, c3_col=[]) {
 }
 
 async function cmd_budget(args) {
+  let budgetNames = Object.keys(data.budgets);
+  
   if (args._.indexOf('edit') >= 0) {
     let path = fs_book_name + '.budgets.ledg';
     let EDITOR = process.env.EDITOR || 'vim';
@@ -2563,10 +2573,17 @@ async function cmd_budget(args) {
       stdio: 'inherit'
     });
     return;
+  } else if (args._.indexOf('list') >= 0) {
+    let table = [['#', 'Budget']];
+    let i = 0;
+    for (let b of budgetNames) {
+      table.push([++i, b]);
+    }
+    console.log('\n' + tabulate(table));
+    return;
   }
 
   let mpart = args._.indexOf('partition') >= 0 || args._.indexOf('disk') >= 0;
-  let budgetNames = Object.keys(data.budgets);
   if (!budgetNames.length) {
     console.log(`Please create at least one budget at ${fs_book_name}.budgets.ledg`);
     return 1;
@@ -3634,7 +3651,7 @@ async function cmd_help() {
 \t\t\tdisplays entries row by row rather than expanding individual transfers
 
 \tadd [--date=yyyy-mm-dd] [-y] [description] [yyyy-mm-dd] < <account filter>
-\t\t  [account description] <amount> [, ...]>
+\t\t  [account description] <amount> [, ...]> [+TAG ...]
 \t\tpush entry to book
 \t\tNote: The last account transfer set can leave empty amount, and ledg will calculate it.
 \t\t  ex: "ledg add cash withdrawal from bank ast..cash 100 ast..BoA.chking"
@@ -3650,23 +3667,27 @@ async function cmd_help() {
 \t\t\tdefaults most confirmations to yes (unless ledg prompts a list to choose)
 
 \tmodify <filter> [--date=yyyy-mm-dd] [--add-tag=A,B,C] [-remove-tag=A,B,C]
-\t       [--set-mod=A:123,B:123] [--remove-mod=C,D,E] [-y] [description]
+\t       [--set-mod=A:123,B:123] [--remove-mod=C,D,E] [-y] [description] [+TAG ...]
 \t       [yyyy-mm-dd] [ <account filter> [account description] <amount> [, ...]]
 \t\tbatch modify entries, see more in "add" section
 \t\taccount query is not supported
+\t\tNote: using +TAG replaces everything. If only a new tag is needed, use --add-tag
 
 \tdelete [ <filter> ] [-y]
 \t\tbatch delete entries
 \t\t-y
 \t\t\tdefaults confirmations to yes
 
-\tbudget [--budget=NAME] [--do-not-adjust] [edit]
+\tbudget [--budget=NAME] [--do-not-adjust] [edit|list]
 \t\tprints report for the selected budget
 \t\tNote: report excludes entries with bookClose:"true"
 \t\t      budgets can be edited at FILE.budgets.ledg
 
 \t\tedit
 \t\t\topens system editor for FILE.budgets.ledg
+
+\t\tlist
+\t\t\tlists all budget names in FILE.budgets.ledg
 
 \t\tExample book.budgets.ledg:
 \t\t~ Vacation Budget 2021
@@ -3755,7 +3776,9 @@ async function cmd_add(args, modifyMode=false) {
         console.log(`${ESC}[1AChoose one: ${c.green(accs[ans])}`);
         currentTransfer[1] = accs[ans];
       }
-    }  else {
+    } else if (v.startsWith("+")) {
+      tag_add(opts, v.substring(1));
+    } else {
       if (currentTransfer) // transfer description
         currentTransfer[0] = (currentTransfer[0] + ' ' + _[i].trim()).trim();
       else // entry description
@@ -4657,6 +4680,8 @@ var CMD_LIST = {
 };
 const DEFAULT_COMMAND = 'version';
 
+var cli_args = { _: [], modifiers: {}, flags: {} };
+
 async function index() {
   fs_book_name = process.env["LEDG_BOOK"] || fs_book_name;
   let argv = process.argv;
@@ -4665,7 +4690,7 @@ async function index() {
     argv = content.replace(/\r/g, '').split("\n").concat(argv.slice(2));
   }
 
-  var args = argsparser(argv);
+  cli_args = args = argsparser(argv);
   fs_book_name = args.flags.F || args.flags.file || fs_book_name;
 
   await fs_get_data_range();

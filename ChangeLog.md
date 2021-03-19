@@ -1,15 +1,18 @@
  
 # Changelog
-## [Unreleased]
-### Roadmap to 0.5.0
+### Roadmap to 0.6.0
 - line chart for income/expense/profit, asset/liability/net worth
 - burndown graphs
 
+## [Unreleased 0.5.0]
 ### Added
-- @last-year in date modifiers
 - ledg history \<filter\> \<account filter 1\>  \<account filter 2\>
 - add --sum option to accounts command
 - add --cumulative, --cumulative-columns=1,2,3... to history command
+- +TAG syntax to add and modify commands
+- budget list
+- tabular.js now prints csv tables (allows future csv exports)
+  - --csv forces all tables to be in csv
 
 ### Changed
 - SIGINT no longer produces error
