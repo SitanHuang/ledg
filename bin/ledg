@@ -234,6 +234,36 @@ function entry_check_balance(transfers) {
   }
   return -balance.toNumber();
 }
+/*
+The MIT License (MIT)
+=====================
+
+Copyright © `<2020>` `Michael Mclaughlin`
+
+Permission is hereby granted, free of charge, to any person
+obtaining a copy of this software and associated documentation
+files (the “Software”), to deal in the Software without
+restriction, including without limitation the rights to use,
+copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
+
+
+*/
+
 var Big;
 (function (GLOBAL) {
   //var Big,
@@ -1671,9 +1701,9 @@ var cmd_report_modifiers = {
 var cmd_report_accounts = {
   income: 'Income*',
   expense: 'Expense*',
-  equity: 'Equity*',
   asset: 'Asset*',
-  liability: 'Liability*'
+  liability: 'Liability*',
+  equity: 'Equity*'
 };
 
 var cmd_report_accounts_compiled = {};
@@ -1696,12 +1726,29 @@ function report_set_modifiers(args) {
   });
 }
 
+function report_get_reporting_interval(args) {
+  // adds to new Date(y, m, d)
+  // default: monthly
+  let def = [0, 1, 0];
+
+  if (args.flags.yearly) def = [1, 0, 0];
+  else if (args.flags.quarterly) def = [0, 3, 0];
+  else if (args.flags.monthly) def = [0, 1, 0];
+  else if (args.flags.biweekly) def = [0, 0, 14];
+  else if (args.flags.weekly) def = [0, 0, 7];
+  else if (args.flags.daily) def = [0, 0, 1];
+
+  return def;
+}
+
 function report_extract_account(args) {
   args.accounts = args.accounts || [];
+  args.accountSrc = args.accountSrc || [];
   let v = args._;
   for (let i = 0;i < v.length;i++) {
     if (isArgAccount(v[i])) {
       args.accounts.push(fzy_compile(v[i]));
+      args.accountSrc.push(v[i]);
       v.splice(i, 1);
       i--;
     }
@@ -1714,9 +1761,15 @@ var CMD_MODIFER_REPLACE = {
   "@max": () => (fs_data_range.length ? Date.parse((fs_data_range[fs_data_range.length - 1] + 1) + '-01-01T00:00:00') : new Date(new Date().getFullYear() + 1, 0, 1) - 1000) / 1000 | 0,
   "@year-end": () => new Date(new Date().getFullYear() + 1, 0, 1) / 1000 | 0,
   "@month-start": () => new Date(new Date().getFullYear(), new Date().getMonth(), 1) / 1000 | 0,
-  "@month-end": () => new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0) / 1000 | 0,
+  "@month-end": () => new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1) / 1000 | 0,
   "@today": () => new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate(), 0, 0, 0, 0) / 1000 | 0,
   "@tomorrow": () => new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate() + 1, 0, 0, 0, 0) / 1000 | 0,
+  "@last-year-today": () => {
+    let a = new Date();
+    a.setFullYear(a.getFullYear() - 1);
+    return a / 1000 | 0;
+  },
+  "@last-year": () => new Date(new Date().getFullYear() - 1, 0, 1) / 1000 | 0
 };
 
 /*
@@ -2415,6 +2468,25 @@ function print_progress_bar(a, b, x, opts) {
   
   return str;
 }
+
+const print_monthNames = ["January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"
+  ];
+const print_quarterNames = ["First", "Second", "Third", "Fourth"];
+function print_full_month(m) {
+  return print_monthNames[m];
+}
+
+function print_full_quarter(m) {
+  return print_quarterNames[m / 3 | 0];
+}
+
+function pring_week(d) {
+  var onejan = new Date(d.getFullYear(),0,1);
+  var today = new Date(d.getFullYear(),d.getMonth(),d.getDate());
+  var dayOfYear = ((today - onejan + 86400000)/86400000);
+  return Math.ceil(dayOfYear/7)
+};
 var tree_c0 = "├";
 var tree_c1 = "─";
 var tree_c2 = "└";
@@ -3242,6 +3314,169 @@ async function cmd_delete(args) {
   
   console.log(`${targetEntries.length} entries are affected.`);
 } 
+
+async function cmd_history(args) {
+  args.flags['skip-book-close'] = true;
+
+  let int = report_get_reporting_interval(args);
+  let showDays = true;
+  let showMonth = true;
+  let showWeeks = int[2] >= 7 && int[2] % 7 == 0;
+  let showQuarter = int[1] >= 3 && int[1] % 3 == 0;
+
+  if (int[2] > 0 && int[2] < 7) {
+    cmd_report_modifiers.from = '@month-start';
+    cmd_report_modifiers.to = '@tomorrow';
+  } else if (showWeeks) {
+    cmd_report_modifiers.from = '@year-start';
+    cmd_report_modifiers.to = '@month-end';
+  } else {
+    cmd_report_modifiers.from = '@last-year';
+    cmd_report_modifiers.to = '@month-end';
+  }
+  report_set_modifiers(args);
+  report_set_accounts(args);
+  report_compile_account_regex();
+
+  args.modifiers.from = cmd_report_modifiers.from;
+  args.modifiers.to = cmd_report_modifiers.to;
+
+  let strF = report_replaceDateStr(args.modifiers.from);
+  let strT = report_replaceDateStr(args.modifiers.to);
+  let from = Date.parse(strF + 'T00:00:00');
+  let to = Date.parse(strT + 'T00:00:00');
+
+  let dateFunctions = [];
+
+  let crntD = new Date(from);
+  while (crntD < to) {
+    let a = crntD.getTime() / 1000 | 0;
+    crntD.setFullYear(crntD.getFullYear() + int[0]);
+    crntD.setMonth(crntD.getMonth() + int[1]);
+    crntD.setDate(crntD.getDate() + int[2]);
+    let b = Math.min(crntD.getTime(), to) / 1000 | 0;
+    dateFunctions.push(t => t >= a && t < b);
+  }
+
+  report_extract_account(args);
+
+  let accounts = args.accounts.length ?
+                   [...args.accounts.map((x, i) => { return { q: x, name: args.accountSrc[i], sum: new Big(0), val: Array(dateFunctions.length).fill(new Big(0)) } })] :
+                   [...Object.keys(cmd_report_accounts).map(x => { return { name: x, q: cmd_report_accounts_compiled[x], sum: new Big(0), val: Array(dateFunctions.length).fill(new Big(0)) } })];
+
+  delete args.accounts; // so report_traverse don't handle accounts
+
+  await report_traverse(args, async function (entry) {
+    let i = 0;
+    let matched = false;
+    for (;i < dateFunctions.length;i++) {
+      if (dateFunctions[i](entry.time)) {
+        matched = true;
+        break;
+      }
+    }
+    if (!matched) return; // outside date range
+    for (let acc of accounts) {
+      let q = acc.q;
+
+      for (let t of entry.transfers) {
+        if (t[1].match(q)) {
+          acc.val[i] = acc.val[i].plus(t[2]);
+          acc.sum = acc.sum.plus(t[2]);
+        }
+      }
+    }
+  });
+
+  let table = [['Year']];
+  let align = [TAB_ALIGN_RIGHT];
+  if (showQuarter) { table[0].push('Quarter'); align.push(TAB_ALIGN_LEFT) }
+  if (showMonth) { table[0].push('Month'); align.push(TAB_ALIGN_LEFT) }
+  if (showWeeks) { table[0].push('Week'); align.push(TAB_ALIGN_RIGHT) }
+  if (showDays) { table[0].push('Day');  align.push(TAB_ALIGN_RIGHT)}
+  let tab_left_length = table[0].length;
+  accounts.forEach(x => {
+    table[0].push(x.name[0].toUpperCase() + x.name.substring(1));
+    align.push(TAB_ALIGN_RIGHT);
+    x.val = x.val.map(v => v.toNumber());
+  });
+
+  crntD = new Date(from);
+  let last = [];
+  while (crntD < to) {
+    let r = table.length - 1;
+    let row = [crntD.getFullYear().toString()];
+    if (showQuarter) row.push(print_full_quarter(crntD.getMonth()));
+    if (showMonth) row.push(print_full_month(crntD.getMonth()));
+    if (showWeeks) row.push(pring_week(crntD));
+    if (showDays) row.push(crntD.getDate());
+
+    if (r == dateFunctions.length - 1) { // last entry
+      row[row.length - 1] = '≥ ' + row[row.length - 1];
+    }
+
+    let current = Array.from(row);
+    let lastChanged = false;
+    for (let i = 0;i < row.length;i++) {
+      if (table[0][i] == 'Day') continue;
+      if (!lastChanged && (current[i] == last[i])) row[i] = '';
+      else if (current[i] != last[i]) lastChanged = true;
+    }
+
+    for (let acc of accounts) {
+      let v = acc.val[r];
+
+      let vs;
+
+      if (acc.q == cmd_report_accounts_compiled.income || acc.q == cmd_report_accounts_compiled.expense) {
+        v = -v
+      }
+      vs = print_format_money(v);
+      vs = [print_color_money(v), vs.length];
+
+      row.push(vs);
+    }
+
+    last = current;
+    crntD.setFullYear(crntD.getFullYear() + int[0]);
+    crntD.setMonth(crntD.getMonth() + int[1]);
+    crntD.setDate(crntD.getDate() + int[2]);
+    table.push(row);
+  }
+
+  table.push([]);
+  let avg = [];
+  let rowL = table[table.length - 2].length;
+  for (let i = 0;i < rowL;i++) {
+    let j = i - (rowL - accounts.length);
+    if (j < -1) {
+      avg.push('');
+    } else if (j == -1) {
+      avg.push('Avg');
+    } else {
+      let acc = accounts[j];
+      let v = Math.round(acc.sum.div(dateFunctions.length).toNumber() * 100) / 100 | 0;
+
+      let vs;
+
+      if (acc.q == cmd_report_accounts_compiled.income || acc.q == cmd_report_accounts_compiled.expense) {
+        v = -v
+      }
+      vs = print_format_money(v);
+      vs = [print_color_money(v), vs.length];
+
+      avg.push(vs);
+    }
+  }
+  table.push(avg);
+
+
+  console.log(`Reporting from ${c.bold(strF)} to ${c.bold(strT)}\n`);
+
+  console.log(tabulate(table, {
+    align: align
+  }));
+}
 async function cmd_version() {
   console.log(c.bold('ledg - version 0.4.0') + ' built for cli');
 }
@@ -3286,6 +3521,7 @@ async function cmd_help() {
 \t\tlimit entries before this date(exclusive)
 
 \t@min, @max, @year-start, @year-end, @tomorrow, @today, @month-start, @month-end
+\t@last-year-today, @last-year
 \t\tused in conjunction with from: and to:
 \t\tex: "ledg info from:@min to:@max" queries everything in the book
 
@@ -3295,7 +3531,8 @@ async function cmd_help() {
 \t\t    tag:"pc|tablet"
 
 \taccount filter
-\t\taccounts in ledg follow this format: name[.name...], and name can ONLY contain letters and numbers, and MUST contain at least one letter
+\t\taccounts in ledg follow this format: name[.name...], and name can
+\t\tONLY contain letters and numbers, and MUST contain at least one letter
 
 \t\tledg support fuzzy search of account names
 \t\t\tex: ..cash =~ Account.Current.Cash
@@ -3306,7 +3543,8 @@ async function cmd_help() {
 \t\t\t    exp. =~ Expense.*
 \t\t\t* - matches any character
 \t\t\t. - matches . literally
-\t\t\t    anything in between dots matches any segments of account names that contains the letters in that order
+\t\t\t    anything in between dots matches any segments of account names that
+\t\t\tcontains the letters in that order
 \t\t\t    ex: .csh. matches *\\.[^.]*c[^.]*s[^.]*h[^.]*\\.* in regex
 
 
@@ -3323,6 +3561,12 @@ async function cmd_help() {
 \taccounts add <full account name>
 \t\tcreate new account and write to FILE.config.ledg
 
+\thistory [--daily] [--weekly] [--biweekly] [--monthly] [--quarterly]
+\t        [--yearly] [ <account filter 1> <account filter 2> ... ]
+\t\tDefaults: shows accounts specified by --income, --expense, --asset, --liability,
+\t\t          and --equity
+\t\tprints multicolumn time by selected interval
+
 \taccounts rename <source> <dist> [ <filter> ]
 \t\tmodifies entries by replacing account source with dist
 \t\t-y
@@ -3330,7 +3574,8 @@ async function cmd_help() {
 
 \taccounts [--sum-parent] [--hide-zero] [--max-depth=NUM] [ <filter> ] [tree]
 \t\tsums balances in selected accounts
-\t\tdue to the need to sum entries from the beginning of a book, from: modifier is defaulted to @min
+\t\tDue to the need to sum entries from the beginning of a book, from: modifier is
+\t\tdefaulted to @min.
 
 \t\t--sum-parent
 \t\t\tallows child account balances to add to parent accounts
@@ -3347,10 +3592,12 @@ async function cmd_help() {
 \t\tflat
 \t\t\tdisplays entries row by row rather than expanding individual transfers
 
-\tadd [--date=yyyy-mm-dd] [-y] [description] [yyyy-mm-dd] < <account filter> [account description] <amount> [, ...]>
+\tadd [--date=yyyy-mm-dd] [-y] [description] [yyyy-mm-dd] < <account filter>
+\t\t  [account description] <amount> [, ...]>
 \t\tpush entry to book
 \t\tNote: The last account transfer set can leave empty amount, and ledg will calculate it.
-\t\t  ex: "ledg add cash withdrawal from bank ast..cash 100 ast..BoA.chking" will leave Asset.Current.BankOfAmerica.Checking with -100 balance
+\t\t  ex: "ledg add cash withdrawal from bank ast..cash 100 ast..BoA.chking"
+\t\t      will leave Asset.Current.BankOfAmerica.Checking with -100 balance
 
 \t\t<account filter>
 \t\t\t(see FILTER section)
@@ -3361,8 +3608,9 @@ async function cmd_help() {
 \t\t-y
 \t\t\tdefaults most confirmations to yes (unless ledg prompts a list to choose)
 
-\tmodify <filter> [--date=yyyy-mm-dd] [--add-tag=A,B,C] [-remove-tag=A,B,C] [--set-mod=A:123,B:123] [--remove-mod=C,D,E]
-         [-y] [description] [yyyy-mm-dd] [ <account filter> [account description] <amount> [, ...]]
+\tmodify <filter> [--date=yyyy-mm-dd] [--add-tag=A,B,C] [-remove-tag=A,B,C]
+\t       [--set-mod=A:123,B:123] [--remove-mod=C,D,E] [-y] [description]
+\t       [yyyy-mm-dd] [ <account filter> [account description] <amount> [, ...]]
 \t\tbatch modify entries, see more in "add" section
 \t\taccount query is not supported
 
@@ -4006,6 +4254,30 @@ function getRealHueRange(colorHue) {
     }
   }
 }
+/*
+The MIT License (MIT)
+
+Copyright (c) 2015-present, Brian Woodward.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+*/
+
 // from github ansi-colors
 // with slight modifications
 const isObject = val => val !== null && typeof val === 'object' && !Array.isArray(val);
@@ -4191,6 +4463,140 @@ const ansi_regex = (({onlyFirst = false} = {}) => {
 	return new RegExp(pattern, onlyFirst ? undefined : 'g');
 })();
 const strip_ansi = string => typeof string === 'string' ? string.replace(ansi_regex, '') : string;
+/*
+MIT License
+
+Copyright © 2016 Igor Kroitor
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+ 
+var asciichart = {};
+
+(function (exports) {
+
+    // control sequences for coloring
+
+    exports.black = "\x1b[30m"
+    exports.red = "\x1b[31m"
+    exports.green = "\x1b[32m"
+    exports.yellow = "\x1b[33m"
+    exports.blue = "\x1b[34m"
+    exports.magenta = "\x1b[35m"
+    exports.cyan = "\x1b[36m"
+    exports.lightgray = "\x1b[37m"
+    exports.default = "\x1b[39m"
+    exports.darkgray = "\x1b[90m"
+    exports.lightred = "\x1b[91m"
+    exports.lightgreen = "\x1b[92m"
+    exports.lightyellow = "\x1b[93m"
+    exports.lightblue = "\x1b[94m"
+    exports.lightmagenta = "\x1b[95m"
+    exports.lightcyan = "\x1b[96m"
+    exports.white = "\x1b[97m"
+    exports.reset = "\x1b[0m"
+
+    function colored (char, color) {
+        // do not color it if color is not specified
+        return (color === undefined) ? char : (color + char + exports.reset)
+    }
+
+    exports.colored = colored
+
+    exports.plot = function (series, cfg = undefined) {
+        // this function takes both one array and array of arrays
+        // if an array of numbers is passed it is transformed to
+        // an array of exactly one array with numbers
+        if (typeof(series[0]) == "number"){
+            series = [series]
+        }
+
+        cfg = (typeof cfg !== 'undefined') ? cfg : {}
+
+        let min = (typeof cfg.min !== 'undefined') ? cfg.min : series[0][0]
+        let max = (typeof cfg.max !== 'undefined') ? cfg.max : series[0][0]
+
+        for (let j = 0; j < series.length; j++) {
+            for (let i = 0; i < series[j].length; i++) {
+                min = Math.min(min, series[j][i])
+                max = Math.max(max, series[j][i])
+            }
+        }
+
+        let defaultSymbols = [ '┼', '┤', '╶', '╴', '─', '╰', '╭', '╮', '╯', '│' ]
+        let range   = Math.abs (max - min)
+        let offset  = (typeof cfg.offset  !== 'undefined') ? cfg.offset  : 3
+        let padding = (typeof cfg.padding !== 'undefined') ? cfg.padding : '           '
+        let height  = (typeof cfg.height  !== 'undefined') ? cfg.height  : range
+        let colors  = (typeof cfg.colors !== 'undefined') ? cfg.colors : []
+        let ratio   = range !== 0 ? height / range : 1;
+        let min2    = Math.round (min * ratio)
+        let max2    = Math.round (max * ratio)
+        let rows    = Math.abs (max2 - min2)
+        let width = 0
+        for (let i = 0; i < series.length; i++) {
+            width = Math.max(width, series[i].length)
+        }
+        width = width + offset
+        let symbols = (typeof cfg.symbols !== 'undefined') ? cfg.symbols : defaultSymbols
+        let format  = (typeof cfg.format !== 'undefined') ? cfg.format : function (x) {
+            return (padding + x.toFixed (2)).slice (-padding.length)
+        }
+
+        let result = new Array (rows + 1) // empty space
+        for (let i = 0; i <= rows; i++) {
+            result[i] = new Array (width)
+            for (let j = 0; j < width; j++) {
+                result[i][j] = ' '
+            }
+        }
+        for (let y = min2; y <= max2; ++y) { // axis + labels
+            let label = format (rows > 0 ? max - (y - min2) * range / rows : y, y - min2)
+            result[y - min2][Math.max (offset - label.length, 0)] = label
+            result[y - min2][offset - 1] = (y == 0) ? symbols[0] : symbols[1]
+        }
+
+        for (let j = 0; j < series.length; j++) {
+            let currentColor = colors[j % colors.length]
+            let y0 = Math.round (series[j][0] * ratio) - min2
+            result[rows - y0][offset - 1] = colored(symbols[0], currentColor) // first value
+
+            for (let x = 0; x < series[j].length - 1; x++) { // plot the line
+                let y0 = Math.round (series[j][x + 0] * ratio) - min2
+                let y1 = Math.round (series[j][x + 1] * ratio) - min2
+                if (y0 == y1) {
+                    result[rows - y0][x + offset] = colored(symbols[4], currentColor)
+                } else {
+                    result[rows - y1][x + offset] = colored((y0 > y1) ? symbols[5] : symbols[6], currentColor)
+                    result[rows - y0][x + offset] = colored((y0 > y1) ? symbols[7] : symbols[8], currentColor)
+                    let from = Math.min (y0, y1)
+                    let to = Math.max (y0, y1)
+                    for (let y = from + 1; y < to; y++) {
+                        result[rows - y][x + offset] = colored(symbols[9], currentColor)
+                    }
+                }
+            }
+        }
+        return result.map (function (x) { return x.join ('') }).join ('\n')
+    }
+
+}) (asciichart);
 var CMD_LIST = {
   'version': cmd_version,
   'help': cmd_help,
@@ -4204,6 +4610,7 @@ var CMD_LIST = {
   'info': cmd_info,
   'accounts': cmd_accounts,
   'budget': cmd_budget,
+  'history': cmd_history,
   
   'git': cmd_git
 };
