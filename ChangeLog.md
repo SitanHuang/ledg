@@ -8,6 +8,7 @@
 ### Added
 - @last-year in date modifiers
 - ledg history \<filter\> \<account filter 1\>  \<account filter 2\>
+- add --sum option to accounts command
 
 ### Fixed
 - budgets don't add up to parent accounts
