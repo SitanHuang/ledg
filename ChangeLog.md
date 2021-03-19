@@ -3,6 +3,11 @@
 ## [Unreleased]
 ### Roadmap to 0.5.0
 - line chart for income/expense/profit, asset/liability/net worth
+- burndown graphs
+
+### Added
+- @last-year in date modifiers
+- ledg history \<filter\> \<account filter 1\>  \<account filter 2\>
 
 ### Fixed
 - budgets don't add up to parent accounts
@@ -12,6 +17,7 @@
 ### Added
 - ledg budget (tracker and account based budgeting)
 - ledg budget edit to bring up system editor for budgets.ledg file
+- added @last-year-today, @last-year
 
 ### Changed
 - ledg now saves config in with human readable format JSON
