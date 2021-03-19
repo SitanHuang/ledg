@@ -9,6 +9,11 @@
 - @last-year in date modifiers
 - ledg history \<filter\> \<account filter 1\>  \<account filter 2\>
 - add --sum option to accounts command
+- add --cumulative, --cumulative-columns=1,2,3... to history command
+
+### Changed
+- SIGINT no longer produces error
+- account tree no longer defaults to sum-parent
 
 ### Fixed
 - budgets don't add up to parent accounts
