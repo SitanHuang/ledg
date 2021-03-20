@@ -3369,7 +3369,6 @@ async function cmd_delete(args) {
 }
 
 async function cmd_history(args) {
-  console.log(args.flags)
   if (args.flags['skip-book-close'] !== false)
     args.flags['skip-book-close'] = true;
 
@@ -3554,7 +3553,7 @@ async function cmd_history(args) {
   }));
 }
 async function cmd_version() {
-  console.log(c.bold('ledg - version 0.4.0') + ' built for cli');
+  console.log(c.bold('ledg - version 0.5.0') + ' built for cli');
 }
 
 async function cmd_help() {
@@ -3645,9 +3644,10 @@ async function cmd_help() {
 
 \thistory [--daily] [--weekly] [--biweekly] [--monthly] [--quarterly]
 \t        [--yearly] [--cumulative] [--cumulative-columns=num list]
+\t        [--skip-book-close=true]
 \t        [ <account filter 1> <account filter 2> ... ]
 \t\tDefaults: shows accounts specified by --income, --expense, --asset, --liability,
-\t\t          and --equity
+\t\t          and --equity, and defaults --skip-book-close=true
 \t\tprints multicolumn time by selected interval
 \t\tNote: even with cumulative columns, history command does not sum everything from
 \t\t@min, and so unless from:@min is given, asset/liability calculation is not accurate
