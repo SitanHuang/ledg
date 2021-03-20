@@ -7,9 +7,11 @@
 ## [Unreleased 0.5.0]
 ### Added
 - ledg history \<filter\> \<account filter 1\>  \<account filter 2\>
+- argparser recognizes 8 character uuid and appends it to uuid: modifier
 - add --sum option to accounts command
 - add --cumulative, --cumulative-columns=1,2,3... to history command
-- +TAG syntax to add and modify commands
+- +TAG syntax to add and modify commands, for modifying tags
+- +TAG syntax to add and modify commands, for querying with tags
 - budget list
 - tabular.js now prints csv tables (allows future csv exports)
   - --csv forces all tables to be in csv

@@ -1755,6 +1755,21 @@ function report_extract_account(args) {
   }
 }
 
+function report_extract_tags(args) {
+  if (args.modifiers.tags) return;
+  let tags = [];
+  let v = args._;
+  for (let i = 0;i < v.length;i++) {
+    if (v[i].startsWith('+') && v[i].length > 1) {
+      tags.push(v[i].substring(1));
+      v.splice(i, 1);
+      i--;
+    }
+  }
+  if (!tags.length) return;
+  args.modifiers.tags = tags.join("(,|$)|") + "(,|$)";
+}
+
 var CMD_MODIFER_REPLACE = {
   "@year-start": () => new Date(new Date().getFullYear(), 0, 1) / 1000 | 0,
   "@min": () => fs_data_range.length ? (Date.parse(fs_data_range[0] + '-01-01T00:00:00') / 1000 | 0) : 0,
@@ -2130,16 +2145,20 @@ function fs_serialize_entry(entry) {
 var fs_book_name = 'book'; // ex: book.2019.ledg, book.ledg, book.budget.ledg
 function argsparser(_args) {
   let args = { _:[], flags: {}, modifiers: {} };
-  
+
+  let uuids = [];
+
   let bypass = false;
   for (let i = 0;i < _args.length;i++) {
     let arg = _args[i];
-    
+
     if (arg == '--') { bypass = true; continue; }
     if (bypass) { args._.push(arg); continue; }
-    
+
     let match;
-    if (match = arg.match(/^-([a-zA-Z])(.+)$/)) {
+    if (match = arg.match(/^[a-z0-9]{8}$/i)) {
+      uuids.push(arg);
+    } else if (match = arg.match(/^-([a-zA-Z])(.+)$/)) {
       args.flags[match[1]] = match[2];
     } else if (match = arg.match(/^--?([^=]+)(=(.*))?$/)) {
       let key = match[1];
@@ -2158,6 +2177,7 @@ function argsparser(_args) {
       args._.push(arg)
     }
   }
+  if (uuids.length) args.modifiers['uuid'] = args.modifiers.uuid || uuids.join("|");
   args._ = args._.filter(x => x.length);
   return args;
 }
@@ -2562,7 +2582,7 @@ function _print_accountTree_subtree(pre, t, data, c3_col=[]) {
 
 async function cmd_budget(args) {
   let budgetNames = Object.keys(data.budgets);
-  
+
   if (args._.indexOf('edit') >= 0) {
     let path = fs_book_name + '.budgets.ledg';
     let EDITOR = process.env.EDITOR || 'vim';
@@ -2704,6 +2724,7 @@ async function cmd_budget(args) {
 
     let args2 = argsparser(track.q.split(" "));
     report_extract_account(args2);
+    report_extract_tags(args2);
 
     let total = new Big(0);
 
@@ -2765,6 +2786,7 @@ async function cmd_budget(args) {
   // ==============================================
 
   report_extract_account(args);
+  report_extract_tags(args);
 
 
   let forkedBudgets = {};
@@ -2980,6 +3002,7 @@ async function cmd_accounts(args) {
   }
 
   report_extract_account(args);
+  report_extract_tags(args);
   let balanceData = await report_sum_accounts(args, sumParent);
   let accounts = Object.keys(balanceData);
 
@@ -3025,7 +3048,7 @@ async function cmd_accounts(args) {
   if (args.flags.sum) console.log(c.bold(`${print_pad_right('Sum', width)} ${print_pad_left(print_format_money(sum), width2, print_format_money(sum).length)}`));
   console.log("");
 }
- 
+
 async function cmd_info(args) {
   if (Object.keys(args.modifiers).length == 0) {
     args.modifiers.from = '@month-start';
@@ -3035,32 +3058,33 @@ async function cmd_info(args) {
     args.modifiers.from = args.modifiers.from || '@min';
     args.modifiers.to = args.modifiers.to || '@max';
   }
-  
+
   let flat = args._[0] == 'flat';
-  
+
   report_set_modifiers(args);
   report_extract_account(args);
-  
+  report_extract_tags(args);
+
   let entries = [];
   await report_traverse(args, async function(entry) {
     entries.push(entry);
   });
   entries = entries.sort((a, b) => a.time - b.time);
-  
+
   if (flat) {
     report_set_accounts(args);
     report_compile_account_regex();
-    
+
     let data = [['Date', 'UUID', 'Description', 'Account', 'Amount']];
     let align = [TAB_ALIGN_LEFT, TAB_ALIGN_LEFT, TAB_ALIGN_LEFT, TAB_ALIGN_RIGHT, TAB_ALIGN_RIGHT];
-    
+
     let colorFuncs = [x => c.cyanBright(x),
                       x => c.cyan(x),
                       x => c.whiteBright(x),
                       x => c.yellowBright(x),
                       undefined
                      ];
-    
+
     for (let e of entries) {
       let account;
       let desc = e.description + '        ';
@@ -3117,7 +3141,7 @@ async function cmd_info(args) {
       } else if (!amount.length) {
         amount = [print_color_money(amount), print_format_money(amount).length];
       }
-      
+
       data.push([
         entry_datestr(e),
         e.uuid,
@@ -3126,37 +3150,38 @@ async function cmd_info(args) {
         amount
       ]);
     }
-    
+
     console.log(tabulate(data, {colorizeColCallback: colorFuncs, align: align}) + '\n');
   } else {
     let maxWidth = print_max_width_from_entries(entries);
-    for (let e of entries) {    
+    for (let e of entries) {
       console.log(print_entry_ascii(e, maxWidth));
     }
   }
 }
- 
+
 async function cmd_edit(args) {
   args.modifiers.from = args.modifiers.from || '@min';
   args.modifiers.to = args.modifiers.to || '@max';
-  
+
   report_set_modifiers(args);
   report_extract_account(args);
-  
+  report_extract_tags(args);
+
   let content = '';
-  
+
   if (args._[0] != 'new') {
     await report_traverse(args, async function(entry) {
       content += fs_serialize_entry(entry) + '\n';
     });
   }
-  
+
   let path = fs_get_book_directory() + '/~temp.edit.ledg';
   fs.writeFileSync(path, content);
-  
+
   let EDITOR = process.env.EDITOR || 'vim';
   let args2 = EDITOR == 'vim' ? ['+autocmd BufRead,BufNewFile *.*.ledg setlocal ts=55 sw=55 expandtab! softtabstop=-1 nowrap listchars="tab:→\ ,nbsp:␣,trail:•,extends:⟩,precedes:⟨" list noautoindent nocindent nosmartindent indentexpr=', path] : [path];
-  
+
   const ls = require('child_process').spawn(process.env.EDITOR || 'vim', args2, {
     cwd: fs_get_book_directory(),
     stdio: 'inherit'
@@ -3165,20 +3190,20 @@ async function cmd_edit(args) {
   ls.on('error', (error) => {
     console.log(`error: ${error.message}`);
   });
-  
+
   async function callback(code) {
     content = fs.readFileSync(path).toString();
     fs.unlinkSync(path);
-    
+
     if (code != 0) {
       console.log(`error: editor returned with code ${code}`);
       process.exit(code);
       return;
     }
-    
+
     let newEntries = 0;
     let affectedEntries = 0;
-    
+
     let entries = fs_read_entries_from_string(content);
     for (let entry of entries) {
       if (!(await data_modify_entry(entry))) { // new entry
@@ -3193,7 +3218,7 @@ async function cmd_edit(args) {
         }
       } else affectedEntries++;
     }
-    
+
     await fs_write_books();
     console.log(`Updated ${affectedEntries} entries and created ${newEntries} entries.`);
     process.exit(code);
@@ -3295,24 +3320,25 @@ async function cmd_delete(args) {
   args.modifiers.to = args.modifiers.to || '@max';
   report_set_modifiers(args);
   report_extract_account(args);
-  
+  report_extract_tags(args);
+
   let filteredEntries = [];
   await report_traverse(args, async function(entry) {
     filteredEntries.push(entry);
   });
-  
+
   if (!filteredEntries.length) {
     console.log('No such entries found.');
     return 1;
   }
-  
+
   let targetEntries = [];
   let skip = false;
-  
+
   for (let i = 0;i < filteredEntries.length;i++) {
     let e = filteredEntries[i];
     if (skip) { targetEntries.push(e); continue; }
-    
+
     process.stdout.write(`Delete "${print_entry_title(e)}" (y/n/all/enter to abort)? `);
     let ans = args.flags.y ? 'y' : (await readline_prompt()).toLowerCase();
     if (args.flags.y) console.log('y');
@@ -3334,13 +3360,13 @@ async function cmd_delete(args) {
         return 1;
     }
   }
-  
+
   for (let e of targetEntries) {
     await data_remove_entry(e);
   }
-  
+
   console.log(`${targetEntries.length} entries are affected.`);
-} 
+}
 
 async function cmd_history(args) {
   args.flags['skip-book-close'] = true;
@@ -3386,6 +3412,7 @@ async function cmd_history(args) {
   }
 
   report_extract_account(args);
+  report_extract_tags(args);
 
   let accounts = args.accounts.length ?
                    [...args.accounts.map((x, i) => { return { q: x, name: args.accountSrc[i], sum: new Big(0), val: Array(dateFunctions.length).fill(new Big(0)) } })] :
@@ -3422,10 +3449,10 @@ async function cmd_history(args) {
   if (showWeeks) { table[0].push('Week'); align.push(TAB_ALIGN_RIGHT) }
   if (showDays) { table[0].push('Day');  align.push(TAB_ALIGN_RIGHT)}
   let tab_left_length = table[0].length;
-  
-  
+
+
   let cu_accounts = [];
-  
+
   if (typeof args.flags['cumulative-columns'] != 'undefined') {
     let sp = args.flags['cumulative-columns'].toString().split(',').map(x => parseInt(x));
     for (let n of sp) {
@@ -3576,6 +3603,12 @@ async function cmd_help() {
 \t\tqueries entries with modifiers that matches the regex
 \t\tex: payee:"amazon|steam"
 \t\t    tag:"pc|tablet"
+
+\t+TAG
+\t\tappends TAG(,|$) to tags: modifier, if tags: is empty
+
+\tuuid filter
+\t\tuuids can be filtered with the uuid:A|B|C syntax or directly putting uuids as arguments
 
 \taccount filter
 \t\taccounts in ledg follow this format: name[.name...], and name can
