@@ -11,7 +11,7 @@
 - add --sum option to accounts command
 - add --cumulative, --cumulative-columns=1,2,3... to history command
 - +TAG syntax to add and modify commands, for modifying tags
-- +TAG syntax to add and modify commands, for querying with tags
+- +TAG syntax to reporting commands, for querying with tags
 - budget list
 - tabular.js now prints csv tables (allows future csv exports)
   - --csv forces all tables to be in csv
