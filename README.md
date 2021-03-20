@@ -1,4 +1,26 @@
 
+## ledg
+This is a personal project aimed at creating a ledger-like cli accounting program, and one that I can customize according to my likings and workflow. It supports fancier reports than ledger and hledger in the cli; it is 25% faster than hledger when benchmarked for reading 10000 entries as it lacks a lot more features such as commodities and price search.
+
+The ledg file format is largely incompatible with other ledger-likes. It is though easy to switch back and forth by replacing tabs with spaces, etc. Ledg also supports descriptions in each transfer as opposed to one description per entry. The program manages the journal for you, and for most of the times one does not need to touch the text files.
+
+### Screenshots
+<img
+  src='assets/1.png'
+  alt='Screenshot'
+  width='600'
+/>
+<img
+  src='assets/2.png'
+  alt='Screenshot'
+  width='600'
+/>
+<img
+  src='assets/3.png'
+  alt='Screenshot'
+  width='600'
+/>
+
 ### Manual
 ```
 SYNOPSIS
@@ -67,7 +89,7 @@ FILTER
                         . - matches . literally
                             anything in between dots matches any segments of account names that
                         contains the letters in that order
-                            ex: .csh. matches \.[^.]c[^.]s[^.]h[^.]\. in regex
+                            ex: .csh. matches *\.[^.]*c[^.]*s[^.]*h[^.]*\.* in regex
 
 
 COMMANDS
