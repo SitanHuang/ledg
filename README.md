@@ -159,6 +159,12 @@ COMMANDS
                 Note: report excludes entries with bookClose:"true"
                       budgets can be edited at FILE.budgets.ledg
 
+                --do-not-adjust
+                        By default, if specified from: and to: have different range than the one in
+                        budget file, ledg will shrink/grow amounts correspondingly. For example,
+                        from:@month-start and to:@month-end on an annual budget will divide all amounts
+                        by 12. This option disables the feature.
+
                 edit
                         opens system editor for FILE.budgets.ledg
 
