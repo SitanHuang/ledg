@@ -3369,7 +3369,9 @@ async function cmd_delete(args) {
 }
 
 async function cmd_history(args) {
-  args.flags['skip-book-close'] = true;
+  console.log(args.flags)
+  if (args.flags['skip-book-close'] !== false)
+    args.flags['skip-book-close'] = true;
 
   let int = report_get_reporting_interval(args);
   let showDays = true;
