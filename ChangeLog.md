@@ -5,6 +5,9 @@
 - ledg count
 - ledg stats
 
+### Fixed
+- fixed ledg doesn't start without .ledgrc
+
 ## [0.5.0] 2021-03-20
 ### Added
 - ledg history \<filter\> \<account filter 1\>  \<account filter 2\>

@@ -4311,10 +4311,10 @@ var cli_args = { _: [], modifiers: {}, flags: {} };
 
 async function index() {
   fs_book_name = process.env["LEDG_BOOK"] || fs_book_name;
-  let argv = process.argv;
+  let argv = process.argv.slice(2);
   if (fs.existsSync(`${process.env.HOME}/.ledgrc`)) {
     let content = fs.readFileSync(`${process.env.HOME}/.ledgrc`).toString();
-    argv = content.replace(/\r/g, '').split("\n").concat(argv.slice(2));
+    argv = content.replace(/\r/g, '').split("\n").concat(argv);
   }
 
   cli_args = args = argsparser(argv);
