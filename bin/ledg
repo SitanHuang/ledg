@@ -3159,6 +3159,56 @@ async function cmd_info(args) {
     }
   }
 }
+ 
+async function cmd_stats(args) {  
+  let range = await fs_get_data_range();
+  await data_open_books(range);
+  
+  let entries = 0;
+  let totalSize = 0;
+  
+  let table = [['Stat', 'Data']];
+  table.push(['File prefix',  fs_book_name]);
+  table.push([]);
+  
+  let accs = {};
+  
+  for (let y of range) {
+    let val = Object.values(data.books[y]).length;
+    entries += val;
+    let size = fs.statSync(`${fs_book_name}.${y}.ledg`).size / 1024;
+    totalSize += size;
+    size = Math.round(size * 100) / 100 + ' KiB';
+    table.push([y, `${val} entries (${size})`]);
+  }
+  
+  const countDots = (s) => {let m = s.match(/\./g); return m ? m.length + 1 : 1};
+  Object.keys(data.accounts).forEach(x => {
+    let l = countDots(x);
+    accs[l] = (accs[l] || 1) + 1;
+  });
+  
+  totalSize = Math.round(totalSize * 100) / 100 + ' KiB';
+  
+  table.push(['Total entries', entries + ` (${totalSize})`]);
+  table.push([]);
+  
+  Object.entries(accs).forEach(x => {
+    table.push([`Level ${x[0]} accounts`, x[1]]);
+  });
+  
+  table.push(['Total accounts', Object.keys(data.accounts).length]);
+  table.push([]);
+  
+  table.push(['Flags', Object.entries(args.flags).map(x => {
+    return (x[0].length == 1 ? '-' : '--') + x[0] + '=' + x[1]
+  }).join(", ")]);
+  table.push(['Modifiers', Object.entries(args.modifiers).map(x => x.join(":")).join(", ")]);
+  
+  
+  
+  console.log(tabulate(table));
+}
 
 async function cmd_edit(args) {
   args.modifiers.from = args.modifiers.from || '@min';
@@ -3552,6 +3602,23 @@ async function cmd_history(args) {
     align: align
   }));
 }
+async function cmd_count(args) {
+  args.modifiers.from = args.modifiers.from || '@min';
+  args.modifiers.to = args.modifiers.to || '@max';
+  
+  report_set_modifiers(args);
+  report_extract_account(args);
+  report_extract_tags(args);
+  report_set_accounts(args);
+  report_compile_account_regex();
+  
+  let count = 0;
+  await report_traverse(args, async function(entry) {
+    count++;
+  });
+  
+  console.log((count).toString());
+}
 async function cmd_version() {
   console.log(c.bold('ledg - version 0.5.0') + ' built for cli');
 }
@@ -3560,10 +3627,10 @@ async function cmd_help() {
   await cmd_version();
   console.log(
 `
-*SYNOPSIS*
-\t*ledg <command> [ <filter> ] [ <flags> ]*
+**SYNOPSIS**
+\t**ledg <command> [ <filter> ] [ <flags> ]**
 
-*FLAGS*
+**FLAGS**
 \tPresets of flags can be saved at ~/.ledgrc
 
 \t--file=FILE
@@ -3585,7 +3652,7 @@ async function cmd_help() {
 \t\tDefault: false
 \t\tSkips all entries with bookClose:"true" or bookClose:true
 
-*FILTER*
+**FILTER**
 \t[ modifiers ] [ account filter, ...]
 \ta set of arguments that filters entries
 
@@ -3629,7 +3696,7 @@ async function cmd_help() {
 \t\t\t    ex: .csh. matches *\\.[^.]*c[^.]*s[^.]*h[^.]*\\.* in regex
 
 
-*COMMANDS*
+**COMMANDS**
 \tCommands can be shortened as long as they are not ambiguous
 \tExample: ledg accounts -> ledg acc
 \t\t\t ledg info -> ledg inf
@@ -3746,7 +3813,7 @@ async function cmd_help() {
 
 \tgit [...]
 \t\texecutes git [...] at the parent directory of FILE
-`.replace(/\*([^*\n\r]+)\*/g, c.bold('$1')));
+`.replace(/\*\*([^\n\r]+)\*\*/g, c.bold('$1')));
 
 }
 async function cmd_add(args, modifyMode=false) {
@@ -4226,6 +4293,8 @@ var CMD_LIST = {
   'accounts': cmd_accounts,
   'budget': cmd_budget,
   'history': cmd_history,
+  'stats': cmd_stats,
+  'count': cmd_count,
   
   'git': cmd_git
 };

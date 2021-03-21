@@ -209,4 +209,10 @@ COMMANDS
 
         git [...]
                 executes git [...] at the parent directory of FILE
+                
+        stats
+                displays stats of journal files
+
+        count [<account filters>] [<filters>]
+                returns number of entries that match the filters
 ```
