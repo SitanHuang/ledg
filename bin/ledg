@@ -3581,7 +3581,7 @@ async function cmd_history(args) {
       avg.push('Avg');
     } else {
       let acc = accounts[j];
-      let v = Math.round(acc.sum.div(dateFunctions.length).toNumber() * 100) / 100 | 0;
+      let v = Math.round(acc.sum.div(dateFunctions.length).toNumber() * 100) / 100;
 
       let vs;
 
