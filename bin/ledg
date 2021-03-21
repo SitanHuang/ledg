@@ -3813,6 +3813,12 @@ async function cmd_help() {
 
 \tgit [...]
 \t\texecutes git [...] at the parent directory of FILE
+
+\tstats
+\t\tdisplays stats of journal files
+
+\tcount [<account filters>] [<filters>]
+\t\treturns number of entries that match the filters
 `.replace(/\*\*([^\n\r]+)\*\*/g, c.bold('$1')));
 
 }
