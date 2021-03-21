@@ -1,10 +1,11 @@
  
 # Changelog
-### Roadmap to 0.6.0
-- line chart for income/expense/profit, asset/liability/net worth
-- burndown graphs
+## [Unreleased]
+### Added
+- ledg count
+- ledg stats
 
-## [0.5.0]
+## [0.5.0] 2021-03-20
 ### Added
 - ledg history \<filter\> \<account filter 1\>  \<account filter 2\>
 - argparser recognizes 8 character uuid and appends it to uuid: modifier
