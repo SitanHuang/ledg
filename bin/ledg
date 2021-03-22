@@ -1373,14 +1373,12 @@ async function query_exec(query) {
 
   await data_iterate_books(data_books_required(_range_min * 1000, _range_max * 1000),
     async function (book) {
-      console.log('year')
     let len = book.length;
     ENTRY: while (len--) {
       let e = book[len];
       let i = -1;
       QUERY: for (let q of query.queries) {
         i++;
-        console.log(i, e.description, data[i].count)
         // handle flags
         if (q.flags['skip-book-close'] && e.bookClose && e.bookClose.toString() == 'true') continue QUERY;
         // handle time
@@ -1389,11 +1387,12 @@ async function query_exec(query) {
         let sumTrans = q.collect.indexOf('accounts_sum') >= 0;
         let isSum = q.collect.indexOf('sum') >= 0;
         let sum = isSum ? new Big(0) : undefined;
+        let sum_parent = q.flags['sum-parent'];
         let accSum = {};
         let matchTimes = 0;
-        FOR: for (let e of q.accounts) {
+        FOR: for (let qt of q.accounts) {
           for (let t of e.transfers) {
-            if (t[1].match(q)) {
+            if (t[1].match(qt)) {
               matchTimes++;
               break;
             }
@@ -1402,17 +1401,30 @@ async function query_exec(query) {
         if (matchTimes != q.accounts.length) continue QUERY;
         if (isSum || sumTrans) {
           for (let t of e.transfers) {
-            if (sumTrans) accSum[t[1]] = (accSum[t[1]] || new Big(0)).plus(t[2]);
+            if (sumTrans) {
+              if (sum_parent) {
+                let levels = t[1].split(".");
+                let previous = "";
+                for (let l of levels) {
+                  let k = previous + l;
+                  if (!accSum[k]) accSum[k] = new Big(0);
+                  accSum[k] = accSum[k].plus(t[2]);
+                  previous = k + ".";
+                }
+              } else {
+                accSum[t[1]] = (accSum[t[1]] || new Big(0)).plus(t[2]);
+              }
+            }
             if (isSum) sum = sum.plus(t[2]);
           }
         }
         // handle modifiers
         for (mod in q.regexMod) {
           if (!e[mod]) {
-            if (regexMod[mod].source == '(?:)') continue; // empty on both
+            if (q.regexMod[mod].source == '(?:)') continue; // empty on both
             else continue QUERY;
           }
-          if (!(e[mod].toString()).match(regexMod[mod])) continue QUERY;
+          if (!(e[mod].toString()).match(q.regexMod[mod])) continue QUERY;
         }
         // ======= done filtering =======
         // store entries
