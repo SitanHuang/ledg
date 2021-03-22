@@ -4722,7 +4722,7 @@ class Chart {
     }
 
     let plcs = accounting_numDigits(max);
-    let n = Math.pow(10, plcs - 1);
+    let n = Math.pow(10, plcs - 1) / 4;
     for (let i = n;i < max;i += n) {
       let row = Math.round((max - i) / div);
       this.drawYLabel(row, i);
