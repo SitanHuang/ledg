@@ -20,6 +20,7 @@
 - budget list
 - tabular.js now prints csv tables (allows future csv exports)
   - --csv forces all tables to be in csv
+- add quotation and escape support to budget tracker parsing
 
 ### Changed
 - SIGINT no longer produces error
