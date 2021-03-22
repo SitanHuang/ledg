@@ -105,6 +105,16 @@ COMMANDS
         accounts add <full account name>
                 create new account and write to FILE.config.ledg
 
+        burndown [--q1="[<filters>] <account filters>", --q2=...] [--abs=false] [--count]
+                Creates multi-dataset bar graphs
+                Default: --abs=true
+
+                --abs
+                        Take absolute values
+
+                --count
+                        Show graph of numbers of entries rather than sum
+
         history [--daily] [--weekly] [--biweekly] [--monthly] [--quarterly]
                 [--yearly] [--cumulative] [--cumulative-columns=num list]
                 [--skip-book-close=true]

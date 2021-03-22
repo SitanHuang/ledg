@@ -2,3 +2,5 @@ node_modules/**/*
 node_modules
 package-lock.json
 tags
+*.kdev4
+.kdev4

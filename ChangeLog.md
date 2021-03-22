@@ -1,10 +1,14 @@
  
 # Changelog
-## [Unreleased]
+## [0.6.0] 2021-03-22
 ### Added
 - ledg count
 - ledg stats
+- ledg burndown
+- chart.js to draw bar graphs with multiple datasets
 - new query api used internally
+  - experimental, only used in ledg count and burndown
+  - use ledg acc to validate result whenever possible
 
 ### Fixed
 - fixed ledg doesn't start without .ledgrc
