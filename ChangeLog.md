@@ -4,6 +4,7 @@
 ### Added
 - ledg count
 - ledg stats
+- new query api used internally
 
 ### Fixed
 - fixed ledg doesn't start without .ledgrc
