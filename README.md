@@ -29,8 +29,9 @@ SYNOPSIS
 FLAGS
         Presets of flags can be saved at ~/.ledgrc
 
-        --file=FILE
+        --file=FILE, -FFILE
                 Default: book
+                if FILE="-", then ledg reads entries from stdin
                 set FILE as a prefix for ledg file locations:
                 ex. --file=Documents/book will point to Documents/book.*.ledg
 
@@ -41,7 +42,7 @@ FLAGS
 
         --income=<account filter>, --expense=<account filter>, --equity=<account filter>
         --asset=<account filter>, --liability=<account filter>
-                Default: Income, Expense, Asset, Liability, Equity*
+                Default: Income*, Expense*, Asset*, Liability*, Equity*
                 Let certain report commands to know what are the corresponding accounts
 
         --skip-book-close[=false]
@@ -106,13 +107,13 @@ COMMANDS
                 create new account and write to FILE.config.ledg
 
         burndown [--q1="[<filters>] <account filters>", --q2=...] [--abs=false] [--count]
+                 [--cumulative]
                 Creates multi-dataset bar graphs
                 Default: --abs=true
 
                 --abs
                         Take absolute values
-                        
-                        
+
                 --cumulative
                         cumulates count/sum
 
@@ -221,16 +222,22 @@ COMMANDS
                   Expense.Other.Transportation  300
                   Expense.Essential.Groceries   200
 
+        print [<account filters>] [<filters>]
+                prints selected entries in ledg format
+                used in conjunction with -F-
+                ex: ledg print lia..amazon | ledg -F- accounts exp..personalcare
+
         git [...]
                 executes git [...] at the parent directory of FILE
-                
+
         stats
                 displays stats of journal files
 
         count [<account filters>] [<filters>]
                 returns number of entries that match the filters
-                
+
         export gnucash-transactions > transactions.csv
         export gnucash-accounts > accounts.csv
                 csv can be directly imported to gnucash
+
 ```
