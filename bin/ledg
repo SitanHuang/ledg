@@ -4149,12 +4149,19 @@ async function cmd_history(args) {
     }
   });
 
-  let table = [['Year']];
-  let align = [TAB_ALIGN_RIGHT];
-  if (showQuarter) { table[0].push('Quarter'); align.push(TAB_ALIGN_LEFT) }
-  if (showMonth) { table[0].push('Month'); align.push(TAB_ALIGN_LEFT) }
-  if (showWeeks) { table[0].push('Week'); align.push(TAB_ALIGN_RIGHT) }
-  if (showDays) { table[0].push('Day');  align.push(TAB_ALIGN_RIGHT)}
+  let table = [];
+  let align = [];
+  if (!args.flags.epoch && !args.flags.iso) {
+    table.push(['Year']);
+    align.push(TAB_ALIGN_RIGHT);
+    if (showQuarter) { table[0].push('Quarter'); align.push(TAB_ALIGN_LEFT) }
+    if (showMonth) { table[0].push('Month'); align.push(TAB_ALIGN_LEFT) }
+    if (showWeeks) { table[0].push('Week'); align.push(TAB_ALIGN_RIGHT) }
+    if (showDays) { table[0].push('Day');  align.push(TAB_ALIGN_RIGHT)}
+  } else {
+    table.push(['Time']);
+    align.push(TAB_ALIGN_RIGHT);
+  }
   let tab_left_length = table[0].length;
 
 
@@ -4186,24 +4193,32 @@ async function cmd_history(args) {
   let last = [];
   while (crntD < to) {
     let r = table.length - 1;
-    let row = [crntD.getFullYear().toString()];
-    if (showQuarter) row.push(print_full_quarter(crntD.getMonth()));
-    if (showMonth) row.push(print_full_month(crntD.getMonth()));
-    if (showWeeks) row.push(pring_week(crntD));
-    if (showDays) row.push(crntD.getDate());
+    let row = [];
 
-    if (r == dateFunctions.length - 1) { // last entry
-      row[row.length - 1] = '≥ ' + row[row.length - 1];
+    if (args.flags.epoch) {
+      row.push(crntD.getTime().toString());
+    } else if (args.flags.iso) {
+      row.push(crntD.toISOString().split('T')[0]);
+    } else {
+      row.push(crntD.getFullYear().toString());
+      if (showQuarter) row.push(print_full_quarter(crntD.getMonth()));
+      if (showMonth) row.push(print_full_month(crntD.getMonth()));
+      if (showWeeks) row.push(pring_week(crntD));
+      if (showDays) row.push(crntD.getDate());
+
+      if (r == dateFunctions.length - 1) { // last entry
+        row[row.length - 1] = '≥ ' + row[row.length - 1];
+      }
+
+      let current = Array.from(row);
+      let lastChanged = !!args.flags.csv;
+      for (let i = 0;i < row.length;i++) {
+        if (table[0][i] == 'Day') continue;
+        if (!lastChanged && (current[i] == last[i])) row[i] = '';
+        else if (current[i] != last[i]) lastChanged = true;
+      }
+      last = current;
     }
-
-    let current = Array.from(row);
-    let lastChanged = false;
-    for (let i = 0;i < row.length;i++) {
-      if (table[0][i] == 'Day') continue;
-      if (!lastChanged && (current[i] == last[i])) row[i] = '';
-      else if (current[i] != last[i]) lastChanged = true;
-    }
-
     for (let acc of accounts) {
       let v = acc.val[r];
 
@@ -4217,42 +4232,42 @@ async function cmd_history(args) {
 
       row.push(vs);
     }
-
-    last = current;
     crntD.setFullYear(crntD.getFullYear() + int[0]);
     crntD.setMonth(crntD.getMonth() + int[1]);
     crntD.setDate(crntD.getDate() + int[2]);
     table.push(row);
   }
 
-  table.push([]);
-  let avg = [];
-  let rowL = table[table.length - 2].length;
-  for (let i = 0;i < rowL;i++) {
-    let j = i - (rowL - accounts.length);
-    if (j < -1) {
-      avg.push('');
-    } else if (j == -1) {
-      avg.push('Avg');
-    } else {
-      let acc = accounts[j];
-      let v = Math.round(acc.sum.div(dateFunctions.length).toNumber() * 100) / 100;
+  if (!args.flags.csv) {
+    table.push([]);
+    let avg = [];
+    let rowL = table[table.length - 2].length;
+    for (let i = 0;i < rowL;i++) {
+      let j = i - (rowL - accounts.length);
+      if (j < -1) {
+        avg.push('');
+      } else if (j == -1) {
+        avg.push('Avg');
+      } else {
+        let acc = accounts[j];
+        let v = Math.round(acc.sum.div(dateFunctions.length).toNumber() * 100) / 100;
 
-      let vs;
+        let vs;
 
-      if (acc.q == cmd_report_accounts_compiled.income || acc.q == cmd_report_accounts_compiled.expense) {
-        v = -v
+        if (acc.q == cmd_report_accounts_compiled.income || acc.q == cmd_report_accounts_compiled.expense) {
+          v = -v
+        }
+        vs = print_format_money(v);
+        vs = [print_color_money(v), vs.length];
+
+        avg.push(vs);
       }
-      vs = print_format_money(v);
-      vs = [print_color_money(v), vs.length];
-
-      avg.push(vs);
     }
+    table.push(avg);
+
+
+    console.log(`Reporting from ${c.bold(strF)} to ${c.bold(strT)}\n`);
   }
-  table.push(avg);
-
-
-  console.log(`Reporting from ${c.bold(strF)} to ${c.bold(strT)}\n`);
 
   console.log(tabulate(table, {
     align: align
@@ -4287,6 +4302,9 @@ async function cmd_help() {
 \t\tif FILE="-", then ledg reads entries from stdin
 \t\tset FILE as a prefix for ledg file locations:
 \t\tex. --file=Documents/book will point to Documents/book.*.ledg
+
+\t--csv
+\t\toutputs all tables in csv formats(some commands only)
 
 \t--budget=NAME
 \t\tthis can be used in your .ledgrc to point to a default budget
@@ -4375,7 +4393,7 @@ async function cmd_help() {
 
 \thistory [--daily] [--weekly] [--biweekly] [--monthly] [--quarterly]
 \t        [--yearly] [--cumulative] [--cumulative-columns=num list]
-\t        [--skip-book-close=true]
+\t        [--skip-book-close=true] [--epoch] [--csv] [--iso]
 \t        [ <account filter 1> <account filter 2> ... ]
 \t\tDefaults: shows accounts specified by --income, --expense, --asset, --liability,
 \t\t          and --equity, and defaults --skip-book-close=true
@@ -4388,6 +4406,15 @@ async function cmd_help() {
 
 \t\t--cumulative
 \t\t\tshows cumulative data
+
+\t\t--epoch
+\t\t\tshow timestamps in epoch
+
+\t\t--csv
+\t\t\ttabulate data in csv (exporting for other use)
+
+\t\t--iso
+\t\t\tshow timestamps in ISO date string
 
 \taccounts rename <source> <dist> [ <filter> ]
 \t\tmodifies entries by replacing account source with dist
