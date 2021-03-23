@@ -35,6 +35,9 @@ FLAGS
                 set FILE as a prefix for ledg file locations:
                 ex. --file=Documents/book will point to Documents/book.*.ledg
 
+        --csv
+                outputs all tables in csv formats(some commands only)
+
         --budget=NAME
                 this can be used in your .ledgrc to point to a default budget
                 ex. --budget="Monthly Budget"
@@ -122,7 +125,7 @@ COMMANDS
 
         history [--daily] [--weekly] [--biweekly] [--monthly] [--quarterly]
                 [--yearly] [--cumulative] [--cumulative-columns=num list]
-                [--skip-book-close=true]
+                [--skip-book-close=true] [--epoch] [--csv] [--iso]
                 [ <account filter 1> <account filter 2> ... ]
                 Defaults: shows accounts specified by --income, --expense, --asset, --liability,
                           and --equity, and defaults --skip-book-close=true
@@ -135,6 +138,15 @@ COMMANDS
 
                 --cumulative
                         shows cumulative data
+
+                --epoch
+                        show timestamps in epoch
+
+                --csv
+                        tabulate data in csv (exporting for other use)
+
+                --iso
+                        show timestamps in ISO date string
 
         accounts rename <source> <dist> [ <filter> ]
                 modifies entries by replacing account source with dist
@@ -222,14 +234,13 @@ COMMANDS
                   Expense.Other.Transportation  300
                   Expense.Essential.Groceries   200
 
-        print [<account filters>] [<filters>]
+        print [<account filters>] [<filters>] [--ledger]
                 prints selected entries in ledg format
                 used in conjunction with -F-
                 ex: ledg print lia..amazon | ledg -F- accounts exp..personalcare
-                
+
                 --ledger
                         prints ledger & hledger compatible journal
-
 
         git [...]
                 executes git [...] at the parent directory of FILE
