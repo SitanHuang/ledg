@@ -2394,6 +2394,20 @@ function fs_serialize_entry(entry) {
   return str;
 }
 
+function fs_serialize_entry_ledger(entry) {
+  let str = entry_datestr(entry) + ' ' + entry.description.trim() + ' #' + entry.uuid;
+  for (let key in entry) {
+    if (key == 'description' || key == 'time' || key == 'uuid' || key == 'transfers') continue;
+    str += '\n  ;' + key + ':' + JSON.stringify(entry[key]);
+  }
+  str += '\n';
+  for (let t of entry.transfers) {
+    if (t[0]) str += '  ;' + t[0] + '\n';
+    str += '  ' + t[1] + '     ' + t[2] + '\n';
+  }
+  return str;
+}
+
 /*
  * ========================
  * FS runtime variables
@@ -3871,7 +3885,7 @@ async function cmd_delete(args) {
 async function cmd_print(args) {
   let q = { queries: [query_args_to_filter(args)] };
   q.queries[0].callback = async function (entry) {
-    console.log(fs_serialize_entry(entry));
+    console.log(args.flags.ledger ? fs_serialize_entry_ledger(entry) : fs_serialize_entry(entry));
   };
 
   await query_exec(q);
@@ -4461,10 +4475,13 @@ async function cmd_help() {
 \t\t  Expense.Other.Transportation	300
 \t\t  Expense.Essential.Groceries	200
 
-\tprint [<account filters>] [<filters>]
+\tprint [<account filters>] [<filters>] [--ledger]
 \t\tprints selected entries in ledg format
 \t\tused in conjunction with -F-
 \t\tex: ledg print lia..amazon | ledg -F- accounts exp..personalcare
+
+\t\t--ledger
+\t\t\tprints ledger & hledger compatible journal
 
 \tgit [...]
 \t\texecutes git [...] at the parent directory of FILE

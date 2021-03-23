@@ -5,7 +5,7 @@
 - add --cumulative to burndown
 - ledg export gnucash-transactions
 - ledg export gnucash-accounts
-- ledg print
+- ledg print \[\-\-ledger\]
 - accept pipe as journal input
   - ledg print .... | ledg -F- ....
 
