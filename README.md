@@ -226,6 +226,10 @@ COMMANDS
                 prints selected entries in ledg format
                 used in conjunction with -F-
                 ex: ledg print lia..amazon | ledg -F- accounts exp..personalcare
+                
+                --ledger
+                        prints ledger & hledger compatible journal
+
 
         git [...]
                 executes git [...] at the parent directory of FILE
