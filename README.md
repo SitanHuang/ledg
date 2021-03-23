@@ -111,6 +111,10 @@ COMMANDS
 
                 --abs
                         Take absolute values
+                        
+                        
+                --cumulative
+                        cumulates count/sum
 
                 --count
                         Show graph of numbers of entries rather than sum
@@ -225,4 +229,8 @@ COMMANDS
 
         count [<account filters>] [<filters>]
                 returns number of entries that match the filters
+                
+        export gnucash-transactions > transactions.csv
+        export gnucash-accounts > accounts.csv
+                csv can be directly imported to gnucash
 ```
