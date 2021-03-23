@@ -1432,6 +1432,7 @@ async function query_exec(query) {
           }
         }
         // ======= done filtering =======
+        if (q.callback) await q.callback(e);
         // store entries
         if (q.collect.indexOf('entries') >= 0) {
           data[i].entries.push(e);
@@ -3858,6 +3859,15 @@ async function cmd_delete(args) {
 
   console.log(`${targetEntries.length} entries are affected.`);
 }
+ 
+async function cmd_print(args) {
+  let q = { queries: [query_args_to_filter(args)] };
+  q.queries[0].callback = async function (entry) {
+    console.log(fs_serialize_entry(entry));
+  };
+
+  await query_exec(q);
+}
 
 async function cmd_burndown(args) {
   console.clear();
@@ -5036,6 +5046,7 @@ var CMD_LIST = {
   'history': cmd_history,
   'stats': cmd_stats,
   'count': cmd_count,
+  'print': cmd_print,
   'burndown': cmd_burndown,
   
   'export': cmd_export,
