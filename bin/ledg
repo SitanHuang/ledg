@@ -1446,8 +1446,16 @@ async function query_exec(query) {
 
   });
 
-  for (let d of data) {
+  for (let i = 0;i < data.length;i++) {
+    let d = data[i];
     d.sum = d.sum && d.sum.toNumber();
+    if (query.cumulative && i - query.cumulative >= 0) {
+      let prev = data[i - query.cumulative];
+      for (let key in prev) {
+        if (!isNaN(prev[key]))
+          data[i][key] = new Big(prev[key]).add(data[i][key]).toNumber();
+      }
+    }
     if (!isNaN(d.sum)) data.minSum = Math.min(d.sum, data.minSum || 0);
     if (!isNaN(d.count)) data.minCount = Math.min(d.count, data.minCount || 0);
     if (!isNaN(d.sum)) data.maxSum = Math.max(d.sum, data.maxSum || 0);
@@ -3831,7 +3839,7 @@ async function cmd_burndown(args) {
     legends = [cmd_report_accounts.income, cmd_report_accounts.expense];
   }
   let maxIntervals = (process.stdout.columns - 8) / (argQueries.length * 2 + 1) | 0;
-  let query = { from: from / 1000 | 0, to: to / 1000 | 0, queries: [] };
+  let query = { cumulative: args.flags.cumulative && argQueries.length, from: from / 1000 | 0, to: to / 1000 | 0, queries: [] };
   let collect = args.flags.count ? ['count'] : ['sum'];
 
   let crntD = new Date(from);
@@ -4244,11 +4252,15 @@ async function cmd_help() {
 \t\tcreate new account and write to FILE.config.ledg
 
 \tburndown [--q1="[<filters>] <account filters>", --q2=...] [--abs=false] [--count]
+\t         [--cumulative]
 \t\tCreates multi-dataset bar graphs
 \t\tDefault: --abs=true
 
 \t\t--abs
 \t\t\tTake absolute values
+
+\t\t--cumulative
+\t\t\tcumulates count/sum
 
 \t\t--count
 \t\t\tShow graph of numbers of entries rather than sum

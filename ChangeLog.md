@@ -1,5 +1,9 @@
  
 # Changelog
+## [Unreleased]
+### Added
+- add --cumulative to burndown
+
 ## [0.6.0] 2021-03-22
 ### Added
 - ledg count
