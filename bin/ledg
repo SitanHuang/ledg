@@ -2306,6 +2306,9 @@ function fs_get_book_directory() {
 }
 
 async function fs_get_data_range() {
+  if (fs_book_name == '-') {
+    return fs_data_range = Object.keys(data.books).map(x => Number(x)).sort();
+  }
   let result = [];
   fs.readdirSync(fs_get_book_directory()).forEach(x => {
     let m = x.match(/\.(\d{4})\.ledg$/);
@@ -2315,6 +2318,7 @@ async function fs_get_data_range() {
 }
 
 async function fs_write_books() {
+  if (fs_book_name == '-') return;
   for (let y in data.booksOpened) {
     if (data.booksOpened[y] == DATA_BOOK_DIRTY) {
       let path = fs_book_name + '.' + y + '.ledg';
@@ -2332,6 +2336,7 @@ async function fs_write_books() {
 }
 
 async function fs_write_config() {
+  if (fs_book_name == '-') return;
   let path = fs_book_name + '.config.ledg';
   // TODO: need to be async later
   fs.writeFileSync(path, JSON.stringify({
@@ -2341,6 +2346,7 @@ async function fs_write_config() {
 }
 
 async function fs_attempt_load_config() {
+  if (fs_book_name == '-') return;
   let path = fs_book_name + '.config.ledg';
   // TODO: need to be async later
   try {
@@ -2351,6 +2357,7 @@ async function fs_attempt_load_config() {
 }
 
 async function fs_attempt_load_budgets() {
+  if (fs_book_name == '-') return;
   let path = fs_book_name + '.budgets.ledg';
   // TODO: need to be async later
   try {
@@ -2360,6 +2367,7 @@ async function fs_attempt_load_budgets() {
 }
 
 async function fs_construct_config() {
+  if (fs_book_name == '-') return;
   await data_open_books(await fs_get_data_range());
   await fs_write_config();
 }
@@ -4260,8 +4268,9 @@ async function cmd_help() {
 **FLAGS**
 \tPresets of flags can be saved at ~/.ledgrc
 
-\t--file=FILE
+\t--file=FILE, -FFILE
 \t\tDefault: book
+\t\tif FILE="-", then ledg reads entries from stdin
 \t\tset FILE as a prefix for ledg file locations:
 \t\tex. --file=Documents/book will point to Documents/book.*.ledg
 
@@ -4451,6 +4460,11 @@ async function cmd_help() {
 \t\t; -- expense cateogries --
 \t\t  Expense.Other.Transportation	300
 \t\t  Expense.Essential.Groceries	200
+
+\tprint [<account filters>] [<filters>]
+\t\tprints selected entries in ledg format
+\t\tused in conjunction with -F-
+\t\tex: ledg print lia..amazon | ledg -F- accounts exp..personalcare
 
 \tgit [...]
 \t\texecutes git [...] at the parent directory of FILE
@@ -5071,15 +5085,36 @@ async function index() {
   cli_args = args = argsparser(argv);
   if (args.flags.debug) DEBUG = true;
   fs_book_name = args.flags.F || args.flags.file || fs_book_name;
+  
+  // stdin pipe
+  if (fs_book_name == '-') {
+    stdin_rl.resume();
+    let entry = null;
+    const commitEntry = (entry) => {
+      let year = new Date(entry.time * 1000).getFullYear();
+      data.books[year] = data.books[year] || [];
+      data.books[year].push(entry);
+      data.booksOpened[year] = DATA_BOOK_OPENED;
+      _fs_entries_read++;
+    };
 
-  await fs_get_data_range();
-  await fs_attempt_load_budgets();
-  if (fs.existsSync(fs_book_name + '.config.ledg'))
-    await fs_attempt_load_config();
-  else if (fs_data_range.length) {
-    console.error("Missing config file, reconstructing from existing books");
-    await fs_construct_config();
+    for await (let line of stdin_rl) {
+      entry = fs_read_book_proc_line(entry, line, commitEntry);
+    }
+    if (entry) { commitEntry(entry) }
+    stdin_rl.pause();
+    await fs_get_data_range();
+  } else {
+    await fs_get_data_range();
+    await fs_attempt_load_budgets();
+    if (fs.existsSync(fs_book_name + '.config.ledg'))
+      await fs_attempt_load_config();
+    else if (fs_data_range.length) {
+      console.error("Missing config file, reconstructing from existing books");
+      await fs_construct_config();
+    }
   }
+
   let _endConfig = new Date();
 
   report_set_modifiers(args);
@@ -5104,7 +5139,7 @@ async function index() {
       console.debug(`_endConfig=${new Date() - _endConfig}ms, _endCmd=${_endCmd}ms`);
     }
     if (c) { process.exit(c) }
-    else { await fs_write_books(); }
+    else if (fs_book_name != '-') { await fs_write_books(); }
   }
 }
 
@@ -5125,7 +5160,7 @@ var ESC = '';
 if (require.main === module && typeof TEST == "undefined") {
   stdin_rl = readline.createInterface({
     input: process.stdin, //or fileStream
-    output: process.stdout
+    //output: process.stdout
   });
   stdin_it = stdin_rl[Symbol.asyncIterator]();
   stdin_rl.pause();
