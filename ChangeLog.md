@@ -3,6 +3,8 @@
 ## [Unreleased]
 ### Added
 - add --cumulative to burndown
+- ledg export gnucash-transactions
+- ledg export gnucash-accounts
 
 ## [0.6.0] 2021-03-22
 ### Added

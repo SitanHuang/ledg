@@ -1471,13 +1471,78 @@ function query_args_to_filter(args) {
   let x = {
     modifiers: args.modifiers,
     flags: args.flags,
-    accounts: args.accounts
+    accounts: args.accounts,
+    collect: []
   };
   x.from = (Date.parse(report_replaceDateStr(args.modifiers.from || '@min') + 'T00:00:00') / 1000 | 0);
   x.to = (Date.parse(report_replaceDateStr(args.modifiers.to || '@max') + 'T00:00:00') / 1000 | 0);
   return x;
 }
 
+var tree_c0 = "├";
+var tree_c1 = "─";
+var tree_c2 = "└";
+var tree_c3 = "│";
+
+function expand_account(list=Object.keys(data.accounts)) {
+  let data = [];
+  let tree = {};
+  for (let acc of list) {
+    let levels = acc.split('.');
+    let prnt = tree[levels[0]] || (tree[levels[0]] = {});
+    for (let i = 1;i < levels.length;i++) {
+      let l = levels[i];
+      prnt = prnt[l] = (prnt[l] || {});
+    }
+  }
+  
+  _expand_account_subtree("", tree, data);
+  return data;
+}
+
+function _expand_account_subtree(pre, t, fullList) {
+  let keys = Object.keys(t);
+  for (let i = 0;i < keys.length;i++) {
+    fullList.push(pre + keys[i]);
+    _expand_account_subtree(pre + keys[i] + '.', t[keys[i]], fullList);
+  }
+}
+
+/*
+ * takes in a list of accounts
+ */
+function print_accountTree(list) {
+  let tree = {};
+  let data = {list: [], fullList: [], maxLength: 0};
+  list = list.sort();
+  for (let acc of list) {
+    let levels = acc.split('.');
+    let prnt = tree[levels[0]] || (tree[levels[0]] = {});
+    for (let i = 1;i < levels.length;i++) {
+      let l = levels[i];
+      prnt = prnt[l] = (prnt[l] || {});
+    }
+  }
+  
+  _print_accountTree_subtree("", tree, data);
+  return data;
+}
+
+function _print_accountTree_subtree(pre, t, data, c3_col=[]) {
+  let keys = Object.keys(t);
+  for (let i = 0;i < keys.length;i++) {
+    let prefix = '';
+    for (let j = 0;j < c3_col.length;j++) {
+      prefix += c3_col[j] ? tree_c3 + '  ' : '   ';
+    }
+    prefix += (i == keys.length - 1 ? tree_c2 : tree_c0);
+    let row = prefix + keys[i];
+    data.maxLength = Math.max(data.maxLength, row.length);
+    data.list.push(row);
+    data.fullList.push(pre + keys[i]);
+    _print_accountTree_subtree(pre + keys[i] + '.', t[keys[i]], data, c3_col.concat([i != keys.length - 1]));
+  }
+}
 
 /*!
  * accounting.js v0.4.2
@@ -2880,69 +2945,63 @@ function pring_week(d) {
   var dayOfYear = ((today - onejan + 86400000)/86400000);
   return Math.ceil(dayOfYear/7)
 };
-var tree_c0 = "├";
-var tree_c1 = "─";
-var tree_c2 = "└";
-var tree_c3 = "│";
+async function cmd_export_gnucash_transactions(args) {
+  let table = [['Date', 'Num', 'Description', 'Memo', 'Account', 'Deposit', 'Withdrawal']];
+  
+  let q = { queries: [query_args_to_filter(args)] };
+  q.queries[0].collect = ['entries'];
 
-function expand_account(list=Object.keys(data.accounts)) {
-  let data = [];
-  let tree = {};
-  for (let acc of list) {
-    let levels = acc.split('.');
-    let prnt = tree[levels[0]] || (tree[levels[0]] = {});
-    for (let i = 1;i < levels.length;i++) {
-      let l = levels[i];
-      prnt = prnt[l] = (prnt[l] || {});
+  let data = (await query_exec(q))[0].entries;
+  for (let e of data) {
+    for (let t of e.transfers) {
+      table.push([
+        entry_datestr(e),
+        e.uuid,
+        e.description,
+        t[0],
+        t[1].replace(/\./g, ':'),
+        t[2] >= 0 ? t[2] : '',
+        t[2] < 0 ? -t[2] : ''
+      ]);
     }
   }
   
-  _expand_account_subtree("", tree, data);
-  return data;
+  return table;
 }
-
-function _expand_account_subtree(pre, t, fullList) {
-  let keys = Object.keys(t);
-  for (let i = 0;i < keys.length;i++) {
-    fullList.push(pre + keys[i]);
-    _expand_account_subtree(pre + keys[i] + '.', t[keys[i]], fullList);
-  }
-}
-
-/*
- * takes in a list of accounts
- */
-function print_accountTree(list) {
-  let tree = {};
-  let data = {list: [], fullList: [], maxLength: 0};
-  list = list.sort();
-  for (let acc of list) {
-    let levels = acc.split('.');
-    let prnt = tree[levels[0]] || (tree[levels[0]] = {});
-    for (let i = 1;i < levels.length;i++) {
-      let l = levels[i];
-      prnt = prnt[l] = (prnt[l] || {});
-    }
+async function cmd_export_gnucash_accounts(args) {
+  report_set_accounts(args);
+  report_compile_account_regex(args);
+  
+  let table = [['type','full_name','name','code','description','color','notes','commoditym','commodityn','hidden','tax','placeholder']];
+  // ASSET,Assets,Assets,,,,,USD,CURRENCY,F,F,F
+  let q = { queries: [query_args_to_filter(args)] };
+  await query_exec(q);
+  
+  let accounts = expand_account();
+  for (let a of accounts) {
+    let type;
+    if (a.match(cmd_report_accounts_compiled.income)) type = "INCOME";
+    else if (a.match(cmd_report_accounts_compiled.expense)) type = "EXPENSE";
+    else if (a.match(cmd_report_accounts_compiled.asset)) type = "ASSET";
+    else if (a.match(cmd_report_accounts_compiled.liability)) type = "LIABILITY";
+    else type = "EQUITY";
+    table.push([
+      type,
+      a.replace(/\./g, ':'),
+      a.replace(/^(.+\.)*([^.]+)$/, '$2'),
+      '',
+      '',
+      '',
+      '',
+      'USD',
+      'CURRENCY',
+      'F',
+      'F',
+      'F',
+    ]);
   }
   
-  _print_accountTree_subtree("", tree, data);
-  return data;
-}
-
-function _print_accountTree_subtree(pre, t, data, c3_col=[]) {
-  let keys = Object.keys(t);
-  for (let i = 0;i < keys.length;i++) {
-    let prefix = '';
-    for (let j = 0;j < c3_col.length;j++) {
-      prefix += c3_col[j] ? tree_c3 + '  ' : '   ';
-    }
-    prefix += (i == keys.length - 1 ? tree_c2 : tree_c0);
-    let row = prefix + keys[i];
-    data.maxLength = Math.max(data.maxLength, row.length);
-    data.list.push(row);
-    data.fullList.push(pre + keys[i]);
-    _print_accountTree_subtree(pre + keys[i] + '.', t[keys[i]], data, c3_col.concat([i != keys.length - 1]));
-  }
+  return table;
 }
 
 async function cmd_budget(args) {
@@ -3523,6 +3582,22 @@ async function cmd_info(args) {
       console.log(print_entry_ascii(e, maxWidth));
     }
   }
+}
+async function cmd_export(args) {
+  args.flags.csv = args.flags.csv !== false;
+  let table;
+  switch (args._[0]) {
+    case 'gnucash-transactions':
+      table = await cmd_export_gnucash_transactions(args);
+      break;
+    case 'gnucash-accounts':
+      table = await cmd_export_gnucash_accounts(args);
+      break;
+    default:
+      console.error(`'${args._[0]}' is not an export option.`);
+      return 1;
+  }
+  console.log(tabulate(table));
 }
 
 async function cmd_stats(args) {
@@ -4375,6 +4450,10 @@ async function cmd_help() {
 
 \tcount [<account filters>] [<filters>]
 \t\treturns number of entries that match the filters
+
+\texport gnucash-transactions > transactions.csv
+\texport gnucash-accounts > accounts.csv
+\t\tcsv can be directly imported to gnucash
 `.replace(/\*\*([^\n\r]+)\*\*/g, c.bold('$1')));
 
 }
@@ -4958,6 +5037,8 @@ var CMD_LIST = {
   'stats': cmd_stats,
   'count': cmd_count,
   'burndown': cmd_burndown,
+  
+  'export': cmd_export,
   
   'git': cmd_git
 };
