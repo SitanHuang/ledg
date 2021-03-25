@@ -6,4 +6,50 @@ main {
   width: 100%;
   height: 100%;
   display: block;
+  box-sizing: border-box;
+}
+
+views {
+  display: block;
+  width: 100%;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+view {
+  width: 100%;
+  display: block;
+}
+
+div.query {
+  display: block;
+  margin-top: 1em;
+}
+
+div.query .to {
+  margin: 0;
+}
+
+div.query x-box strong, div.query x-box .from, div.query x-box .to {
+  display: block;
+  width: 100%;
+}
+
+div.query x-box strong:nth-child(2) {
+  text-align: center;
+}
+
+div.graphs {
+  width: 100%;
+}
+
+x-box {
+  width: 100%;
+  flex-wrap: nowrap;
+}
+
+x-textarea {
+  font-family: monospace;
+  padding: 10px;
+  box-sizing: border-box;
 }
