@@ -16,10 +16,14 @@
     <script>
       if (typeof require == 'undefined') require = () => {};
       if (typeof module == 'undefined') module = {};
-      fs_book_name = '-';
+      if (typeof process == 'undefined') process = { env: {} };
     </script>
 
     <script src="ledg.js"></script>
+
+    <script>
+      fs_book_name = '-';
+    </script>
   </head>
   <body>
     <x-notification id="notification" timeout="2000"></x-notification>
@@ -71,16 +75,15 @@
         </x-menuitem>
       </x-menubar>
       <x-doctabs>
-        <x-doctab selected>
-          <x-label>Document 1</x-label>
-        </x-doctab>
-
-        <x-doctab>
-          <x-label>Document 2</x-label>
-        </x-doctab>
       </x-doctabs>
+      <views>
+
+      </views>
     </main>
 
     <script src="lib/import.js"></script>
+    <script src="lib/ui.js"></script>
+    <script src="lib/queryView.js"></script>
+    <script src="lib/networth.js"></script>
   </body>
 </html>
