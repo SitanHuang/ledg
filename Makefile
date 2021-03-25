@@ -35,5 +35,8 @@ fs: ${SOURCE_FS}
 bin/ledg: header core fs cli
 	chmod +x bin/ledg
 
+web: bin/ledg
+	cp bin/ledg lib/gui/ledg.js
+
 test: bin/ledg
 	./node_modules/mocha/bin/mocha
