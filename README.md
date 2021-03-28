@@ -126,7 +126,7 @@ COMMANDS
         history [--daily] [--weekly] [--biweekly] [--monthly] [--quarterly]
                 [--yearly] [--cumulative] [--cumulative-columns=num list]
                 [--skip-book-close=true] [--epoch] [--csv] [--iso]
-                [ <account filter 1> <account filter 2> ... ]
+                [ <account filter 1> <account filter 2> ... ] [--skip=]
                 Defaults: shows accounts specified by --income, --expense, --asset, --liability,
                           and --equity, and defaults --skip-book-close=true
                 prints multicolumn time by selected interval
@@ -138,6 +138,9 @@ COMMANDS
 
                 --cumulative
                         shows cumulative data
+
+                --skip=yyyy-mm-dd
+                        hides rows up until this date
 
                 --epoch
                         show timestamps in epoch
