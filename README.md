@@ -4,6 +4,13 @@ This is a personal project aimed at creating a ledger-like cli accounting progra
 
 The ledg file format is largely incompatible with other ledger-likes. It is though easy to switch back and forth by replacing tabs with spaces, etc. Ledg also supports descriptions in each transfer as opposed to one description per entry. The program manages the journal for you, and for most of the times one does not need to touch the text files.
 
+### Installation
+1. Make sure ``node`` is in your path.
+2. Download ``bin/ledg`` from this repo
+3. ``chmod +x ledg``
+4. Put ``ledg`` in your path
+
+
 ### Screenshots
 <img
   src='assets/1.png'
