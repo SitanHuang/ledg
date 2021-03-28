@@ -35,16 +35,6 @@
 
           <x-menu>
             <x-menuitem>
-              <x-label>New</x-label>
-            </x-menuitem>
-
-            <x-menuitem>
-              <x-label>Open…</x-label>
-            </x-menuitem>
-
-            <hr>
-
-            <x-menuitem>
               <x-label>Import</x-label>
               <x-menu>
                 <x-menuitem onclick="import_file_input.value = '';import_file_input.click();">
@@ -58,18 +48,8 @@
           <x-label>Reports</x-label>
 
           <x-menu>
-            <x-menuitem>
-              <x-label>New</x-label>
-            </x-menuitem>
-
-            <x-menuitem>
-              <x-label>Open…</x-label>
-            </x-menuitem>
-
-            <hr>
-
-            <x-menuitem>
-              <x-label>Import</x-label>
+            <x-menuitem onclick="ui_open_tabview(NetworthView);">
+              <x-label>Net Worth</x-label>
             </x-menuitem>
           </x-menu>
         </x-menuitem>

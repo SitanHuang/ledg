@@ -1,11 +1,14 @@
  
 # Changelog
-## [Unreleased]
+
+## [0.6.1] 2021-03-28
 ### Added
+- initial development of ledg-gui
 - add --cumulative to burndown
 - ledg export gnucash-transactions
 - ledg export gnucash-accounts
 - ledg print \[\-\-ledger\]
+- history allows rows to be skipped
 - accept pipe as journal input
   - ledg print .... | ledg -F- ....
 
