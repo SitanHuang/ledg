@@ -58,6 +58,14 @@
                 </x-menuitem>
               </x-menu>
             </x-menuitem>
+            <x-menuitem>
+              <x-label>Income & Expenses</x-label>
+              <x-menu>
+                <x-menuitem onclick="ui_open_tabview(NetprofitView);">
+                  <x-label>Net Profit Over Time Chart</x-label>
+                </x-menuitem>
+              </x-menu>
+            </x-menuitem>
             <x-menuitem class="budgets" disabled>
               <x-label>Budgets</x-label>
               <x-menu>
@@ -80,6 +88,7 @@
     <script src="lib/ui.js"></script>
     <script src="lib/queryView.js"></script>
     <script src="lib/networth.js"></script>
+    <script src="lib/netprofit.js"></script>
     <script src="lib/partionbud.js"></script>
     <script src="lib/mpart.js"></script>
   </body>
