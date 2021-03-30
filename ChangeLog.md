@@ -1,7 +1,7 @@
  
 # Changelog
 
-## [Unreleased]
+## [0.7.0] 2021-03-30
 ### Added
 - \-\-light-theme option for your ledgrc so tables look
   reasonable in light themed terminals
@@ -22,8 +22,8 @@
   modifier present
 - fixed uuid doesn't show up as query in many commands
 
-## [0.6.1] 2021-03-28
-### Added
+### [0.6.1] 2021-03-28
+#### Added
 - initial development of ledg-gui
 - add --cumulative to burndown
 - ledg export gnucash-transactions
