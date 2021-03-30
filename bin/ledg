@@ -1466,14 +1466,14 @@ async function query_exec(query) {
 
 }
 
-function query_args_to_filter(args) {
+function query_args_to_filter(args, collect=[]) {
   report_extract_account(args);
   report_extract_tags(args);
   let x = {
     modifiers: args.modifiers,
     flags: args.flags,
     accounts: args.accounts,
-    collect: []
+    collect: collect
   };
   x.from = (Date.parse(report_replaceDateStr(args.modifiers.from || '@min') + 'T00:00:00') / 1000 | 0);
   x.to = (Date.parse(report_replaceDateStr(args.modifiers.to || '@max') + 'T00:00:00') / 1000 | 0);
@@ -2818,7 +2818,7 @@ function tabulate(data, opts) {
     let row = data[i];
     for (let j = 0;j < row.length;j++) {
       if (typeof row[j] != 'object') {
-        row[j] = [(row[j]).toString(), (row[j]).toString().length];
+        row[j] = [(row[j]).toString(), strip_ansi((row[j]).toString()).length];
       }
       let realWidth = row[j][1];
       _longestWidths[j] = Math.min(opts.maxWidths[j], Math.max(_longestWidths[j], realWidth));
@@ -2930,11 +2930,17 @@ function print_format_money(m) {
   return accounting.formatMoney(m);
 }
 
-function print_color_money(m) {
+function print_truncate_account(acc, depth) {
+  let a = acc.split('.');
+  a.length = Math.min(Math.max(depth, 0), a.length);
+  return a.join('.');
+}
+
+function print_color_money(m, plus) {
   if (m < 0)
     return c.redBright(print_format_money(m));
   if (m > 0)
-    return c.green(print_format_money(m));
+    return c.green((plus ? '+' : '') + print_format_money(m));
   return print_format_money(m);
 }
 
@@ -3355,28 +3361,125 @@ function cmd_git(args) {
   });
 }
 async function cmd_register(args) {
+  args.modifiers.to = args.modifiers.to || '@tomorrow';
+
+  let skipTo;
+  args.flags['skip'] &&
+     (skipTo = report_replaceDateStr(args.flags['skip'])) &&
+     !isNaN(skipTo = Date.parse(skipTo + 'T00:00:00'));
+
+  args.flags['hide-zero'] = args.flags['hide-zero'] !== false;
+
+  let depth = Number(args.flags['max-depth']) || Infinity;
+
   // defaults from:@min, to:@max
   let q = { queries: [query_args_to_filter(args, ['entries'])] };
   q.queries[0].collect = ['entries'];
 
-  let data = (await query_exec(q))[0];
+  let data = (await query_exec(q))[0].entries;
   data = report_sort_by_time(data);
 
   let int = report_get_reporting_interval(args, true);
 
-  let table;
   if (!int)
-    table = await _cmd_register_nogroup(args, data);
+    _cmd_register_nogroup(args, data, skipTo, depth);
+  else
+    _cmd_register_group(args, data, skipTo, depth, int, q.queries[0]);
 
-  console.log(tabulate(table));
 }
 
-async function _cmd_register_nogroup(args, data) {
-  let table = [['Date', 'Desc', 'T.D.', 'Acc', 'Amnt', 'Tot']];
+function _cmd_register_group(args, data, skipTo, depth, int, q) {
+  let table = [['Start', 'Acc', 'Amnt', 'Tot']];
+  let align = [TAB_ALIGN_LEFT, TAB_ALIGN_LEFT, TAB_ALIGN_RIGHT, TAB_ALIGN_RIGHT, TAB_ALIGN_RIGHT];
 
+  let sum = new Big(0);
 
+  let from = q.from * 1000;
+  let to = q.to * 1000;
 
-  return table;
+  let crntD = new Date(from);
+  while (crntD < to) {
+    let endDate = new Date(crntD);
+    endDate.setFullYear(endDate.getFullYear() + int[0]);
+    endDate.setMonth(endDate.getMonth() + int[1]);
+    endDate.setDate(endDate.getDate() + int[2]);
+
+    let accs = {};
+    for (let i = 0;i < data.length;i++) {
+      let e = data[i];
+      if (e.time >= endDate / 1000 | 0 || e.time < crntD / 1000 | 0) continue;
+      for (let q of args.accounts) {
+        for (let t of e.transfers) {
+          if (t[1].match(q)) {
+            let a = print_truncate_account(t[1], depth);
+            accs[a] = (accs[a] || new Big(0)).add(t[2]);
+          }
+        }
+      }
+    }
+    
+    let j = -1;
+    for (let acc in accs) {
+      j++;
+      let amnt = accs[acc];
+      let row = j == 0 || args.flags.csv ?
+            [ c.cyanBright(entry_datestr(crntD / 1000)) ] : [''];
+
+      row.push(acc);
+
+      let m = args.flags.invert ? -amnt : amnt;
+      sum = sum.add(m);
+      if (!skipTo || e.time * 1000 >= skipTo) {
+        row.push(print_color_money(m, true), print_color_money(sum));
+        table.push(row);
+      }
+    }
+
+    if (j == -1 && !args.flags['hide-zero']) {
+      table.push([
+        c.cyanBright(entry_datestr(crntD / 1000)),
+        '', print_format_money(0), print_color_money(sum)
+      ]);
+    }
+
+    crntD = endDate;
+  }
+
+  console.log(tabulate(table, { align: align }));
+}
+
+function _cmd_register_nogroup(args, data, skipTo, depth) {
+  let table = [['Date', 'UUID', 'Desc', 'Acc', 'Amnt', 'Tot']];
+  let align = [TAB_ALIGN_LEFT, TAB_ALIGN_LEFT, TAB_ALIGN_LEFT, TAB_ALIGN_RIGHT, TAB_ALIGN_RIGHT, TAB_ALIGN_RIGHT];
+
+  let sum = new Big(0);
+
+  for (let i = 0;i < data.length;i++) {
+    let e = data[i];
+
+    let j = 0;
+    for (let q of args.accounts) {
+      for (let t of e.transfers) {
+        if (t[1].match(q)) {
+          let row = j == 0 || args.flags.csv ?
+                      [ c.cyanBright(entry_datestr(e)), c.cyan(e.uuid) ] : ['', ''];
+
+          let desc = t[0] || (j++ == 0 ? e.description : '');
+          desc = args.flags['light-theme'] ? c.black(desc) : c.whiteBright(desc);
+          row.push(desc, print_truncate_account(t[1], depth));
+
+          let m = args.flags.invert ? -t[2] : t[2];
+          sum = sum.add(m);
+          if (skipTo && e.time * 1000 < skipTo)
+            continue;
+          row.push(print_color_money(m, true), print_color_money(sum));
+          table.push(row);
+        }
+      }
+    }
+  }
+
+  console.log(tabulate(table, { align: align }));
 }
 async function cmd_accounts(args) {
   // ===============================================================
@@ -3919,14 +4022,13 @@ async function cmd_delete(args) {
 
   console.log(`${targetEntries.length} entries are affected.`);
 }
- 
-async function cmd_print(args) {
-  let q = { queries: [query_args_to_filter(args)] };
-  q.queries[0].callback = async function (entry) {
-    console.log(args.flags.ledger ? fs_serialize_entry_ledger(entry) : fs_serialize_entry(entry));
-  };
 
-  await query_exec(q);
+async function cmd_print(args) {
+  let q = { queries: [query_args_to_filter(args, ['entries'])] };
+
+  report_sort_by_time((await query_exec(q))[0].entries).forEach(entry => {
+    console.log(args.flags.ledger ? fs_serialize_entry_ledger(entry) : fs_serialize_entry(entry));
+  });
 }
 
 async function cmd_burndown(args) {
@@ -4445,6 +4547,28 @@ async function cmd_help() {
 \t\t--count
 \t\t\tShow graph of numbers of entries rather than sum
 
+\tregister [--daily] [--weekly] [--biweekly] [--monthly] [--quarterly]
+\t         [--yearly] [--hide-zero=true]
+\t         [--skip-book-close] [--csv] [--invert]
+\t         [ <account filter 1> <account filter 2> ... ] [--skip=]
+\t\tDefault: --hide-zero to:@tomorrow from:@min
+\t\tdisplays matched transferse with amounts and a running total.
+\t\tWithout a reporting interval, individual transfers are shown
+\t\tinstead of grouping together
+
+\t\t--invert
+\t\t\tnegates all amounts
+
+\t\t--hide-zero
+\t\t\tDefault: true
+\t\t\thide rows that are zeroes when used with reporting interval
+
+\t\t--skip=yyyy-mm-dd
+\t\t\thides rows up until this date but keep cumulative sum from before
+
+\t\t--csv
+\t\t\ttabulate data in csv (exporting for other use)
+
 \thistory [--daily] [--weekly] [--biweekly] [--monthly] [--quarterly]
 \t        [--yearly] [--cumulative] [--cumulative-columns=num list]
 \t        [--skip-book-close=true] [--epoch] [--csv] [--iso]
@@ -4462,7 +4586,7 @@ async function cmd_help() {
 \t\t\tshows cumulative data
 
 \t\t--skip=yyyy-mm-dd
-\t\t\thides rows up until this date
+\t\t\thides rows up until this date but keep cumulative sum from before
 
 \t\t--epoch
 \t\t\tshow timestamps in epoch
@@ -5639,13 +5763,14 @@ var CMD_LIST = {
   'version': cmd_version,
   'help': cmd_help,
   'benchmark': cmd_benchmark,
-  
+
   'add': cmd_add,
   'modify': cmd_modify,
   'delete': cmd_delete,
   'edit': cmd_edit,
-  
+
   'info': cmd_info,
+  'register': cmd_register,
   'accounts': cmd_accounts,
   'budget': cmd_budget,
   'history': cmd_history,
@@ -5653,9 +5778,9 @@ var CMD_LIST = {
   'count': cmd_count,
   'print': cmd_print,
   'burndown': cmd_burndown,
-  
+
   'export': cmd_export,
-  
+
   'git': cmd_git
 };
 const DEFAULT_COMMAND = 'version';

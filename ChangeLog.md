@@ -7,9 +7,14 @@
   reasonable in light themed terminals
   - budget bars are also applicable
 - added report_sort_by_time
+- added ledg register command
 
 ### Changed
-- print \-\-ledger now replaces '.' with ':'
+- print \-\-ledger now
+  - replaces '.' with ':'
+  - sorts by date
+- tabulate() now auto strips ansi when calculating length
+
 
 ### Fixed
 - fixed burndown command crashing with --quarterly
