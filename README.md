@@ -42,7 +42,6 @@ FLAGS
                 set FILE as a prefix for ledg file locations:
                 ex. --file=Documents/book will point to Documents/book.*.ledg
 
-
         --light-theme
                 put this in your .ledgrc if your terminal has light background
 
@@ -134,6 +133,28 @@ COMMANDS
                 --count
                         Show graph of numbers of entries rather than sum
 
+        register [--daily] [--weekly] [--biweekly] [--monthly] [--quarterly]
+                 [--yearly] [--hide-zero=true]
+                 [--skip-book-close] [--csv] [--invert]
+                 [ <account filter 1> <account filter 2> ... ] [--skip=]
+                Default: --hide-zero to:@tomorrow from:@min
+                displays matched transferse with amounts and a running total.
+                Without a reporting interval, individual transfers are shown
+                instead of grouping together
+
+                --invert
+                        negates all amounts
+
+                --hide-zero
+                        Default: true
+                        hide rows that are zeroes when used with reporting interval
+
+                --skip=yyyy-mm-dd
+                        hides rows up until this date but keep cumulative sum from before
+
+                --csv
+                        tabulate data in csv (exporting for other use)
+
         history [--daily] [--weekly] [--biweekly] [--monthly] [--quarterly]
                 [--yearly] [--cumulative] [--cumulative-columns=num list]
                 [--skip-book-close=true] [--epoch] [--csv] [--iso]
@@ -151,7 +172,7 @@ COMMANDS
                         shows cumulative data
 
                 --skip=yyyy-mm-dd
-                        hides rows up until this date
+                        hides rows up until this date but keep cumulative sum from before
 
                 --epoch
                         show timestamps in epoch
