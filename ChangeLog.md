@@ -7,6 +7,7 @@
   reasonable in light themed terminals
   - budget bars are also applicable
 ### Fixed
+- fixed burndown command crashing with --quarterly
 - info command doesn't set from:@min even with
   modifier present
 - fixed uuid doesn't show up as query in many commands
