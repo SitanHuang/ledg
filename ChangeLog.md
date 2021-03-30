@@ -2,6 +2,9 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- \-\-light-theme option for your ledgrc so tables look
+  reasonable in light themed terminals
 ### Fixed
 - info command doesn't set from:@min even with
   modifier present

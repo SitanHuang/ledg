@@ -42,6 +42,10 @@ FLAGS
                 set FILE as a prefix for ledg file locations:
                 ex. --file=Documents/book will point to Documents/book.*.ledg
 
+
+        --light-theme
+                put this in your .ledgrc if your terminal has light background
+
         --csv
                 outputs all tables in csv formats(some commands only)
 
