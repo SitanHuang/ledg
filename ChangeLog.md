@@ -1,6 +1,12 @@
  
 # Changelog
 
+## [Unreleased]
+### Fixed
+- info command doesn't set from:@min even with
+  modifier present
+- fixed uuid doesn't show up as query in many commands
+
 ## [0.6.1] 2021-03-28
 ### Added
 - initial development of ledg-gui
