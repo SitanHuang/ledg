@@ -2006,7 +2006,7 @@ function report_extract_tags(args) {
   let tags = [];
   let v = args._;
   for (let i = 0;i < v.length;i++) {
-    if (v[i].startsWith('+') && v[i].length > 1) {
+    if (v[i].startsWith('+')) {
       tags.push(v[i].substring(1));
       v.splice(i, 1);
       i--;
@@ -2126,7 +2126,8 @@ async function report_sum_accounts(args, sum_parent, forkAccList) {
 function report_replaceDateStr(dateStr) {
   if (CMD_MODIFER_REPLACE[dateStr]) return new Date(CMD_MODIFER_REPLACE[dateStr]() * 1000).toISOString().split('T')[0];
   return dateStr;
-}var _fs_entries_read = 0;
+}
+var _fs_entries_read = 0;
 async function fs_read_book(year) {
   let _start;
   if (DEBUG) { _start = new Date(); }
@@ -2425,7 +2426,7 @@ function argsparser(_args) {
     if (arg == '--') { bypass = true; continue; }
     if (bypass) { args._.push(arg); continue; }
 
-    let match = Object.keys(CMD_LIST).filter(x => x.indexOf(args._[0]) == 0).sort();
+    let match = Object.keys(CMD_LIST).filter(x => x.indexOf(arg) == 0).sort();
     if (!match.length && (match = arg.match(/^[a-z0-9]{8}$/i))) {
       uuids.push(arg);
     } else if (match = arg.match(/^-([a-zA-Z])(.+)$/)) {
@@ -3496,7 +3497,11 @@ async function cmd_accounts(args) {
 }
 
 async function cmd_info(args) {
-  if (Object.keys(args.modifiers).length == 0) {
+  report_extract_account(args);
+  report_extract_tags(args);
+
+  if (Object.keys(args.modifiers).length == 0 &&
+      !args.accounts.length) {
     args.modifiers.from = '@month-start';
     args.modifiers.to = '@max';
     console.log(`No modifiers, using from:@month-start and to:@max\n`);
@@ -3508,8 +3513,6 @@ async function cmd_info(args) {
   let flat = args._[0] == 'flat';
 
   report_set_modifiers(args);
-  report_extract_account(args);
-  report_extract_tags(args);
 
   let entries = [];
   await report_traverse(args, async function(entry) {
@@ -3745,19 +3748,20 @@ async function cmd_modify(args) {
   args.modifiers.from = args.modifiers.from || '@min';
   args.modifiers.to = args.modifiers.to || '@max';
   report_set_modifiers(args);
+  console.log(args)
   //report_extract_account(args);
-  
+
   let filteredEntries = [];
   await report_traverse(args, async function(entry) {
     filteredEntries.push(entry);
   });
-  
+
   if (!filteredEntries.length) {
     console.log('No such entries found.');
     console.log('Modifiers are used for query, not modification. Use edit command to edit entry modifiers');
     return 1;
   }
-  
+
   let mods_to_remove = (args.flags['remove-mod'] || '').split(",").filter(x => x != 'uuid' && x != 'time' && x != 'description' && x != 'transfers');
   let mods_to_set = (args.flags['set-mod'] || '').split(",");
   mods_to_set = argsparser(mods_to_set).modifiers;
@@ -3765,26 +3769,26 @@ async function cmd_modify(args) {
   delete mods_to_set.time;
   delete mods_to_set.description;
   delete mods_to_set.transfers;
-  
+
   // =================================================
   //                     cmd_add
   // =================================================
-  
+
   Object.assign(args.modifiers, mods_to_set);
   let opts = await cmd_add(args, true);
   if (typeof opts != 'object') return opts; // abnormal return code
-  
+
   // =================================================
   //            ask for which ones to modify
   // =================================================
   let targetEntries = [];
   let skip = false;
-  
+
   if (filteredEntries.length == 1) targetEntries.push(filteredEntries[0]);
   for (let i = targetEntries.length;i < filteredEntries.length;i++) {
     let e = filteredEntries[i];
     if (skip) { targetEntries.push(e); continue; }
-    
+
     process.stdout.write(`Modify "${print_entry_title(e)}" (y/n/all/enter to abort)? `);
     let ans = args.flags.y ? 'y' : (await readline_prompt()).toLowerCase();
     if (args.flags.y) console.log('y');
@@ -3806,10 +3810,10 @@ async function cmd_modify(args) {
         return 1;
     }
   }
-  
+
   let tags_to_add = (args.flags['add-tag'] || '').split(",").map(x => x.toUpperCase()).filter(x => x && x.length);
   let tags_to_remove = (args.flags['remove-tag'] || '').split(",").map(x => x.toUpperCase()).filter(x => x && x.length);
-  
+
   for (let e of targetEntries) {
     Object.assign(e, opts);
     mods_to_remove.forEach(x => delete e[x]);
@@ -3825,9 +3829,9 @@ async function cmd_modify(args) {
     }
     await data_modify_entry(e);
   }
-  
+
   console.log(`${targetEntries.length} entries are affected.`);
-} 
+}
 async function cmd_delete(args) {
   args.modifiers.from = args.modifiers.from || '@min';
   args.modifiers.to = args.modifiers.to || '@max';
