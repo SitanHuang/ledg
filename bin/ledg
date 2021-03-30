@@ -2403,7 +2403,9 @@ function fs_serialize_entry_ledger(entry) {
   str += '\n';
   for (let t of entry.transfers) {
     if (t[0]) str += '  ;' + t[0] + '\n';
-    str += '  ' + t[1] + '     ' + t[2] + '\n';
+    str += '  ' +
+           t[1].replace(/:/g, ESC).replace(/\./g, ':').replace(new RegExp(ESC, "i"), '.') +
+           '     ' + t[2] + '\n';
   }
   return str;
 }
@@ -3348,6 +3350,12 @@ function cmd_git(args) {
   });
 }
 async function cmd_register() {
+  // defaults from:@min, to:@max
+  let q = { queries: [query_args_to_filter(args)] };
+  q.queries[0].collect = ['entries'];
+
+  let data = (await query_exec(q))[0];
+  data = data.sort()
 
 }
 async function cmd_accounts(args) {

@@ -6,6 +6,8 @@
 - \-\-light-theme option for your ledgrc so tables look
   reasonable in light themed terminals
   - budget bars are also applicable
+### Changed
+- print \-\-ledger now replaces '.' with ':'
 ### Fixed
 - fixed burndown command crashing with --quarterly
 - info command doesn't set from:@min even with
