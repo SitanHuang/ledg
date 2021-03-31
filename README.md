@@ -135,7 +135,7 @@ COMMANDS
 
         register [--daily] [--weekly] [--biweekly] [--monthly] [--quarterly]
                  [--yearly] [--hide-zero=true]
-                 [--skip-book-close] [--csv] [--invert]
+                 [--skip-book-close=true] [--csv] [--invert]
                  [ <account filter 1> <account filter 2> ... ] [--skip=]
                 Default: --hide-zero to:@tomorrow from:@min
                 displays matched transferse with amounts and a running total.
