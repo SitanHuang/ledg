@@ -1,5 +1,8 @@
  
 # Changelog
+## [0.7.1] 2021-03-30
+### Fixed
+- wrong entry dates in node-js due to timezone offset
 
 ## [0.7.0] 2021-03-30
 ### Added
