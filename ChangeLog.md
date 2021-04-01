@@ -1,7 +1,8 @@
- 
+
 # Changelog
 ## [Unreleased]
 ### Changed
+- .ledgrc no longer limits one arg per line
 - \-\-file in ledgrc now expands '~'
 - \-\-skip-book-close defaults to true on register cmd
 
@@ -109,7 +110,7 @@
 ### Added
 - parser now recognizes entries with missing uuid
   and auto assigns one (for manual entry without uuid)
-- filter now supports multiple account conditions 
+- filter now supports multiple account conditions
   (ex. search for entries with Expense.* and ..Cash)
 - ledg modify which allows for transfers, desc and
   date modification
