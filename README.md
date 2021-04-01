@@ -210,6 +210,9 @@ COMMANDS
                 flat
                         displays entries row by row rather than expanding individual transfers
 
+        tags [--field="tags"]
+                tabulates tags with number of entries
+
                 --field=
                         default: tags
                         This can be used on any fields such as description or payee
