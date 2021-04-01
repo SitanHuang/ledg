@@ -210,6 +210,10 @@ COMMANDS
                 flat
                         displays entries row by row rather than expanding individual transfers
 
+                --field=
+                        default: tags
+                        This can be used on any fields such as description or payee
+
         add [--date=yyyy-mm-dd] [-y] [description] [yyyy-mm-dd] < <account filter>
                   [account description] <amount> [, ...]> [+TAG ...]
                 push entry to book

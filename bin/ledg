@@ -3754,6 +3754,31 @@ async function cmd_info(args) {
     }
   }
 }
+async function cmd_tags(args) {
+  let q = { queries: [query_args_to_filter(args, ['entries'])] };
+
+  let data = (await query_exec(q))[0].entries;
+  let tags = {};
+
+  for (let e of data) {
+    let tag = e[args.flags.field || 'tags'];
+    if (!tag) continue;
+    tag = tag.split(",");
+    for (let t of tag) {
+      tags[t] = (tags[t] + 1) || 1;
+    }
+  }
+
+  tags = Object.entries(tags).sort((a, b) => b[1] - a[1]);
+  let table = [['Tag', 'Entries']];
+  let align = [TAB_ALIGN_LEFT, TAB_ALIGN_RIGHT];
+
+  for (let e of tags) {
+    table.push(e);
+  }
+
+  console.log(tabulate(table, { align: align }))
+}
 async function cmd_export(args) {
   args.flags.csv = args.flags.csv !== false;
   let table;
@@ -4630,6 +4655,13 @@ async function cmd_help() {
 
 \t\tflat
 \t\t\tdisplays entries row by row rather than expanding individual transfers
+
+\ttags [--field="tags"]
+\t\ttabulates tags with number of entries
+
+\t\t--field=
+\t\t\tdefault: tags
+\t\t\tThis can be used on any fields such as description or payee
 
 \tadd [--date=yyyy-mm-dd] [-y] [description] [yyyy-mm-dd] < <account filter>
 \t\t  [account description] <amount> [, ...]> [+TAG ...]
@@ -5781,10 +5813,12 @@ var CMD_LIST = {
   'accounts': cmd_accounts,
   'budget': cmd_budget,
   'history': cmd_history,
-  'stats': cmd_stats,
-  'count': cmd_count,
   'print': cmd_print,
   'burndown': cmd_burndown,
+
+  'tags': cmd_tags,
+  'stats': cmd_stats,
+  'count': cmd_count,
 
   'export': cmd_export,
 
