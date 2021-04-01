@@ -8,7 +8,7 @@ NODE_VERSION := $(shell node --version 2>/dev/null)
 
 check_node:
 ifdef NODE_VERSION
-	
+	# TODO:
 else
 	@echo Node.js not found
 	exit

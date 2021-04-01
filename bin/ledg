@@ -5807,7 +5807,7 @@ async function index() {
 
   cli_args = args = argsparser(argv);
   if (args.flags.debug) DEBUG = true;
-  fs_book_name = args.flags.F || args.flags.file || fs_book_name;
+  fs_book_name = (args.flags.F || args.flags.file || fs_book_name).replace(/~/g, process.env.HOME || '~');
   
   // stdin pipe
   if (fs_book_name == '-') {
