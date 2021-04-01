@@ -2,6 +2,7 @@
 # Changelog
 ## [Unreleased]
 ### Changed
+- add ledg tags
 - .ledgrc no longer limits one arg per line
 - \-\-file in ledgrc now expands '~'
 - \-\-skip-book-close defaults to true on register cmd
