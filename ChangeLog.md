@@ -2,6 +2,7 @@
 # Changelog
 ## [Unreleased]
 ### Changed
+- \-\-file in ledgrc now expands '~'
 - \-\-skip-book-close defaults to true on register cmd
 
 ### [0.7.1] 2021-03-30
