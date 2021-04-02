@@ -42,7 +42,7 @@ FLAGS
                 set FILE as a prefix for ledg file locations:
                 ex. --file=Documents/book will point to Documents/book.*.ledg
 
-        --light-theme
+        --light-theme, --lt
                 put this in your .ledgrc if your terminal has light background
 
         --csv
@@ -58,7 +58,7 @@ FLAGS
                 Default: Income*, Expense*, Asset*, Liability*, Equity*
                 Let certain report commands to know what are the corresponding accounts
 
-        --skip-book-close[=false]
+        --skip-book-close[=false], --sbc
                 Default: false
                 Skips all entries with bookClose:"true" or bookClose:true
 
@@ -134,7 +134,7 @@ COMMANDS
                         Show graph of numbers of entries rather than sum
 
         register [--daily] [--weekly] [--biweekly] [--monthly] [--quarterly]
-                 [--yearly] [--hide-zero=true]
+                 [--yearly] [--hide-zero=true, --hz]
                  [--skip-book-close=true] [--csv] [--invert]
                  [ <account filter 1> <account filter 2> ... ] [--skip=]
                 Default: --hide-zero to:@tomorrow from:@min
@@ -145,7 +145,7 @@ COMMANDS
                 --invert
                         negates all amounts
 
-                --hide-zero
+                --hide-zero, --hz
                         Default: true
                         hide rows that are zeroes when used with reporting interval
 
@@ -165,10 +165,10 @@ COMMANDS
                 Note: even with cumulative columns, history command does not sum everything from
                 @min, and so unless from:@min is given, asset/liability calculation is not accurate
 
-                --cumulative-columns=1,2,3...
+                --cumulative-columns=1,2,3..., --cml-cols
                         shows cumulative data for the given column numbers
 
-                --cumulative
+                --cumulative, --cml
                         shows cumulative data
 
                 --skip=yyyy-mm-dd
@@ -188,16 +188,16 @@ COMMANDS
                 -y
                         defaults confirmations to yes
 
-        accounts [--sum-parent] [--hide-zero] [--max-depth=NUM] [--sum] [ <filter> ] [tree]
+        accounts [--sum-parent] [--hide-zero, --hz] [--max-depth=NUM, --dep, --depth] [--sum] [ <filter> ] [tree]
                 sums balances in selected accounts
                 Due to the need to sum entries from the beginning of a book, from: modifier is
                 defaulted to @min.
 
                 --sum-parent
                         allows child account balances to add to parent accounts
-                --hide-zero, --hide-zero=false
+                --hide-zero, --hide-zero=false, --hz
                         hide accounts with zero balance or not
-                --max-depth=NUM
+                --max-depth=NUM, --depth, --dep
                         max child account depth to show
                 --sum
                         sums listed accounts, best used with --max-depth=1
@@ -267,14 +267,14 @@ COMMANDS
                   ;from:"@month-start"
                 ;this is a comment, below are tracker based budgeting
                   ;to:"@month-end"
-                  ast.*.Chck    goal 0-500
-                  exp.* payee:Amazon    limit 0--200
+                  ast.*.Chck        goal 0-500
+                  exp.* payee:Amazon        limit 0--200
 
                 ; -- account based budgeting --
-                  Expense       300
+                  Expense        300
                 ; -- expense cateogries --
-                  Expense.Other.Transportation  300
-                  Expense.Essential.Groceries   200
+                  Expense.Other.Transportation        300
+                  Expense.Essential.Groceries        200
 
         print [<account filters>] [<filters>] [--ledger]
                 prints selected entries in ledg format
@@ -296,5 +296,4 @@ COMMANDS
         export gnucash-transactions > transactions.csv
         export gnucash-accounts > accounts.csv
                 csv can be directly imported to gnucash
-
 ```
