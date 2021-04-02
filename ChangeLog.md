@@ -2,6 +2,7 @@
 # Changelog
 ## [Unreleased]
 ### Changed
+- added shorthands for some long flags
 - add ledg tags
 - .ledgrc no longer limits one arg per line
 - \-\-file in ledgrc now expands '~'
