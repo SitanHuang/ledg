@@ -188,10 +188,14 @@ COMMANDS
                 -y
                         defaults confirmations to yes
 
-        accounts [--sum-parent] [--hide-zero, --hz] [--max-depth=NUM, --dep, --depth] [--sum] [ <filter> ] [tree]
+        accounts [tree] [--sum-parent] [--hide-zero, --hz] [--max-depth=NUM, --dep, --depth]
+                [--sum] [ <filter> ] [--sort]
                 sums balances in selected accounts
                 Due to the need to sum entries from the beginning of a book, from: modifier is
                 defaulted to @min.
+
+                --sort
+                        unless in tree mode, sort accounts by amount in descending order
 
                 --sum-parent
                         allows child account balances to add to parent accounts

@@ -3617,7 +3617,11 @@ async function cmd_accounts(args) {
     width2 = Math.max(width2, print_format_money(balanceData[x]).length);
   });
 
-  let accs = accounts.sort(); // wait for open book then key
+  let accs = accounts.sort((a, b) =>
+    args.flags['sort'] ?
+      balanceData[b] - balanceData[a] :
+      b - a
+  ); // wait for open book then key
 
   if (tree) {
     if (args.flags['hide-zero'])
@@ -4645,10 +4649,14 @@ async function cmd_help() {
 \t\t-y
 \t\t\tdefaults confirmations to yes
 
-\taccounts [--sum-parent] [--hide-zero, --hz] [--max-depth=NUM, --dep, --depth] [--sum] [ <filter> ] [tree]
+\taccounts [tree] [--sum-parent] [--hide-zero, --hz] [--max-depth=NUM, --dep, --depth]
+\t\t[--sum] [ <filter> ] [--sort]
 \t\tsums balances in selected accounts
 \t\tDue to the need to sum entries from the beginning of a book, from: modifier is
 \t\tdefaulted to @min.
+
+\t\t--sort
+\t\t\tunless in tree mode, sort accounts by amount in descending order
 
 \t\t--sum-parent
 \t\t\tallows child account balances to add to parent accounts
@@ -5903,10 +5911,10 @@ async function index() {
 
   if (cmd) {
     args._.splice(0,1);
+    let _endCmd = new Date();
     let c = await cmd(args);
-    let _endCmd = new Date() - _endConfig;
     if (DEBUG) {
-      console.debug(`_endConfig=${new Date() - _endConfig}ms, _endCmd=${_endCmd}ms`);
+      console.debug(`_endConfig=${_endConfig - _start}ms, _endCmd=${new Date() - _endCmd}ms`);
     }
     if (c) { process.exit(c) }
     else if (fs_book_name != '-') { await fs_write_books(); }

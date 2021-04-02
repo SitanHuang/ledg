@@ -1,12 +1,18 @@
 
 # Changelog
 ## [Unreleased]
+### Added
+- acc --sort
+
 ### Changed
 - added shorthands for some long flags
 - add ledg tags
 - .ledgrc no longer limits one arg per line
 - \-\-file in ledgrc now expands '~'
 - \-\-skip-book-close defaults to true on register cmd
+
+### Fixed
+- fix incorrect debug times
 
 ### [0.7.1] 2021-03-30
 #### Fixed
