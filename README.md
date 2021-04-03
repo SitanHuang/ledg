@@ -254,6 +254,9 @@ COMMANDS
                 Note: report excludes entries with bookClose:"true"
                       budgets can be edited at FILE.budgets.ledg
 
+                --simple
+                        Displays budget with simplified information
+
                 --do-not-adjust
                         By default, if specified from: and to: have different range than the one in
                         budget file, ledg will shrink/grow amounts correspondingly. For example,

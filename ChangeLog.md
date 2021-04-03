@@ -2,7 +2,8 @@
 # Changelog
 ## [Unreleased]
 ### Added
-- acc --sort
+- budget --simple
+- accounts --sort
 
 ### Changed
 - added shorthands for some long flags

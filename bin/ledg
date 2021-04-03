@@ -36,143 +36,6 @@ function isArgAccount(v) {
   }
   return false;
 }
-var data = null;
-
-function data_init_data() {
-  data = {
-    accounts: {},
-    books: {}, // { 2019: [ ... ], 2020: [ ... ], ...  }
-    booksOpened: {},
-    budgets: {}
-  };
-  return data;
-}
-
-data_init_data();
-
-async function data_open_books(books) {
-  for (let y of books) {
-    if (data.booksOpened[y] >= DATA_BOOK_OPENED) continue;
-    await fs_read_book(y);
-    data.booksOpened[y] = Math.max(DATA_BOOK_OPENED, data.booksOpened[y]); // fs_read_book could set it to dirty
-  }
-}
-
-function data_books_required(d1, d2) {
-  d1 = new Date(d1).getFullYear();
-  if (!d2) return d1;
-  d2 = new Date(d2).getFullYear();
-  let yr = [];
-  for (let i=d1; i<=d2; i++) {
-    yr.push(i);
-  }
-  return yr;
-}
-
-async function data_remove_entry(entry) {
-  let y = new Date(entry.time * 1000).getFullYear();
-  await data_open_books([y]);
-  data.books[y] = data.books[y].filter(x => x.uuid != entry.uuid);
-  data.booksOpened[y] = DATA_BOOK_DIRTY;
-}
-
-async function data_remove_entry(entry) {
-  let y = new Date(entry.time * 1000).getFullYear();
-  await data_open_books([y]);
-  let book = data.books[y];
-  for (let i = 0;i < book.length;i++) {
-    if (book[i].uuid == entry.uuid) {
-      data.booksOpened[y] = DATA_BOOK_DIRTY;
-      book.splice(i, 1);
-      return;
-    }
-  }
-}
-
-/*
- * finds entry with same uuid, delete old one, and add new one to the right year
- * returns true if found and modified
- * returns false if nothing was found
- */
-async function data_modify_entry(entry) {
-  let y = new Date(entry.time * 1000).getFullYear();
-  await data_open_books([y]);
-  /* let range = await fs_get_data_range();
-   * await data_open_books(range);
-   * 
-   * (being able to edit means the entry must've been opened already)
-   */
-  FOR: for (let year in data.books) {
-    let book = data.books[year];
-    for (let i = 0;i < book.length;i++) {
-      if (book[i].uuid == entry.uuid) {
-        data.booksOpened[y] = DATA_BOOK_DIRTY;
-        data.booksOpened[year] = DATA_BOOK_DIRTY;
-        if (year == y) { // same book just update entry
-          book[i] = entry;
-          return true;
-        } else {
-          // remove old
-          book.splice(i, 1);
-          // add new
-          data.books[y].push(entry);
-          return true;
-        }
-      }
-    }
-  }
-  return false;
-}
-
-async function data_push_entry(entry) {
-  let y = new Date(entry.time * 1000).getFullYear();
-  await data_open_books([y]);
-  data.books[y] = data.books[y] || [];
-  data.books[y].push(entry);
-  for (let t of entry.transfers) {
-    let acc = t[1];
-    data.accounts[acc] = 1;
-  }
-  data.booksOpened[y] = DATA_BOOK_DIRTY;
-}
-
-async function data_push_entries(entries) {
-  let min, max;
-  min = max = new Date().getTime() / 1000;
-  for (let e of entries) {
-    min = Math.min(min, e.time);
-    max = Math.max(max, e.time);
-  }
-  await data_open_books(data_books_required(min * 1000, max * 1000));
-  for (let e of entries)
-    await data_push_entry(e);
-}
-
-async function data_iterate_books(books, callback, afterOpenCallback) {
-  await data_open_books(books);
-  if (afterOpenCallback) await afterOpenCallback();
-  for (let b of books) {
-    let book = data.books[b];
-    if (await callback(book) == DATA_CALLBACK_STOP) break;
-  }
-}
-
-/*
- * =====================================
- * Constants
- * =====================================
- */
-DATA_BOOK_OPENED = 1;
-DATA_BOOK_DIRTY = 2;
-
-DATA_CALLBACK_STOP = 999;
-
-/*
- * ======================================
- * Runtime infos
- * ======================================
- */
-var data_acc_imb = 'Imbalance';
 /*
  * desc = description of entry
  * transfers = [[desc, acc, amnt], ...]
@@ -239,6 +102,70 @@ function entry_check_balance(transfers) {
     balance = balance.add(t[2]);
   }
   return -balance.toNumber();
+}
+var tree_c0 = "├";
+var tree_c1 = "─";
+var tree_c2 = "└";
+var tree_c3 = "│";
+
+function expand_account(list=Object.keys(data.accounts)) {
+  let data = [];
+  let tree = {};
+  for (let acc of list) {
+    let levels = acc.split('.');
+    let prnt = tree[levels[0]] || (tree[levels[0]] = {});
+    for (let i = 1;i < levels.length;i++) {
+      let l = levels[i];
+      prnt = prnt[l] = (prnt[l] || {});
+    }
+  }
+  
+  _expand_account_subtree("", tree, data);
+  return data;
+}
+
+function _expand_account_subtree(pre, t, fullList) {
+  let keys = Object.keys(t);
+  for (let i = 0;i < keys.length;i++) {
+    fullList.push(pre + keys[i]);
+    _expand_account_subtree(pre + keys[i] + '.', t[keys[i]], fullList);
+  }
+}
+
+/*
+ * takes in a list of accounts
+ */
+function print_accountTree(list) {
+  let tree = {};
+  let data = {list: [], fullList: [], maxLength: 0};
+  list = list.sort();
+  for (let acc of list) {
+    let levels = acc.split('.');
+    let prnt = tree[levels[0]] || (tree[levels[0]] = {});
+    for (let i = 1;i < levels.length;i++) {
+      let l = levels[i];
+      prnt = prnt[l] = (prnt[l] || {});
+    }
+  }
+  
+  _print_accountTree_subtree("", tree, data);
+  return data;
+}
+
+function _print_accountTree_subtree(pre, t, data, c3_col=[]) {
+  let keys = Object.keys(t);
+  for (let i = 0;i < keys.length;i++) {
+    let prefix = '';
+    for (let j = 0;j < c3_col.length;j++) {
+      prefix += c3_col[j] ? tree_c3 + '  ' : '   ';
+    }
+    prefix += (i == keys.length - 1 ? tree_c2 : tree_c0);
+    let row = prefix + keys[i];
+    data.maxLength = Math.max(data.maxLength, row.length);
+    data.list.push(row);
+    data.fullList.push(pre + keys[i]);
+    _print_accountTree_subtree(pre + keys[i] + '.', t[keys[i]], data, c3_col.concat([i != keys.length - 1]));
+  }
 }
 /*
 The MIT License (MIT)
@@ -1293,262 +1220,198 @@ var Big;
 //     GLOBAL.Big = Big;
 //   }
 })(this);
- 
-function tag_add(entry, tag) {
-  entry.tags = new Set(entry.tags ? entry.tags.toString().split(",") : undefined);
-  entry.tags.add(tag.toUpperCase());
-  entry.tags = Array.from(entry.tags).sort().join(",");
+var cmd_report_modifiers = {
+  from: "@year-start", // inclusive
+  to: "@year-end", // exclusive
+};
+
+var cmd_report_accounts = {
+  income: 'Income*',
+  expense: 'Expense*',
+  asset: 'Asset*',
+  liability: 'Liability*',
+  equity: 'Equity*'
+};
+
+var cmd_report_accounts_compiled = {};
+
+function report_set_accounts(args) {
+  Object.keys(cmd_report_accounts).forEach(x => {
+    cmd_report_accounts[x] = args.flags[x] || cmd_report_accounts[x];
+  });
 }
 
-function tag_remove(entry, tag) {
-  entry.tags = new Set(entry.tags ? entry.tags.toString().split(",") : undefined);
-  entry.tags.delete(tag.toUpperCase());
-  if (entry.tags.size)
-    entry.tags = Array.from(new Set(entry.tags)).sort().join(",");
-  else
-    delete entry.tags;
+function report_compile_account_regex() {
+  Object.keys(cmd_report_accounts).forEach(x => {
+    cmd_report_accounts_compiled[x] = fzy_compile(cmd_report_accounts[x]);
+  });
 }
-/*
- * query : {
- *   [from: time,] // min (for opening books)
- *   [to: time,] // max (for opening books)
- *   queries: [{
- *     [type: "query",] // standalone query that doesn't involve other queries
- *     from: time,
- *     to: time,
- *     modifiers: {},
- *     flags: {},
- *     accounts: [], // for filtering entries
- *     [sum_accounts: []], // sum only these accounts
- *     collect: [
- *       'sum', // sum to data
- *       'count', // count entries
- *       'entries', // return entries
- *       'accounts_sum', // returns { acc_trans: sum }
- *     ]
- *   }]
- * }
- */
-async function query_exec(query) {
-  if (!query.queries.length) return [];
-  let data = [];
-  let _range_min = query.from;
-  let _range_max = query.to;
-  const ignoredMods = Object.keys(cmd_report_modifiers);
-  for (let q of query.queries) {
-    q.modifiers = q.modifiers || {};
-    q.accounts = q.accounts || {};
-    q.flags = q.flags || {};
 
-    let regexMod = {};
-    for (mod in q.modifiers) {
-      if (ignoredMods.indexOf(mod) >= 0) continue;
-      if (q.modifiers[mod]) regexMod[mod] = new RegExp(q.modifiers[mod], 'i');
-    }
-    q.regexMod = regexMod;
+function report_set_modifiers(args) {
+  Object.keys(cmd_report_modifiers).forEach(x => {
+    cmd_report_modifiers[x] = args.modifiers[x] || cmd_report_modifiers[x];
+  });
+}
 
-    let d = { from: q.from, to: q.to };
-    data.push(d);
+function report_get_reporting_interval(args, rtnNull) {
+  // adds to new Date(y, m, d)
+  // default: monthly
+  let def = [0, 1, 0];
 
-    q.from = q.from || _range_min || 0;
-    q.to = q.to || _range_max || 0;
-    if (isNaN(_range_min)) _range_min = q.from;
-    if (isNaN(_range_max)) _range_max = q.to;
-    _range_min = Math.min(_range_min, q.from);
-    _range_max = Math.max(_range_max, q.to);
+  if (args.flags.yearly) def = [1, 0, 0];
+  else if (args.flags.quarterly) def = [0, 3, 0];
+  else if (args.flags.monthly) def = [0, 1, 0];
+  else if (args.flags.biweekly) def = [0, 0, 14];
+  else if (args.flags.weekly) def = [0, 0, 7];
+  else if (args.flags.daily) def = [0, 0, 1];
+  else if (rtnNull) return;
 
-    for (let c of q.collect) {
-      switch (c) {
-        case 'sum':
-          d.sum = new Big(0);
-          break;
-        case 'count':
-          d.count = 0;
-          break;
-        case 'entries':
-          d.entries = [];
-          break;
-        case 'accounts_sum':
-          d.accounts_sum = {};
-          break;
-        default:
-          throw `Unknown collect method: ${c}`;
-      }
+  return def;
+}
+
+function report_sort_by_time(entries) {
+  return entries = entries.sort((a, b) => a.time - b.time);
+}
+
+function report_extract_account(args) {
+  args.accounts = args.accounts || [];
+  args.accountSrc = args.accountSrc || [];
+  let v = args._;
+  for (let i = 0;i < v.length;i++) {
+    if (isArgAccount(v[i])) {
+      args.accounts.push(fzy_compile(v[i]));
+      args.accountSrc.push(v[i]);
+      v.splice(i, 1);
+      i--;
     }
   }
+}
 
-  await data_iterate_books(data_books_required(_range_min * 1000, _range_max * 1000),
-    async function (book) {
+function report_extract_tags(args) {
+  if (args.modifiers.tags) return;
+  let tags = [];
+  let v = args._;
+  for (let i = 0;i < v.length;i++) {
+    if (v[i].startsWith('+')) {
+      tags.push(v[i].substring(1));
+      v.splice(i, 1);
+      i--;
+    }
+  }
+  if (!tags.length) return;
+  args.modifiers.tags = tags.join("(,|$)|") + "(,|$)";
+}
+
+var CMD_MODIFER_REPLACE = {
+  "@year-start": () => new Date(new Date().getFullYear(), 0, 1) / 1000 | 0,
+  "@min": () => fs_data_range.length ? (Date.parse(fs_data_range[0] + '-01-01T00:00:00') / 1000 | 0) : 0,
+  "@max": () => (fs_data_range.length ? Date.parse((fs_data_range[fs_data_range.length - 1] + 1) + '-01-01T00:00:00') : new Date(new Date().getFullYear() + 1, 0, 1) - 1000) / 1000 | 0,
+  "@year-end": () => new Date(new Date().getFullYear() + 1, 0, 1) / 1000 | 0,
+  "@month-start": () => new Date(new Date().getFullYear(), new Date().getMonth(), 1) / 1000 | 0,
+  "@month-end": () => new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1) / 1000 | 0,
+  "@today": () => new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate(), 0, 0, 0, 0) / 1000 | 0,
+  "@tomorrow": () => new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate() + 1, 0, 0, 0, 0) / 1000 | 0,
+  "@last-year-today": () => {
+    let a = new Date();
+    a.setFullYear(a.getFullYear() - 1);
+    return a / 1000 | 0;
+  },
+  "@last-year": () => new Date(new Date().getFullYear() - 1, 0, 1) / 1000 | 0
+};
+
+/*
+ * IMPORTANT: callback must be async
+ */
+async function report_traverse(args, callback, afterOpenCallback) {
+  let min_f = fs_data_range.length ? Date.parse(fs_data_range[0] + '-01-01T00:00:00') : 0;
+  let f = Date.parse(report_replaceDateStr(cmd_report_modifiers.from) + 'T00:00:00') || min_f;
+  let max_t = fs_data_range.length ? Date.parse((fs_data_range[fs_data_range.length - 1] + 1) + '-01-01T00:00:00') : new Date(new Date().getFullYear() + 1, 0, 1) - 1000;
+  let t = Date.parse(report_replaceDateStr(cmd_report_modifiers.to) + 'T00:00:00') - 1000 || max_t;
+  let range = data_books_required(f, t);
+  let ignored = Object.keys(cmd_report_modifiers);
+
+  let regexMod = {};
+  for (mod in args.modifiers) {
+    if (ignored.indexOf(mod) >= 0) continue;
+    if (args.modifiers[mod]) regexMod[mod] = new RegExp(args.modifiers[mod], 'i');
+  }
+
+  await data_iterate_books(range, async function (book) {
     let len = book.length;
-    ENTRY: while (len--) {
-      let e = book[len];
-      if (e.time < query.from || e.time >= query.to) continue;
-      let i = -1;
-      QUERY: for (let q of query.queries) {
-        i++;
-        // handle flags
-        if (q.flags['skip-book-close'] && e.bookClose && e.bookClose.toString() == 'true') continue QUERY;
-        // handle time
-        if ((q.from && e.time < q.from) || (q.to && e.time >= q.to)) continue;
-        // handle modifiers
-        for (mod in q.regexMod) {
-          if (!e[mod]) {
-            if (q.regexMod[mod].source == '(?:)') continue; // empty on both
-            else continue QUERY;
-          }
-          if (!(e[mod].toString()).match(q.regexMod[mod])) continue QUERY;
-        }
-        // handle accounts && transfer sums & sum & count
-        let sumTrans = q.collect.indexOf('accounts_sum') >= 0;
-        let isSum = q.collect.indexOf('sum') >= 0;
-        let sum = isSum ? new Big(0) : undefined;
-        let sum_parent = q.flags['sum-parent'];
-        let accSum = {};
-        let matchTimes = 0;
-        let broken = false;
-        FOR: for (let qt of q.accounts) {
-          for (let t of e.transfers) {
-            if (t[1].match(qt)) {
-              if (!broken) matchTimes++;
-              broken = true;
-              if (isSum) {
-                sum = sum.plus(t[2]);
+    WHILE: while (len--) {
+      if ((book[len].time >= (f / 1000 | 0)) && (book[len].time < t / 1000 | 0)) {
+        if (args.flags['skip-book-close'] && book[len].bookClose && book[len].bookClose.toString() == 'true') continue WHILE;
+        if (args.accounts && args.accounts.length) {
+          let matchTimes = 0;
+          FOR: for (let q of args.accounts) {
+            for (let t of book[len].transfers) {
+              if (t[1].match(q)) {
+                matchTimes++;
+                break;
               }
             }
           }
+          if (matchTimes != args.accounts.length) continue WHILE;
         }
-        if (matchTimes != q.accounts.length) continue QUERY;
-        if (isSum || sumTrans) {
-          for (let t of e.transfers) {
-            if (sumTrans) {
-              if (sum_parent) {
-                let levels = t[1].split(".");
-                let previous = "";
-                for (let l of levels) {
-                  let k = previous + l;
-                  if (!accSum[k]) accSum[k] = new Big(0);
-                  accSum[k] = accSum[k].plus(t[2]);
-                  previous = k + ".";
-                }
-              } else {
-                accSum[t[1]] = (accSum[t[1]] || new Big(0)).plus(t[2]);
-              }
-            }
-            if (isSum && q.accounts.length == 0) sum = sum.plus(t[2]);
+        for (mod in regexMod) {
+          if (!book[len][mod]) {
+            if (regexMod[mod].source == '(?:)') continue; // empty on both
+            else continue WHILE;
           }
+          if (!(book[len][mod].toString()).match(regexMod[mod])) continue WHILE;
         }
-        // ======= done filtering =======
-        if (q.callback) await q.callback(e);
-        // store entries
-        if (q.collect.indexOf('entries') >= 0) {
-          data[i].entries.push(e);
-        }
-        // store rest of results
-        for (let x in accSum) { accSum[x] = accSum[x].toNumber() }
-        if (sumTrans) data[i].accounts_sum = accSum;
-        if (isSum) data[i].sum = data[i].sum.plus(sum);
-        data[i].count++;
+        await callback(book[len]);
       }
     }
+  }, afterOpenCallback);
+}
 
+async function report_sum_accounts(args, sum_parent, forkAccList) {
+  cmd_report_modifiers.from = args.modifiers.from; // unless specified, query everything
+  cmd_report_modifiers.to = args.modifiers.to;
+
+  let d;
+  await report_traverse(args, async function(entry) {
+    for (let t of entry.transfers) {
+      if (sum_parent) {
+        let levels = t[1].split(".");
+        let previous = "";
+        for (let l of levels) {
+          let k = previous + l;
+          if (!d[k]) d[k] = new Big(0);
+          d[k] = d[k].plus(t[2]);
+          previous = k + ".";
+        }
+      } else {
+        d[t[1]] = d[t[1]].plus(t[2]);
+      }
+    }
+  }, async function() { // wait until books are opened to load accounts
+
+    d = JSON.parse(JSON.stringify(forkAccList || data.accounts));
+    Object.keys(d).forEach(x => d[x] = new Big(0));
   });
 
-  for (let i = 0;i < data.length;i++) {
-    let d = data[i];
-    d.sum = d.sum && d.sum.toNumber();
-    if (query.cumulative && i - query.cumulative >= 0) {
-      let prev = data[i - query.cumulative];
-      for (let key in prev) {
-        if (!isNaN(prev[key]))
-          data[i][key] = new Big(prev[key]).add(data[i][key]).toNumber();
+  Object.keys(d).forEach(x => d[x] = d[x].toNumber());
+  Object.keys(d).forEach(x => {
+    if (args.accounts && args.accounts) {
+      let matchTimes = 0;
+      for (let q of args.accounts) {
+        if (x.match(q)) {
+          matchTimes++;
+          break;
+        }
       }
+      if (matchTimes != args.accounts.length)
+        delete d[x];
     }
-    if (!isNaN(d.sum)) data.minSum = Math.min(d.sum, data.minSum || 0);
-    if (!isNaN(d.count)) data.minCount = Math.min(d.count, data.minCount || 0);
-    if (!isNaN(d.sum)) data.maxSum = Math.max(d.sum, data.maxSum || 0);
-    if (!isNaN(d.count)) data.maxCount = Math.max(d.count, data.maxCount || 0);
-  }
-  return data;
-
+  });
+  return d;
 }
 
-function query_args_to_filter(args, collect=[]) {
-  report_extract_account(args);
-  report_extract_tags(args);
-  let x = {
-    modifiers: args.modifiers,
-    flags: args.flags,
-    accounts: args.accounts,
-    collect: collect
-  };
-  x.from = (Date.parse(report_replaceDateStr(args.modifiers.from || '@min') + 'T00:00:00') / 1000 | 0);
-  x.to = (Date.parse(report_replaceDateStr(args.modifiers.to || '@max') + 'T00:00:00') / 1000 | 0);
-  return x;
-}
-
-var tree_c0 = "├";
-var tree_c1 = "─";
-var tree_c2 = "└";
-var tree_c3 = "│";
-
-function expand_account(list=Object.keys(data.accounts)) {
-  let data = [];
-  let tree = {};
-  for (let acc of list) {
-    let levels = acc.split('.');
-    let prnt = tree[levels[0]] || (tree[levels[0]] = {});
-    for (let i = 1;i < levels.length;i++) {
-      let l = levels[i];
-      prnt = prnt[l] = (prnt[l] || {});
-    }
-  }
-  
-  _expand_account_subtree("", tree, data);
-  return data;
-}
-
-function _expand_account_subtree(pre, t, fullList) {
-  let keys = Object.keys(t);
-  for (let i = 0;i < keys.length;i++) {
-    fullList.push(pre + keys[i]);
-    _expand_account_subtree(pre + keys[i] + '.', t[keys[i]], fullList);
-  }
-}
-
-/*
- * takes in a list of accounts
- */
-function print_accountTree(list) {
-  let tree = {};
-  let data = {list: [], fullList: [], maxLength: 0};
-  list = list.sort();
-  for (let acc of list) {
-    let levels = acc.split('.');
-    let prnt = tree[levels[0]] || (tree[levels[0]] = {});
-    for (let i = 1;i < levels.length;i++) {
-      let l = levels[i];
-      prnt = prnt[l] = (prnt[l] || {});
-    }
-  }
-  
-  _print_accountTree_subtree("", tree, data);
-  return data;
-}
-
-function _print_accountTree_subtree(pre, t, data, c3_col=[]) {
-  let keys = Object.keys(t);
-  for (let i = 0;i < keys.length;i++) {
-    let prefix = '';
-    for (let j = 0;j < c3_col.length;j++) {
-      prefix += c3_col[j] ? tree_c3 + '  ' : '   ';
-    }
-    prefix += (i == keys.length - 1 ? tree_c2 : tree_c0);
-    let row = prefix + keys[i];
-    data.maxLength = Math.max(data.maxLength, row.length);
-    data.list.push(row);
-    data.fullList.push(pre + keys[i]);
-    _print_accountTree_subtree(pre + keys[i] + '.', t[keys[i]], data, c3_col.concat([i != keys.length - 1]));
-  }
+function report_replaceDateStr(dateStr) {
+  if (CMD_MODIFER_REPLACE[dateStr]) return new Date(CMD_MODIFER_REPLACE[dateStr]() * 1000).toISOString().split('T')[0];
+  return dateStr;
 }
 
 /*!
@@ -1945,294 +1808,336 @@ const nanoid = function (length = 8) {
   }
   return result;
 };
-var cmd_report_modifiers = {
-  from: "@year-start", // inclusive
-  to: "@year-end", // exclusive
-};
-
-var cmd_report_accounts = {
-  income: 'Income*',
-  expense: 'Expense*',
-  asset: 'Asset*',
-  liability: 'Liability*',
-  equity: 'Equity*'
-};
-
-var cmd_report_accounts_compiled = {};
-
-function report_set_accounts(args) {
-  Object.keys(cmd_report_accounts).forEach(x => {
-    cmd_report_accounts[x] = args.flags[x] || cmd_report_accounts[x];
-  });
-}
-
-function report_compile_account_regex() {
-  Object.keys(cmd_report_accounts).forEach(x => {
-    cmd_report_accounts_compiled[x] = fzy_compile(cmd_report_accounts[x]);
-  });
-}
-
-function report_set_modifiers(args) {
-  Object.keys(cmd_report_modifiers).forEach(x => {
-    cmd_report_modifiers[x] = args.modifiers[x] || cmd_report_modifiers[x];
-  });
-}
-
-function report_get_reporting_interval(args, rtnNull) {
-  // adds to new Date(y, m, d)
-  // default: monthly
-  let def = [0, 1, 0];
-
-  if (args.flags.yearly) def = [1, 0, 0];
-  else if (args.flags.quarterly) def = [0, 3, 0];
-  else if (args.flags.monthly) def = [0, 1, 0];
-  else if (args.flags.biweekly) def = [0, 0, 14];
-  else if (args.flags.weekly) def = [0, 0, 7];
-  else if (args.flags.daily) def = [0, 0, 1];
-  else if (rtnNull) return;
-
-  return def;
-}
-
-function report_sort_by_time(entries) {
-  return entries = entries.sort((a, b) => a.time - b.time);
-}
-
-function report_extract_account(args) {
-  args.accounts = args.accounts || [];
-  args.accountSrc = args.accountSrc || [];
-  let v = args._;
-  for (let i = 0;i < v.length;i++) {
-    if (isArgAccount(v[i])) {
-      args.accounts.push(fzy_compile(v[i]));
-      args.accountSrc.push(v[i]);
-      v.splice(i, 1);
-      i--;
-    }
-  }
-}
-
-function report_extract_tags(args) {
-  if (args.modifiers.tags) return;
-  let tags = [];
-  let v = args._;
-  for (let i = 0;i < v.length;i++) {
-    if (v[i].startsWith('+')) {
-      tags.push(v[i].substring(1));
-      v.splice(i, 1);
-      i--;
-    }
-  }
-  if (!tags.length) return;
-  args.modifiers.tags = tags.join("(,|$)|") + "(,|$)";
-}
-
-var CMD_MODIFER_REPLACE = {
-  "@year-start": () => new Date(new Date().getFullYear(), 0, 1) / 1000 | 0,
-  "@min": () => fs_data_range.length ? (Date.parse(fs_data_range[0] + '-01-01T00:00:00') / 1000 | 0) : 0,
-  "@max": () => (fs_data_range.length ? Date.parse((fs_data_range[fs_data_range.length - 1] + 1) + '-01-01T00:00:00') : new Date(new Date().getFullYear() + 1, 0, 1) - 1000) / 1000 | 0,
-  "@year-end": () => new Date(new Date().getFullYear() + 1, 0, 1) / 1000 | 0,
-  "@month-start": () => new Date(new Date().getFullYear(), new Date().getMonth(), 1) / 1000 | 0,
-  "@month-end": () => new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1) / 1000 | 0,
-  "@today": () => new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate(), 0, 0, 0, 0) / 1000 | 0,
-  "@tomorrow": () => new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate() + 1, 0, 0, 0, 0) / 1000 | 0,
-  "@last-year-today": () => {
-    let a = new Date();
-    a.setFullYear(a.getFullYear() - 1);
-    return a / 1000 | 0;
-  },
-  "@last-year": () => new Date(new Date().getFullYear() - 1, 0, 1) / 1000 | 0
-};
-
 /*
- * IMPORTANT: callback must be async
+ * query : {
+ *   [from: time,] // min (for opening books)
+ *   [to: time,] // max (for opening books)
+ *   queries: [{
+ *     [type: "query",] // standalone query that doesn't involve other queries
+ *     from: time,
+ *     to: time,
+ *     modifiers: {},
+ *     flags: {},
+ *     accounts: [], // for filtering entries
+ *     [sum_accounts: []], // sum only these accounts
+ *     collect: [
+ *       'sum', // sum to data
+ *       'count', // count entries
+ *       'entries', // return entries
+ *       'accounts_sum', // returns { acc_trans: sum }
+ *     ]
+ *   }]
+ * }
  */
-async function report_traverse(args, callback, afterOpenCallback) {
-  let min_f = fs_data_range.length ? Date.parse(fs_data_range[0] + '-01-01T00:00:00') : 0;
-  let f = Date.parse(report_replaceDateStr(cmd_report_modifiers.from) + 'T00:00:00') || min_f;
-  let max_t = fs_data_range.length ? Date.parse((fs_data_range[fs_data_range.length - 1] + 1) + '-01-01T00:00:00') : new Date(new Date().getFullYear() + 1, 0, 1) - 1000;
-  let t = Date.parse(report_replaceDateStr(cmd_report_modifiers.to) + 'T00:00:00') - 1000 || max_t;
-  let range = data_books_required(f, t);
-  let ignored = Object.keys(cmd_report_modifiers);
+async function query_exec(query) {
+  if (!query.queries.length) return [];
+  let data = [];
+  let _range_min = query.from;
+  let _range_max = query.to;
+  const ignoredMods = Object.keys(cmd_report_modifiers);
+  for (let q of query.queries) {
+    q.modifiers = q.modifiers || {};
+    q.accounts = q.accounts || {};
+    q.flags = q.flags || {};
 
-  let regexMod = {};
-  for (mod in args.modifiers) {
-    if (ignored.indexOf(mod) >= 0) continue;
-    if (args.modifiers[mod]) regexMod[mod] = new RegExp(args.modifiers[mod], 'i');
+    let regexMod = {};
+    for (mod in q.modifiers) {
+      if (ignoredMods.indexOf(mod) >= 0) continue;
+      if (q.modifiers[mod]) regexMod[mod] = new RegExp(q.modifiers[mod], 'i');
+    }
+    q.regexMod = regexMod;
+
+    let d = { from: q.from, to: q.to };
+    data.push(d);
+
+    q.from = q.from || _range_min || 0;
+    q.to = q.to || _range_max || 0;
+    if (isNaN(_range_min)) _range_min = q.from;
+    if (isNaN(_range_max)) _range_max = q.to;
+    _range_min = Math.min(_range_min, q.from);
+    _range_max = Math.max(_range_max, q.to);
+
+    for (let c of q.collect) {
+      switch (c) {
+        case 'sum':
+          d.sum = new Big(0);
+          break;
+        case 'count':
+          d.count = 0;
+          break;
+        case 'entries':
+          d.entries = [];
+          break;
+        case 'accounts_sum':
+          d.accounts_sum = {};
+          break;
+        default:
+          throw `Unknown collect method: ${c}`;
+      }
+    }
   }
 
-  await data_iterate_books(range, async function (book) {
+  await data_iterate_books(data_books_required(_range_min * 1000, _range_max * 1000),
+    async function (book) {
     let len = book.length;
-    WHILE: while (len--) {
-      if ((book[len].time >= (f / 1000 | 0)) && (book[len].time < t / 1000 | 0)) {
-        if (args.flags['skip-book-close'] && book[len].bookClose && book[len].bookClose.toString() == 'true') continue WHILE;
-        if (args.accounts && args.accounts.length) {
-          let matchTimes = 0;
-          FOR: for (let q of args.accounts) {
-            for (let t of book[len].transfers) {
-              if (t[1].match(q)) {
-                matchTimes++;
-                break;
+    ENTRY: while (len--) {
+      let e = book[len];
+      if (e.time < query.from || e.time >= query.to) continue;
+      let i = -1;
+      QUERY: for (let q of query.queries) {
+        i++;
+        // handle flags
+        if (q.flags['skip-book-close'] && e.bookClose && e.bookClose.toString() == 'true') continue QUERY;
+        // handle time
+        if ((q.from && e.time < q.from) || (q.to && e.time >= q.to)) continue;
+        // handle modifiers
+        for (mod in q.regexMod) {
+          if (!e[mod]) {
+            if (q.regexMod[mod].source == '(?:)') continue; // empty on both
+            else continue QUERY;
+          }
+          if (!(e[mod].toString()).match(q.regexMod[mod])) continue QUERY;
+        }
+        // handle accounts && transfer sums & sum & count
+        let sumTrans = q.collect.indexOf('accounts_sum') >= 0;
+        let isSum = q.collect.indexOf('sum') >= 0;
+        let sum = isSum ? new Big(0) : undefined;
+        let sum_parent = q.flags['sum-parent'];
+        let accSum = {};
+        let matchTimes = 0;
+        let broken = false;
+        FOR: for (let qt of q.accounts) {
+          for (let t of e.transfers) {
+            if (t[1].match(qt)) {
+              if (!broken) matchTimes++;
+              broken = true;
+              if (isSum) {
+                sum = sum.plus(t[2]);
               }
             }
           }
-          if (matchTimes != args.accounts.length) continue WHILE;
         }
-        for (mod in regexMod) {
-          if (!book[len][mod]) {
-            if (regexMod[mod].source == '(?:)') continue; // empty on both
-            else continue WHILE;
+        if (matchTimes != q.accounts.length) continue QUERY;
+        if (isSum || sumTrans) {
+          for (let t of e.transfers) {
+            if (sumTrans) {
+              if (sum_parent) {
+                let levels = t[1].split(".");
+                let previous = "";
+                for (let l of levels) {
+                  let k = previous + l;
+                  if (!accSum[k]) accSum[k] = new Big(0);
+                  accSum[k] = accSum[k].plus(t[2]);
+                  previous = k + ".";
+                }
+              } else {
+                accSum[t[1]] = (accSum[t[1]] || new Big(0)).plus(t[2]);
+              }
+            }
+            if (isSum && q.accounts.length == 0) sum = sum.plus(t[2]);
           }
-          if (!(book[len][mod].toString()).match(regexMod[mod])) continue WHILE;
         }
-        await callback(book[len]);
+        // ======= done filtering =======
+        if (q.callback) await q.callback(e);
+        // store entries
+        if (q.collect.indexOf('entries') >= 0) {
+          data[i].entries.push(e);
+        }
+        // store rest of results
+        for (let x in accSum) { accSum[x] = accSum[x].toNumber() }
+        if (sumTrans) data[i].accounts_sum = accSum;
+        if (isSum) data[i].sum = data[i].sum.plus(sum);
+        data[i].count++;
       }
     }
-  }, afterOpenCallback);
-}
 
-async function report_sum_accounts(args, sum_parent, forkAccList) {
-  cmd_report_modifiers.from = args.modifiers.from; // unless specified, query everything
-  cmd_report_modifiers.to = args.modifiers.to;
-
-  let d;
-  await report_traverse(args, async function(entry) {
-    for (let t of entry.transfers) {
-      if (sum_parent) {
-        let levels = t[1].split(".");
-        let previous = "";
-        for (let l of levels) {
-          let k = previous + l;
-          if (!d[k]) d[k] = new Big(0);
-          d[k] = d[k].plus(t[2]);
-          previous = k + ".";
-        }
-      } else {
-        d[t[1]] = d[t[1]].plus(t[2]);
-      }
-    }
-  }, async function() { // wait until books are opened to load accounts
-
-    d = JSON.parse(JSON.stringify(forkAccList || data.accounts));
-    Object.keys(d).forEach(x => d[x] = new Big(0));
   });
 
-  Object.keys(d).forEach(x => d[x] = d[x].toNumber());
-  Object.keys(d).forEach(x => {
-    if (args.accounts && args.accounts) {
-      let matchTimes = 0;
-      for (let q of args.accounts) {
-        if (x.match(q)) {
-          matchTimes++;
-          break;
-        }
+  for (let i = 0;i < data.length;i++) {
+    let d = data[i];
+    d.sum = d.sum && d.sum.toNumber();
+    if (query.cumulative && i - query.cumulative >= 0) {
+      let prev = data[i - query.cumulative];
+      for (let key in prev) {
+        if (!isNaN(prev[key]))
+          data[i][key] = new Big(prev[key]).add(data[i][key]).toNumber();
       }
-      if (matchTimes != args.accounts.length)
-        delete d[x];
     }
-  });
-  return d;
-}
-
-function report_replaceDateStr(dateStr) {
-  if (CMD_MODIFER_REPLACE[dateStr]) return new Date(CMD_MODIFER_REPLACE[dateStr]() * 1000).toISOString().split('T')[0];
-  return dateStr;
-}
-var _fs_entries_read = 0;
-async function fs_read_book(year) {
-  let _start;
-  if (DEBUG) { _start = new Date(); }
-  let path = fs_book_name + '.' + year + '.ledg';
-  data.books[year] = [];
-  if (fs_book_name != '-' && fs.existsSync(path)) {
-    let fileStream = fs.createReadStream(path);
-
-    let rl = readline.createInterface({
-      input: fileStream,
-      crlfDelay: Infinity
-    });
-
-    let entry = null;
-    const commitEntry = (entry) => {
-      entry_balance(entry); data.books[year].push(entry);
-      _fs_entries_read++;
-    };
-
-    for await (let line of rl) {
-      entry = fs_read_book_proc_line(entry, line, commitEntry);
-    }
-    if (entry) { commitEntry(entry) }
+    if (!isNaN(d.sum)) data.minSum = Math.min(d.sum, data.minSum || 0);
+    if (!isNaN(d.count)) data.minCount = Math.min(d.count, data.minCount || 0);
+    if (!isNaN(d.sum)) data.maxSum = Math.max(d.sum, data.maxSum || 0);
+    if (!isNaN(d.count)) data.maxCount = Math.max(d.count, data.maxCount || 0);
   }
-  if (DEBUG) console.debug(`Opened ${year} book in ${new Date() - _start}ms, ${_fs_entries_read} entries read so far`);
+  return data;
+
 }
 
-function fs_read_entries_from_string(str) {
-  let lines = str.replace(/\r/g, "").split("\n");
-  let entries = [];
-
-  let entry = null;
-  const commitEntry = (entry) => {
-    entry_balance(entry); entries.push(entry);
+function query_args_to_filter(args, collect=[]) {
+  report_extract_account(args);
+  report_extract_tags(args);
+  let x = {
+    modifiers: args.modifiers,
+    flags: args.flags,
+    accounts: args.accounts,
+    collect: collect
   };
-
-  for (let line of lines) {
-    entry = fs_read_book_proc_line(entry, line, commitEntry);
-  }
-  if (entry) { commitEntry(entry) }
-
-  return entries;
+  x.from = (Date.parse(report_replaceDateStr(args.modifiers.from || '@min') + 'T00:00:00') / 1000 | 0);
+  x.to = (Date.parse(report_replaceDateStr(args.modifiers.to || '@max') + 'T00:00:00') / 1000 | 0);
+  return x;
 }
 
-function fs_read_book_proc_line(entry, line, commitEntry) {
-  if (line[0] == ';') return entry;
-  if (line[4] == '-' && line[7] == '-') { // start entry
-    if (entry) { commitEntry(entry) } // commit previous
+ 
+function tag_add(entry, tag) {
+  entry.tags = new Set(entry.tags ? entry.tags.toString().split(",") : undefined);
+  entry.tags.add(tag.toUpperCase());
+  entry.tags = Array.from(entry.tags).sort().join(",");
+}
 
-    entry = {
-      time: Math.floor(Date.parse(line.substring(0, 10) + 'T00:00:00') / 1000),
-      transfers: []
-    };
+function tag_remove(entry, tag) {
+  entry.tags = new Set(entry.tags ? entry.tags.toString().split(",") : undefined);
+  entry.tags.delete(tag.toUpperCase());
+  if (entry.tags.size)
+    entry.tags = Array.from(new Set(entry.tags)).sort().join(",");
+  else
+    delete entry.tags;
+}
+var data = null;
 
-    let hash_index = line.indexOf('#');
+function data_init_data() {
+  data = {
+    accounts: {},
+    books: {}, // { 2019: [ ... ], 2020: [ ... ], ...  }
+    booksOpened: {},
+    budgets: {}
+  };
+  return data;
+}
 
-    let UUIDreassigned = false;
+data_init_data();
 
-    if (line.trim().length <= 11 || hash_index < 0) { // has no hash or has no description
-      entry.description = line.substring(11);
-      entry.uuid = nanoid(8);
-      UUIDreassigned = true;
-    } else if (line.length - hash_index < 9) { // has hash but incomplete uuid
-      entry.description = line.substring(11, hash_index - 1);
-      entry.uuid = nanoid(8);
-      UUIDreassigned = true;
-    } else {
-      entry.description = line.substring(11, line.length - 10).trim();
-      entry.uuid = line.substr(line.length - 8, 8);
-    }
+async function data_open_books(books) {
+  for (let y of books) {
+    if (data.booksOpened[y] >= DATA_BOOK_OPENED) continue;
+    await fs_read_book(y);
+    data.booksOpened[y] = Math.max(DATA_BOOK_OPENED, data.booksOpened[y]); // fs_read_book could set it to dirty
+  }
+}
 
-    if (UUIDreassigned) {
-      let year = new Date(entry.time * 1000).getFullYear();
-      data.booksOpened[year] = DATA_BOOK_DIRTY;
-      console.log(`While opening the ${year} book, an entry had incomplete UUID and had been reassigned.`);
-    }
-  } else if (line[2] == ';') { // entry meta data
-    let colonIndex = line.indexOf(':');
-    if (colonIndex < 0) { colonIndex = line.length; line += ':""'; }
-    entry[line.substring(3, colonIndex)] = JSON.parse(line.substring(colonIndex + 1));
-  } else if (line[0] == ' ' && line[1] == ' ') { // transfers
-    let t = [];
-    let splits = line.substring(2).split('\t');
-    if (splits.length >= 2) {
-      t[0] = splits[0];
-      t[1] = splits[1].trim();
-      data.accounts[t[1]] = 1;
-      if (splits[2]) splits[2] = splits[2].trim();
-      t[2] = splits[2] && splits[2].length ? parseFloat(splits[2]) : 0;
-      entry.transfers.push(t);
+function data_books_required(d1, d2) {
+  d1 = new Date(d1).getFullYear();
+  if (!d2) return d1;
+  d2 = new Date(d2).getFullYear();
+  let yr = [];
+  for (let i=d1; i<=d2; i++) {
+    yr.push(i);
+  }
+  return yr;
+}
+
+async function data_remove_entry(entry) {
+  let y = new Date(entry.time * 1000).getFullYear();
+  await data_open_books([y]);
+  data.books[y] = data.books[y].filter(x => x.uuid != entry.uuid);
+  data.booksOpened[y] = DATA_BOOK_DIRTY;
+}
+
+async function data_remove_entry(entry) {
+  let y = new Date(entry.time * 1000).getFullYear();
+  await data_open_books([y]);
+  let book = data.books[y];
+  for (let i = 0;i < book.length;i++) {
+    if (book[i].uuid == entry.uuid) {
+      data.booksOpened[y] = DATA_BOOK_DIRTY;
+      book.splice(i, 1);
+      return;
     }
   }
-  return entry;
 }
+
+/*
+ * finds entry with same uuid, delete old one, and add new one to the right year
+ * returns true if found and modified
+ * returns false if nothing was found
+ */
+async function data_modify_entry(entry) {
+  let y = new Date(entry.time * 1000).getFullYear();
+  await data_open_books([y]);
+  /* let range = await fs_get_data_range();
+   * await data_open_books(range);
+   * 
+   * (being able to edit means the entry must've been opened already)
+   */
+  FOR: for (let year in data.books) {
+    let book = data.books[year];
+    for (let i = 0;i < book.length;i++) {
+      if (book[i].uuid == entry.uuid) {
+        data.booksOpened[y] = DATA_BOOK_DIRTY;
+        data.booksOpened[year] = DATA_BOOK_DIRTY;
+        if (year == y) { // same book just update entry
+          book[i] = entry;
+          return true;
+        } else {
+          // remove old
+          book.splice(i, 1);
+          // add new
+          data.books[y].push(entry);
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+async function data_push_entry(entry) {
+  let y = new Date(entry.time * 1000).getFullYear();
+  await data_open_books([y]);
+  data.books[y] = data.books[y] || [];
+  data.books[y].push(entry);
+  for (let t of entry.transfers) {
+    let acc = t[1];
+    data.accounts[acc] = 1;
+  }
+  data.booksOpened[y] = DATA_BOOK_DIRTY;
+}
+
+async function data_push_entries(entries) {
+  let min, max;
+  min = max = new Date().getTime() / 1000;
+  for (let e of entries) {
+    min = Math.min(min, e.time);
+    max = Math.max(max, e.time);
+  }
+  await data_open_books(data_books_required(min * 1000, max * 1000));
+  for (let e of entries)
+    await data_push_entry(e);
+}
+
+async function data_iterate_books(books, callback, afterOpenCallback) {
+  await data_open_books(books);
+  if (afterOpenCallback) await afterOpenCallback();
+  for (let b of books) {
+    let book = data.books[b];
+    if (await callback(book) == DATA_CALLBACK_STOP) break;
+  }
+}
+
+/*
+ * =====================================
+ * Constants
+ * =====================================
+ */
+DATA_BOOK_OPENED = 1;
+DATA_BOOK_DIRTY = 2;
+
+DATA_CALLBACK_STOP = 999;
+
+/*
+ * ======================================
+ * Runtime infos
+ * ======================================
+ */
+var data_acc_imb = 'Imbalance';
 function fs_read_budgets_from_string(str) {
   let lines = str.replace(/\r/g, "").split("\n");
   let budgets = {};
@@ -2427,236 +2332,2351 @@ function fs_serialize_entry_ledger(entry) {
  * ========================
  */
 var fs_book_name = 'book'; // ex: book.2019.ledg, book.ledg, book.budget.ledg
-const ARG_FLAG_SHORTHANDS = {
-  'sbc': 'skip-book-close',
-  'hz': 'hide-zero',
-  'lt': 'light-theme',
-  'cml': 'cumulative',
-  'cml-cols': 'cumulative-columns',
-  'dep': 'max-depth',
-  'depth': 'max-depth',
-};
+var _fs_entries_read = 0;
+async function fs_read_book(year) {
+  let _start;
+  if (DEBUG) { _start = new Date(); }
+  let path = fs_book_name + '.' + year + '.ledg';
+  data.books[year] = [];
+  if (fs_book_name != '-' && fs.existsSync(path)) {
+    let fileStream = fs.createReadStream(path);
 
-function argsparser(_args) {
-  let args = { _:[], flags: {}, modifiers: {} };
+    let rl = readline.createInterface({
+      input: fileStream,
+      crlfDelay: Infinity
+    });
 
-  let uuids = [];
+    let entry = null;
+    const commitEntry = (entry) => {
+      entry_balance(entry); data.books[year].push(entry);
+      _fs_entries_read++;
+    };
 
-  let bypass = false;
-  for (let i = 0;i < _args.length;i++) {
-    let arg = _args[i];
+    for await (let line of rl) {
+      entry = fs_read_book_proc_line(entry, line, commitEntry);
+    }
+    if (entry) { commitEntry(entry) }
+  }
+  if (DEBUG) console.debug(`Opened ${year} book in ${new Date() - _start}ms, ${_fs_entries_read} entries read so far`);
+}
 
-    if (arg == '--') { bypass = true; continue; }
-    if (bypass) { args._.push(arg); continue; }
+function fs_read_entries_from_string(str) {
+  let lines = str.replace(/\r/g, "").split("\n");
+  let entries = [];
 
-    let match = Object.keys(CMD_LIST).filter(x => x.indexOf(arg) == 0).sort();
-    if (!match.length && (match = arg.match(/^[a-z0-9]{8}$/i))) {
-      uuids.push(arg);
-    } else if (match = arg.match(/^-([a-zA-Z])(.+)$/)) {
-      args.flags[match[1]] = match[2];
-    } else if (match = arg.match(/^--?([^=]+)(=(.*))?$/)) {
-      let key = match[1];
-      key = ARG_FLAG_SHORTHANDS[key] || key;
-      if (!isNaN(Number(key))) { // key cannot be number
-        args._.push(arg);
-        continue;
-      }
-      let val = match[3] || (arg.indexOf('=') > 0 ? '' : true);
-      if (!isNaN(Number(val))) val = Number(val);
-      if (val == 'true') val = true;
-      if (val == 'false') val = false;
-      args.flags[key] = val;
-    } else if (match = arg.match(/^([a-zA-Z_]+):(.*)$/)) {
-      args.modifiers[match[1]] = match[2];
+  let entry = null;
+  const commitEntry = (entry) => {
+    entry_balance(entry); entries.push(entry);
+  };
+
+  for (let line of lines) {
+    entry = fs_read_book_proc_line(entry, line, commitEntry);
+  }
+  if (entry) { commitEntry(entry) }
+
+  return entries;
+}
+
+function fs_read_book_proc_line(entry, line, commitEntry) {
+  if (line[0] == ';') return entry;
+  if (line[4] == '-' && line[7] == '-') { // start entry
+    if (entry) { commitEntry(entry) } // commit previous
+
+    entry = {
+      time: Math.floor(Date.parse(line.substring(0, 10) + 'T00:00:00') / 1000),
+      transfers: []
+    };
+
+    let hash_index = line.indexOf('#');
+
+    let UUIDreassigned = false;
+
+    if (line.trim().length <= 11 || hash_index < 0) { // has no hash or has no description
+      entry.description = line.substring(11);
+      entry.uuid = nanoid(8);
+      UUIDreassigned = true;
+    } else if (line.length - hash_index < 9) { // has hash but incomplete uuid
+      entry.description = line.substring(11, hash_index - 1);
+      entry.uuid = nanoid(8);
+      UUIDreassigned = true;
     } else {
-      args._.push(arg)
+      entry.description = line.substring(11, line.length - 10).trim();
+      entry.uuid = line.substr(line.length - 8, 8);
+    }
+
+    if (UUIDreassigned) {
+      let year = new Date(entry.time * 1000).getFullYear();
+      data.booksOpened[year] = DATA_BOOK_DIRTY;
+      console.log(`While opening the ${year} book, an entry had incomplete UUID and had been reassigned.`);
+    }
+  } else if (line[2] == ';') { // entry meta data
+    let colonIndex = line.indexOf(':');
+    if (colonIndex < 0) { colonIndex = line.length; line += ':""'; }
+    entry[line.substring(3, colonIndex)] = JSON.parse(line.substring(colonIndex + 1));
+  } else if (line[0] == ' ' && line[1] == ' ') { // transfers
+    let t = [];
+    let splits = line.substring(2).split('\t');
+    if (splits.length >= 2) {
+      t[0] = splits[0];
+      t[1] = splits[1].trim();
+      data.accounts[t[1]] = 1;
+      if (splits[2]) splits[2] = splits[2].trim();
+      t[2] = splits[2] && splits[2].length ? parseFloat(splits[2]) : 0;
+      entry.transfers.push(t);
     }
   }
-  if (uuids.length) args.modifiers['uuid'] = args.modifiers.uuid || uuids.join("|");
-  args._ = args._.filter(x => x.length);
-  return args;
+  return entry;
 }
+/*
+MIT License
 
-// '<(' is process substitution operator and
-// can be parsed the same as control operator
-const ARG_CONTROL = '(?:' + [
-    '\\|\\|', '\\&\\&', ';;', '\\|\\&', '\\<\\(', '>>', '>\\&' ].join('|') + ')';
-const ARG_META = '';
-const ARG_BAREWORD = '(\\\\[\'"' + ARG_META + ']|[^\\s\'"' + ARG_META + '])+';
-const ARG_SINGLE_QUOTE = '"((\\\\"|[^"])*?)"';
-const ARG_DOUBLE_QUOTE = '\'((\\\\\'|[^\'])*?)\'';
+Copyright © 2016 Igor Kroitor
 
-var ARG_TOKEN = '';
-for (var i = 0; i < 4; i++) {
-    ARG_TOKEN += (Math.pow(16,8)*Math.random()).toString(16);
-}
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-function parseArgSegmentsFromStr(s, env, opts) {
-    var mapped = _parseArgSegmentsFromStr(s, env || process.env, opts);
-    if (typeof env !== 'function') return mapped;
-    return mapped.reduce(function (acc, s) {
-        if (typeof s === 'object') return acc.concat(s);
-        var xs = s.split(RegExp('(' + ARG_TOKEN + '.*?' + ARG_TOKEN + ')', 'g'));
-        if (xs.length === 1) return acc.concat(xs[0]);
-        return acc.concat(xs.filter(Boolean).map(function (x) {
-            if (RegExp('^' + ARG_TOKEN).test(x)) {
-                return JSON.parse(x.split(ARG_TOKEN)[1]);
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+ 
+var asciichart = {};
+
+(function (exports) {
+
+    // control sequences for coloring
+
+    exports.black = "\x1b[30m"
+    exports.red = "\x1b[31m"
+    exports.green = "\x1b[32m"
+    exports.yellow = "\x1b[33m"
+    exports.blue = "\x1b[34m"
+    exports.magenta = "\x1b[35m"
+    exports.cyan = "\x1b[36m"
+    exports.lightgray = "\x1b[37m"
+    exports.default = "\x1b[39m"
+    exports.darkgray = "\x1b[90m"
+    exports.lightred = "\x1b[91m"
+    exports.lightgreen = "\x1b[92m"
+    exports.lightyellow = "\x1b[93m"
+    exports.lightblue = "\x1b[94m"
+    exports.lightmagenta = "\x1b[95m"
+    exports.lightcyan = "\x1b[96m"
+    exports.white = "\x1b[97m"
+    exports.reset = "\x1b[0m"
+
+    function colored (char, color) {
+        // do not color it if color is not specified
+        return (color === undefined) ? char : (color + char + exports.reset)
+    }
+
+    exports.colored = colored
+
+    exports.plot = function (series, cfg = undefined) {
+        // this function takes both one array and array of arrays
+        // if an array of numbers is passed it is transformed to
+        // an array of exactly one array with numbers
+        if (typeof(series[0]) == "number"){
+            series = [series]
+        }
+
+        cfg = (typeof cfg !== 'undefined') ? cfg : {}
+
+        let min = (typeof cfg.min !== 'undefined') ? cfg.min : series[0][0]
+        let max = (typeof cfg.max !== 'undefined') ? cfg.max : series[0][0]
+
+        for (let j = 0; j < series.length; j++) {
+            for (let i = 0; i < series[j].length; i++) {
+                min = Math.min(min, series[j][i])
+                max = Math.max(max, series[j][i])
             }
-            else return x;
-        }));
-    }, []).filter(x => typeof x == 'string');
+        }
+
+        let defaultSymbols = [ '┼', '┤', '╶', '╴', '─', '╰', '╭', '╮', '╯', '│' ]
+        let range   = Math.abs (max - min)
+        let offset  = (typeof cfg.offset  !== 'undefined') ? cfg.offset  : 3
+        let padding = (typeof cfg.padding !== 'undefined') ? cfg.padding : '           '
+        let height  = (typeof cfg.height  !== 'undefined') ? cfg.height  : range
+        let colors  = (typeof cfg.colors !== 'undefined') ? cfg.colors : []
+        let ratio   = range !== 0 ? height / range : 1;
+        let min2    = Math.round (min * ratio)
+        let max2    = Math.round (max * ratio)
+        let rows    = Math.abs (max2 - min2)
+        let width = 0
+        for (let i = 0; i < series.length; i++) {
+            width = Math.max(width, series[i].length)
+        }
+        width = width + offset
+        let symbols = (typeof cfg.symbols !== 'undefined') ? cfg.symbols : defaultSymbols
+        let format  = (typeof cfg.format !== 'undefined') ? cfg.format : function (x) {
+            return (padding + x.toFixed (2)).slice (-padding.length)
+        }
+
+        let result = new Array (rows + 1) // empty space
+        for (let i = 0; i <= rows; i++) {
+            result[i] = new Array (width)
+            for (let j = 0; j < width; j++) {
+                result[i][j] = ' '
+            }
+        }
+        for (let y = min2; y <= max2; ++y) { // axis + labels
+            let label = format (rows > 0 ? max - (y - min2) * range / rows : y, y - min2)
+            result[y - min2][Math.max (offset - label.length, 0)] = label
+            result[y - min2][offset - 1] = (y == 0) ? symbols[0] : symbols[1]
+        }
+
+        for (let j = 0; j < series.length; j++) {
+            let currentColor = colors[j % colors.length]
+            let y0 = Math.round (series[j][0] * ratio) - min2
+            result[rows - y0][offset - 1] = colored(symbols[0], currentColor) // first value
+
+            for (let x = 0; x < series[j].length - 1; x++) { // plot the line
+                let y0 = Math.round (series[j][x + 0] * ratio) - min2
+                let y1 = Math.round (series[j][x + 1] * ratio) - min2
+                if (y0 == y1) {
+                    result[rows - y0][x + offset] = colored(symbols[4], currentColor)
+                } else {
+                    result[rows - y1][x + offset] = colored((y0 > y1) ? symbols[5] : symbols[6], currentColor)
+                    result[rows - y0][x + offset] = colored((y0 > y1) ? symbols[7] : symbols[8], currentColor)
+                    let from = Math.min (y0, y1)
+                    let to = Math.max (y0, y1)
+                    for (let y = from + 1; y < to; y++) {
+                        result[rows - y][x + offset] = colored(symbols[9], currentColor)
+                    }
+                }
+            }
+        }
+        return result.map (function (x) { return x.join ('') }).join ('\n')
+    }
+
+}) (asciichart);
+/*
+The MIT License (MIT)
+
+Copyright (c) 2015-present, Brian Woodward.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+*/
+
+// from github ansi-colors
+// with slight modifications
+const isObject = val => val !== null && typeof val === 'object' && !Array.isArray(val);
+const identity = val => val;
+
+/* eslint-disable no-control-regex */
+// this is a modified version of https://github.com/chalk/ansi-regex (MIT License)
+const ANSI_REGEX = /[\u001b\u009b][[\]#;?()]*(?:(?:(?:[^\W_]*;?[^\W_]*)\u0007)|(?:(?:[0-9]{1,4}(;[0-9]{0,4})*)?[~0-9=<>cf-nqrtyA-PRZ]))/g;
+
+const create_color = () => {
+  const colors = { enabled: true, visible: true, styles: {}, keys: {} };
+
+  // if ('FORCE_COLOR' in process.env) {
+  //   colors.enabled = process.env.FORCE_COLOR !== '0';
+  // }
+
+  const ansi = style => {
+    let open = style.open = `\u001b[${style.codes[0]}m`;
+    let close = style.close = `\u001b[${style.codes[1]}m`;
+    let regex = style.regex = new RegExp(`\\u001b\\[${style.codes[1]}m`, 'g');
+    style.wrap = (input, newline) => {
+      if (input.includes(close)) input = input.replace(regex, close + open);
+      let output = open + input + close;
+      // see https://github.com/chalk/chalk/pull/92, thanks to the
+      // chalk contributors for this fix. However, we've confirmed that
+      // this issue is also present in Windows terminals
+      return newline ? output.replace(/\r*\n/g, `${close}$&${open}`) : output;
+    };
+    return style;
+  };
+
+  const wrap = (style, input, newline) => {
+    return typeof style === 'function' ? style(input) : style.wrap(input, newline);
+  };
+
+  const style = (input, stack) => {
+    if (input === '' || input == null) return '';
+    if (colors.enabled === false) return input;
+    if (colors.visible === false) return '';
+    let str = '' + input;
+    let nl = str.includes('\n');
+    let n = stack.length;
+    if (n > 0 && stack.includes('unstyle')) {
+      stack = [...new Set(['unstyle', ...stack])].reverse();
+    }
+    while (n-- > 0) str = wrap(colors.styles[stack[n]], str, nl);
+    return str;
+  };
+
+  const define = (name, codes, type) => {
+    colors.styles[name] = ansi({ name, codes });
+    let keys = colors.keys[type] || (colors.keys[type] = []);
+    keys.push(name);
+
+    Reflect.defineProperty(colors, name, {
+      configurable: true,
+      enumerable: true,
+      set(value) {
+        colors.alias(name, value);
+      },
+      get() {
+        let color = input => style(input, color.stack);
+        Reflect.setPrototypeOf(color, colors);
+        color.stack = this.stack ? this.stack.concat(name) : [name];
+        return color;
+      }
+    });
+  };
+
+  define('reset', [0, 0], 'modifier');
+  define('bold', [1, 22], 'modifier');
+  define('dim', [2, 22], 'modifier');
+  define('italic', [3, 23], 'modifier');
+  define('underline', [4, 24], 'modifier');
+  define('inverse', [7, 27], 'modifier');
+  define('hidden', [8, 28], 'modifier');
+  define('strikethrough', [9, 29], 'modifier');
+
+  define('black', [30, 39], 'color');
+  define('red', [31, 39], 'color');
+  define('green', [32, 39], 'color');
+  define('yellow', [33, 39], 'color');
+  define('blue', [34, 39], 'color');
+  define('magenta', [35, 39], 'color');
+  define('cyan', [36, 39], 'color');
+  define('white', [37, 39], 'color');
+  define('gray', [90, 39], 'color');
+  define('grey', [90, 39], 'color');
+
+  define('bgBlack', [40, 49], 'bg');
+  define('bgRed', [41, 49], 'bg');
+  define('bgGreen', [42, 49], 'bg');
+  define('bgYellow', [43, 49], 'bg');
+  define('bgBlue', [44, 49], 'bg');
+  define('bgMagenta', [45, 49], 'bg');
+  define('bgCyan', [46, 49], 'bg');
+  define('bgWhite', [47, 49], 'bg');
+
+  define('blackBright', [90, 39], 'bright');
+  define('redBright', [91, 39], 'bright');
+  define('greenBright', [92, 39], 'bright');
+  define('yellowBright', [93, 39], 'bright');
+  define('blueBright', [94, 39], 'bright');
+  define('magentaBright', [95, 39], 'bright');
+  define('cyanBright', [96, 39], 'bright');
+  define('whiteBright', [97, 39], 'bright');
+
+  define('bgBlackBright', [100, 49], 'bgBright');
+  define('bgRedBright', [101, 49], 'bgBright');
+  define('bgGreenBright', [102, 49], 'bgBright');
+  define('bgYellowBright', [103, 49], 'bgBright');
+  define('bgBlueBright', [104, 49], 'bgBright');
+  define('bgMagentaBright', [105, 49], 'bgBright');
+  define('bgCyanBright', [106, 49], 'bgBright');
+  define('bgWhiteBright', [107, 49], 'bgBright');
+
+  colors.ansiRegex = ANSI_REGEX;
+  colors.hasColor = colors.hasAnsi = str => {
+    colors.ansiRegex.lastIndex = 0;
+    return typeof str === 'string' && str !== '' && colors.ansiRegex.test(str);
+  };
+
+  colors.alias = (name, color) => {
+    let fn = typeof color === 'string' ? colors[color] : color;
+
+    if (typeof fn !== 'function') {
+      throw new TypeError('Expected alias to be the name of an existing color (string) or a function');
+    }
+
+    if (!fn.stack) {
+      Reflect.defineProperty(fn, 'name', { value: name });
+      colors.styles[name] = fn;
+      fn.stack = [name];
+    }
+
+    Reflect.defineProperty(colors, name, {
+      configurable: true,
+      enumerable: true,
+      set(value) {
+        colors.alias(name, value);
+      },
+      get() {
+        let color = input => style(input, color.stack);
+        Reflect.setPrototypeOf(color, colors);
+        color.stack = this.stack ? this.stack.concat(fn.stack) : fn.stack;
+        return color;
+      }
+    });
+  };
+
+  colors.theme = custom => {
+    if (!isObject(custom)) throw new TypeError('Expected theme to be an object');
+    for (let name of Object.keys(custom)) {
+      colors.alias(name, custom[name]);
+    }
+    return colors;
+  };
+
+  colors.alias('unstyle', str => {
+    if (typeof str === 'string' && str !== '') {
+      colors.ansiRegex.lastIndex = 0;
+      return str.replace(colors.ansiRegex, '');
+    }
+    return '';
+  });
+
+  colors.alias('noop', str => str);
+  colors.none = colors.clear = colors.noop;
+
+  colors.stripColor = colors.unstyle;
+  // colors.symbols = require('./symbols');
+  colors.define = define;
+  return colors;
 };
 
-function _parseArgSegmentsFromStr (s, env, opts) {
-    var chunker = new RegExp([
-        '(' + ARG_CONTROL + ')', // control chars
-        '(' + ARG_BAREWORD + '|' + ARG_SINGLE_QUOTE + '|' + ARG_DOUBLE_QUOTE + ')*'
-    ].join('|'), 'g');
-    var match = s.match(chunker).filter(Boolean);
-    var commented = false;
+const c = create_color();
+const ansi_regex = (({onlyFirst = false} = {}) => {
+	const pattern = [
+		'[\\u001B\\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[-a-zA-Z\\d\\/#&.:=?%@~_]*)*)?\\u0007)',
+		'(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PR-TZcf-ntqry=><~]))'
+	].join('|');
 
-    if (!match) return [];
-    if (!env) env = {};
-    if (!opts) opts = {};
-    return match.map(function (s, j) {
-        if (commented) {
-            return;
-        }
-        if (RegExp('^' + ARG_CONTROL + '$').test(s)) {
-            return { op: s };
-        }
+	return new RegExp(pattern, onlyFirst ? undefined : 'g');
+})();
+const strip_ansi = string => typeof string === 'string' ? string.replace(ansi_regex, '') : string;
 
-        // Hand-written scanner/parser for Bash quoting rules:
-        //
-        //  1. inside single quotes, all characters are printed literally.
-        //  2. inside double quotes, all characters are printed literally
-        //     except variables prefixed by '$' and backslashes followed by
-        //     either a double quote or another backslash.
-        //  3. outside of any quotes, backslashes are treated as escape
-        //     characters and not printed (unless they are themselves escaped)
-        //  4. quote context can switch mid-token if there is no whitespace
-        //     between the two quote contexts (e.g. all'one'"token" parses as
-        //     "allonetoken")
-        var SQ = "'";
-        var DQ = '"';
-        var DS = '$';
-        var BS = opts.escape || '\\';
-        var quote = false;
-        var esc = false;
-        var out = '';
-        var isGlob = false;
+async function cmd_burndown(args) {
+  console.clear();
+  if (process.stdout.columns <= 10 || process.stdout.rows <= 15) {
+    console.error('Terminal too small.');
+    return 1;
+  }
+  if (args.flags['skip-book-close'] !== false)
+    args.flags['skip-book-close'] = true;
 
-        for (var i = 0, len = s.length; i < len; i++) {
-            var c = s.charAt(i);
-//             isGlob = isGlob || (!quote && (c === '*' || c === '?'));
-            if (esc) {
-                out += c;
-                esc = false;
-            }
-            else if (quote) {
-                if (c === quote) {
-                    quote = false;
-                }
-                else if (quote == SQ) {
-                    out += c;
-                }
-                else { // Double quote
-                    if (c === BS) {
-                        i += 1;
-                        c = s.charAt(i);
-                        if (c === DQ || c === BS || c === DS) {
-                            out += c;
-                        } else {
-                            out += BS + c;
-                        }
-                    }
-                    else if (c === DS) {
-                        out += parseEnvVar();
-                    }
-                    else {
-                        out += c;
-                    }
-                }
-            }
-            else if (c === DQ || c === SQ) {
-                quote = c;
-            }
-//             else if (RegExp('^' + ARG_CONTROL + '$').test(c)) {
-//                 return { op: s };
-//             }
-//             else if (RegExp('^#$').test(c)) {
-//                 commented = true;
-//                 if (out.length){
-//                     return [out, { comment: s.slice(i+1) + match.slice(j+1).join(' ') }];
-//                 }
-//                 return [{ comment: s.slice(i+1) + match.slice(j+1).join(' ') }];
-//             }
-            else if (c === BS) {
-                esc = true;
-            }
-            else if (c === DS) {
-                out += parseEnvVar();
-            }
-            else out += c;
-        }
+  if (args.flags.abs !== false)
+    args.flags.abs = true;
 
-        if (isGlob) return {op: 'glob', pattern: out};
+  let int = report_get_reporting_interval(args);
+  let showDays = true;
+  let showMonth = true;
+  let showWeeks = int[2] >= 7 && int[2] % 7 == 0;
+  let showQuarter = int[1] >= 3 && int[1] % 3 == 0;
 
-        return out;
+  if (int[2] > 0 && int[2] < 7) {
+    cmd_report_modifiers.from = '@month-start';
+    cmd_report_modifiers.to = '@tomorrow';
+  } else if (showWeeks) {
+    cmd_report_modifiers.from = '@year-start';
+    cmd_report_modifiers.to = '@month-end';
+  } else {
+    cmd_report_modifiers.from = '@last-year';
+    cmd_report_modifiers.to = '@month-end';
+  }
+  report_set_modifiers(args);
+  args.modifiers.from = cmd_report_modifiers.from;
+  args.modifiers.to = cmd_report_modifiers.to;
 
-        function parseEnvVar() {
-            i += 1;
-            var varend, varname;
-            //debugger
-            if (s.charAt(i) === '{') {
-                i += 1;
-                if (s.charAt(i) === '}') {
-                    throw new Error("Bad substitution: " + s.substr(i - 2, 3));
-                }
-                varend = s.indexOf('}', i);
-                if (varend < 0) {
-                    throw new Error("Bad substitution: " + s.substr(i));
-                }
-                varname = s.substr(i, varend - i);
-                i = varend;
-            }
-            else if (/[*@#?$!_\-]/.test(s.charAt(i))) {
-                varname = s.charAt(i);
-                i += 1;
-            }
-            else {
-                varend = s.substr(i).match(/[^\w\d_]/);
-                if (!varend) {
-                    varname = s.substr(i);
-                    i = s.length;
-                } else {
-                    varname = s.substr(i, varend.index);
-                    i += varend.index - 1;
-                }
-            }
-            return getVar(null, '', varname);
-        }
-    })
-    // finalize parsed aruments
-    .reduce(function(prev, arg){
-        if (arg === undefined){
-            return prev;
-        }
-        return prev.concat(arg);
-    },[]);
+  let strF = report_replaceDateStr(args.modifiers.from);
+  let strT = report_replaceDateStr(args.modifiers.to);
+  let from = Date.parse(strF + 'T00:00:00');
+  let to = Date.parse(strT + 'T00:00:00');
 
-    function getVar (_, pre, key) {
-        var r = typeof env === 'function' ? env(key) : env[key];
-        if (r === undefined && key != '')
-            r = '';
-        else if (r === undefined)
-            r = '$';
+  let legends = [];
 
-        if (typeof r === 'object') {
-            return pre + ARG_TOKEN + JSON.stringify(r) + ARG_TOKEN;
-        }
-        else return pre + r;
+  let argQueries = Object.keys(args.flags).sort().filter(x => x.match(/q\d+/)).map(x => {
+    let v = args.flags[x];
+    if (typeof v !== 'string' || !v.length) {
+      console.error(`Warning: skipped ${x}, invalid query`);
+      return null;
     }
+    legends.push(v);
+    let args2 = argsparser(parseArgSegmentsFromStr(v));
+    return args2;
+  }).filter(x => !!x);
+  if (!argQueries.length) {
+    argQueries = [argsparser(parseArgSegmentsFromStr(cmd_report_accounts.income)),
+                  argsparser(parseArgSegmentsFromStr(cmd_report_accounts.expense))];
+    legends = [cmd_report_accounts.income, cmd_report_accounts.expense];
+  }
+  let maxIntervals = (process.stdout.columns - 8) / (argQueries.length * 2 + 1) | 0;
+  let query = { cumulative: args.flags.cumulative && argQueries.length, from: from / 1000 | 0, to: to / 1000 | 0, queries: [] };
+  let collect = args.flags.count ? ['count'] : ['sum'];
+
+  let crntD = new Date(from);
+  let intervals = 0;
+  while (crntD < to) {
+    let a = crntD.getTime() / 1000 | 0;
+    crntD.setFullYear(crntD.getFullYear() + int[0]);
+    crntD.setMonth(crntD.getMonth() + int[1]);
+    crntD.setDate(crntD.getDate() + int[2]);
+    let b = Math.min(crntD.getTime(), to) / 1000 | 0;
+
+    for (let i = 0;i < argQueries.length;i++) {
+      let q = query_args_to_filter(argQueries[i]);
+      q.from = a;
+      q.flags['skip-book-close'] = true;
+      q.to = b;
+      q.collect = collect;
+      query.queries.push(q);
+    }
+
+    intervals++;
+  }
+  if (intervals > maxIntervals) {
+    console.error(`Terminal is too small for ${intervals} intervals, max ${maxIntervals}.`);
+    return 1;
+  }
+  let data = await query_exec(query);
+  let max = Math.max(data.maxSum || data.maxCount, 0);
+  let min = Math.min(data.minSum || data.minCount, 0);
+  if (args.flags.abs && !isNaN(data.maxSum)) {
+    max = Math.max(Math.max(Math.abs(data.minSum), data.maxSum), 0);
+    min = 0;
+  }
+  let _d = [];
+  for (let i = 0;i < data.length;i += argQueries.length) {
+    let row = [];
+    for (let j = 0;j < argQueries.length;j++) {
+      row[j] = data[i + j][args.flags.count ? 'count' : 'sum'];
+      if (args.flags.abs) row[j] = Math.abs(row[j]);
+    }
+    _d.push(row);
+  }
+
+  let chart = new Chart(min, max, _d);
+
+  let daysToDraw = Array(_d.length * (argQueries.length * 2 + 1)).fill(0);
+  let weeksToDraw = Array(_d.length * (argQueries.length * 2 + 1)).fill(0);
+  let monthsToDraw = Array(_d.length * (argQueries.length * 2 + 1)).fill(0);
+  let yearsToDraw = Array(_d.length * (argQueries.length * 2 + 1)).fill(0);
+
+  let drawWeeks = showWeeks;
+  let drawDays = int[2] > 0;
+  let drawMonths = false;
+  let drawYears = false;
+
+  crntD = new Date(from);
+  let i = -1;
+  let lastM = -1;
+  let lastY = -1;
+  while (crntD < to) {
+    i++;
+    let row = [crntD.getFullYear().toString()];
+    if (showQuarter) row.push(print_full_quarter(crntD.getMonth()));
+
+    let d = crntD.getDate();
+    daysToDraw[i] = d.toString().padStart(2, '0');
+    weeksToDraw[i] = pring_week(crntD).toString().padStart(2, '0');
+
+    if ((d == 1) || (lastM != -1 && lastM != crntD.getMonth())) {
+      drawMonths = true;
+      monthsToDraw[i] = (int[1] > 0 || int[2] >= 14) ?
+        (crntD.getMonth() + 1).toString().padStart(2, '0') : print_full_month(crntD.getMonth());
+      lastM = crntD.getMonth();
+    }
+    if ((crntD.getMonth() == 0 && d == 1) || (lastY != -1 && lastY != crntD.getFullYear())) {
+      drawYears = true;
+      yearsToDraw[i] = int[0] ? (crntD.getYear() - 100).toString() : crntD.getFullYear().toString();
+      lastY = crntD.getFullYear();
+    }
+    crntD.setFullYear(crntD.getFullYear() + int[0]);
+    crntD.setMonth(crntD.getMonth() + int[1]);
+    crntD.setDate(crntD.getDate() + int[2]);
+  }
+
+  let r = -1;
+  if (drawDays) {
+    chart.buffer.push(Array(chart.gw).fill(" "));
+    r++;
+    chart.replace(chart.gh + 2 + r, 0, ' Day');
+    daysToDraw.forEach((x, i) => {
+      chart.replace(chart.gh + 2 + r, 7 + (i * (argQueries.length * 2 + 1)), x);
+    });
+  }
+  if (drawWeeks) {
+    chart.buffer.push(Array(chart.gw).fill(" "));
+    r++;
+    chart.replace(chart.gh + 2 + r, 0, ' Week');
+    weeksToDraw.forEach((x, i) => {
+      chart.replace(chart.gh + 2 + r, 7 + (i * (argQueries.length * 2 + 1)), x);
+    });
+  }
+  if (drawMonths) {
+    chart.buffer.push(Array(chart.gw).fill(" "));
+    r++;
+    chart.replace(chart.gh + 2 + r, 0, 'Month');
+    monthsToDraw.forEach((x, i) => {
+      chart.replace(chart.gh + 2 + r, 7 + (i * (argQueries.length * 2 + 1)), x);
+    });
+  }
+  if (drawYears) {
+    chart.buffer.push(Array(chart.gw).fill(" "));
+    r++;
+    yearsToDraw.forEach((x, i) => {
+      chart.replace(chart.gh + 2 + r, 7 + (i * (argQueries.length * 2 + 1)), x);
+    });
+  }
+
+  console.log(chart.render() + '\n');
+  let table = [[]];
+  legends.forEach((x, i) => {
+    let str = `      ${chart.colors[i]('  ')} ${x}`;
+    table[0].push([str, strip_ansi(str).length]);
+  });
+  table[0].header = false;
+  console.log(tabulate(table));
+}
+async function cmd_export_gnucash_transactions(args) {
+  let table = [['Date', 'Num', 'Description', 'Memo', 'Account', 'Deposit', 'Withdrawal']];
+  
+  let q = { queries: [query_args_to_filter(args)] };
+  q.queries[0].collect = ['entries'];
+
+  let data = (await query_exec(q))[0].entries;
+  for (let e of data) {
+    for (let t of e.transfers) {
+      table.push([
+        entry_datestr(e),
+        e.uuid,
+        e.description,
+        t[0],
+        t[1].replace(/\./g, ':'),
+        t[2] >= 0 ? t[2] : '',
+        t[2] < 0 ? -t[2] : ''
+      ]);
+    }
+  }
+  
+  return table;
+}
+async function cmd_export_gnucash_accounts(args) {
+  report_set_accounts(args);
+  report_compile_account_regex(args);
+  
+  let table = [['type','full_name','name','code','description','color','notes','commoditym','commodityn','hidden','tax','placeholder']];
+  // ASSET,Assets,Assets,,,,,USD,CURRENCY,F,F,F
+  let q = { queries: [query_args_to_filter(args)] };
+  await query_exec(q);
+  
+  let accounts = expand_account();
+  for (let a of accounts) {
+    let type;
+    if (a.match(cmd_report_accounts_compiled.income)) type = "INCOME";
+    else if (a.match(cmd_report_accounts_compiled.expense)) type = "EXPENSE";
+    else if (a.match(cmd_report_accounts_compiled.asset)) type = "ASSET";
+    else if (a.match(cmd_report_accounts_compiled.liability)) type = "LIABILITY";
+    else type = "EQUITY";
+    table.push([
+      type,
+      a.replace(/\./g, ':'),
+      a.replace(/^(.+\.)*([^.]+)$/, '$2'),
+      '',
+      '',
+      '',
+      '',
+      'USD',
+      'CURRENCY',
+      'F',
+      'F',
+      'F',
+    ]);
+  }
+  
+  return table;
+}
+
+async function cmd_history(args) {
+  if (args.flags['skip-book-close'] !== false)
+    args.flags['skip-book-close'] = true;
+
+  let int = report_get_reporting_interval(args);
+  let showDays = true;
+  let showMonth = true;
+  let showWeeks = int[2] >= 7 && int[2] % 7 == 0;
+  let showQuarter = int[1] >= 3 && int[1] % 3 == 0;
+
+  if (int[2] > 0 && int[2] < 7) {
+    cmd_report_modifiers.from = '@month-start';
+    cmd_report_modifiers.to = '@tomorrow';
+  } else if (showWeeks) {
+    cmd_report_modifiers.from = '@year-start';
+    cmd_report_modifiers.to = '@month-end';
+  } else {
+    cmd_report_modifiers.from = '@last-year';
+    cmd_report_modifiers.to = '@month-end';
+  }
+  report_set_modifiers(args);
+  report_set_accounts(args);
+  report_compile_account_regex();
+
+  args.modifiers.from = cmd_report_modifiers.from;
+  args.modifiers.to = cmd_report_modifiers.to;
+
+  let skipTo;
+  args.flags['skip'] &&
+     (skipTo = report_replaceDateStr(args.flags['skip'])) &&
+     !isNaN(skipTo = Date.parse(skipTo + 'T00:00:00'));
+
+  let strF = report_replaceDateStr(args.modifiers.from);
+  let strT = report_replaceDateStr(args.modifiers.to);
+  let from = Date.parse(strF + 'T00:00:00');
+  let to = Date.parse(strT + 'T00:00:00');
+
+  let dateFunctions = [];
+
+  let crntD = new Date(from);
+  while (crntD < to) {
+    let a = crntD.getTime() / 1000 | 0;
+    crntD.setFullYear(crntD.getFullYear() + int[0]);
+    crntD.setMonth(crntD.getMonth() + int[1]);
+    crntD.setDate(crntD.getDate() + int[2]);
+    let b = Math.min(crntD.getTime(), to) / 1000 | 0;
+    dateFunctions.push(t => t >= a && t < b);
+  }
+
+  report_extract_account(args);
+  report_extract_tags(args);
+
+  let accounts = args.accounts.length ?
+                   [...args.accounts.map((x, i) => { return { q: x, name: args.accountSrc[i], sum: new Big(0), val: Array(dateFunctions.length).fill(new Big(0)) } })] :
+                   [...Object.keys(cmd_report_accounts).map(x => { return { name: x, q: cmd_report_accounts_compiled[x], sum: new Big(0), val: Array(dateFunctions.length).fill(new Big(0)) } })];
+
+  delete args.accounts; // so report_traverse don't handle accounts
+
+  await report_traverse(args, async function (entry) {
+    let i = 0;
+    let matched = false;
+    for (;i < dateFunctions.length;i++) {
+      if (dateFunctions[i](entry.time)) {
+        matched = true;
+        break;
+      }
+    }
+    if (!matched) return; // outside date range
+    for (let acc of accounts) {
+      let q = acc.q;
+
+      for (let t of entry.transfers) {
+        if (t[1].match(q)) {
+          acc.val[i] = acc.val[i].plus(t[2]);
+          acc.sum = acc.sum.plus(t[2]);
+        }
+      }
+    }
+  });
+
+  let table = [];
+  let align = [];
+  if (!args.flags.epoch && !args.flags.iso) {
+    table.push(['Year']);
+    align.push(TAB_ALIGN_RIGHT);
+    if (showQuarter) { table[0].push('Quarter'); align.push(TAB_ALIGN_LEFT) }
+    if (showMonth) { table[0].push('Month'); align.push(TAB_ALIGN_LEFT) }
+    if (showWeeks) { table[0].push('Week'); align.push(TAB_ALIGN_RIGHT) }
+    if (showDays) { table[0].push('Day');  align.push(TAB_ALIGN_RIGHT)}
+  } else {
+    table.push(['Time']);
+    align.push(TAB_ALIGN_RIGHT);
+  }
+  let tab_left_length = table[0].length;
+
+
+  let cu_accounts = [];
+
+  if (typeof args.flags['cumulative-columns'] != 'undefined') {
+    let sp = args.flags['cumulative-columns'].toString().split(',').map(x => parseInt(x));
+    for (let n of sp) {
+      if (isNaN(n)) {
+        console.log(`Error: "${n}" is not a column number. Use this format: --cumulative-columns=1,2,3`);
+        return 1;
+      }
+      cu_accounts.push(n - 1);
+    }
+  }
+  accounts.forEach((x, i) => {
+    table[0].push(x.name[0].toUpperCase() + x.name.substring(1));
+    align.push(TAB_ALIGN_RIGHT);
+    if (args.flags.cumulative || cu_accounts.indexOf(i) >= 0) {
+      x.val.forEach((z, j) => {
+        if (j == 0) return;
+        x.val[j] = x.val[j].plus(x.val[j - 1]);
+      });
+    }
+    x.val = x.val.map(v => v.toNumber());
+  });
+
+  crntD = new Date(from);
+  let r = table.length - 2;
+  let last = [];
+  while (crntD < to) {
+    r++;
+    if (skipTo && crntD < skipTo) {
+      crntD.setFullYear(crntD.getFullYear() + int[0]);
+      crntD.setMonth(crntD.getMonth() + int[1]);
+      crntD.setDate(crntD.getDate() + int[2]);
+      continue;
+    }
+    let row = [];
+
+    if (args.flags.epoch) {
+      row.push(crntD.getTime().toString());
+    } else if (args.flags.iso) {
+      row.push(crntD.toISOString().split('T')[0]);
+    } else {
+      row.push(crntD.getFullYear().toString());
+      if (showQuarter) row.push(print_full_quarter(crntD.getMonth()));
+      if (showMonth) row.push(print_full_month(crntD.getMonth()));
+      if (showWeeks) row.push(pring_week(crntD));
+      if (showDays) row.push(crntD.getDate());
+
+      if (r == dateFunctions.length - 1) { // last entry
+        row[row.length - 1] = '≥ ' + row[row.length - 1];
+      }
+
+      let current = Array.from(row);
+      let lastChanged = !!args.flags.csv;
+      for (let i = 0;i < row.length;i++) {
+        if (table[0][i] == 'Day') continue;
+        if (!lastChanged && (current[i] == last[i])) row[i] = '';
+        else if (current[i] != last[i]) lastChanged = true;
+      }
+      last = current;
+    }
+    for (let acc of accounts) {
+      let v = acc.val[r];
+
+      let vs;
+
+      if (acc.q == cmd_report_accounts_compiled.income || acc.q == cmd_report_accounts_compiled.expense) {
+        v = -v
+      }
+      vs = print_format_money(v);
+      vs = [print_color_money(v), vs.length];
+
+      row.push(vs);
+    }
+
+    crntD.setFullYear(crntD.getFullYear() + int[0]);
+    crntD.setMonth(crntD.getMonth() + int[1]);
+    crntD.setDate(crntD.getDate() + int[2]);
+    table.push(row);
+  }
+
+  if (!args.flags.csv) {
+    table.push([]);
+    let avg = [];
+    let rowL = table[table.length - 2].length;
+    for (let i = 0;i < rowL;i++) {
+      let j = i - (rowL - accounts.length);
+      if (j < -1) {
+        avg.push('');
+      } else if (j == -1) {
+        avg.push('Avg');
+      } else {
+        let acc = accounts[j];
+        let v = Math.round(acc.sum.div(dateFunctions.length).toNumber() * 100) / 100;
+
+        let vs;
+
+        if (acc.q == cmd_report_accounts_compiled.income || acc.q == cmd_report_accounts_compiled.expense) {
+          v = -v
+        }
+        vs = print_format_money(v);
+        vs = [print_color_money(v), vs.length];
+
+        avg.push(vs);
+      }
+    }
+    table.push(avg);
+
+
+    console.log(`Reporting from ${c.bold(strF)} to ${c.bold(strT)}\n`);
+  }
+
+  console.log(tabulate(table, {
+    align: align
+  }));
+}
+
+async function cmd_stats(args) {
+  let range = await fs_get_data_range();
+  await data_open_books(range);
+
+  let entries = 0;
+  let totalSize = 0;
+
+  let table = [['Stat', 'Data']];
+  table.push(['File prefix',  fs_book_name]);
+  table.push([]);
+
+  let accs = {};
+  let accounts = expand_account();
+
+  for (let y of range) {
+    let val = Object.values(data.books[y]).length;
+    entries += val;
+    let size = fs.statSync(`${fs_book_name}.${y}.ledg`).size / 1024;
+    totalSize += size;
+    size = Math.round(size * 100) / 100 + ' KiB';
+    table.push([y, `${val} entries (${size})`]);
+  }
+
+  const countDots = (s) => {let m = s.match(/\./g); return m ? m.length + 1 : 1};
+  accounts.forEach(x => {
+    let l = countDots(x);
+    accs[l] = (accs[l] || 0) + 1;
+  });
+
+  totalSize = Math.round(totalSize * 100) / 100 + ' KiB';
+
+  table.push(['Total entries', entries + ` (${totalSize})`]);
+  table.push([]);
+
+  Object.entries(accs).forEach(x => {
+    table.push([`Level ${x[0]} accounts`, x[1]]);
+  });
+
+  table.push(['Total accounts', accounts.length]);
+  table.push([]);
+
+  table.push(['Flags', Object.entries(args.flags).map(x => {
+    return (x[0].length == 1 ? '-' : '--') + x[0] + '=' + x[1]
+  }).join(", ")]);
+  table.push(['Modifiers', Object.entries(args.modifiers).map(x => x.join(":")).join(", ")]);
+
+
+
+  console.log(tabulate(table));
+}
+async function cmd_modify(args) {
+  args.modifiers.from = args.modifiers.from || '@min';
+  args.modifiers.to = args.modifiers.to || '@max';
+  report_set_modifiers(args);
+  //report_extract_account(args);
+
+  let filteredEntries = [];
+  await report_traverse(args, async function(entry) {
+    filteredEntries.push(entry);
+  });
+
+  if (!filteredEntries.length) {
+    console.log('No such entries found.');
+    console.log('Modifiers are used for query, not modification. Use edit command to edit entry modifiers');
+    return 1;
+  }
+
+  let mods_to_remove = (args.flags['remove-mod'] || '').split(",").filter(x => x != 'uuid' && x != 'time' && x != 'description' && x != 'transfers');
+  let mods_to_set = (args.flags['set-mod'] || '').split(",");
+  mods_to_set = argsparser(mods_to_set).modifiers;
+  delete mods_to_set.uuid;
+  delete mods_to_set.time;
+  delete mods_to_set.description;
+  delete mods_to_set.transfers;
+
+  // =================================================
+  //                     cmd_add
+  // =================================================
+
+  Object.assign(args.modifiers, mods_to_set);
+  let opts = await cmd_add(args, true);
+  if (typeof opts != 'object') return opts; // abnormal return code
+
+  // =================================================
+  //            ask for which ones to modify
+  // =================================================
+  let targetEntries = [];
+  let skip = false;
+
+  if (filteredEntries.length == 1) targetEntries.push(filteredEntries[0]);
+  for (let i = targetEntries.length;i < filteredEntries.length;i++) {
+    let e = filteredEntries[i];
+    if (skip) { targetEntries.push(e); continue; }
+
+    process.stdout.write(`Modify "${print_entry_title(e)}" (y/n/all/enter to abort)? `);
+    let ans = args.flags.y ? 'y' : (await readline_prompt()).toLowerCase();
+    if (args.flags.y) console.log('y');
+    switch (ans) {
+      case 'y':
+      case 'yes':
+        targetEntries.push(e);
+        break;
+      case 'n':
+      case 'no':
+        console.log('Skipped');
+        break;
+      case 'all':
+        skip = true;
+        targetEntries.push(e);
+        break;
+      default:
+        console.log('Abort.');
+        return 1;
+    }
+  }
+
+  let tags_to_add = (args.flags['add-tag'] || '').split(",").map(x => x.toUpperCase()).filter(x => x && x.length);
+  let tags_to_remove = (args.flags['remove-tag'] || '').split(",").map(x => x.toUpperCase()).filter(x => x && x.length);
+
+  for (let e of targetEntries) {
+    Object.assign(e, opts);
+    mods_to_remove.forEach(x => delete e[x]);
+    if (tags_to_add.length) {
+      for (let tag of tags_to_add) {
+        tag_add(e, tag);
+      }
+    }
+    if (tags_to_remove.length) {
+      for (let tag of tags_to_remove) {
+        tag_remove(e, tag);
+      }
+    }
+    await data_modify_entry(e);
+  }
+
+  console.log(`${targetEntries.length} entries are affected.`);
+}
+function cmd_git(args) {
+  let argv = process.argv;
+  let i = 1;
+  while (++i < argv.length) {
+    if (Object.keys(CMD_LIST).filter(x => x.indexOf(argv[i]) == 0).length == 1) break;
+  }
+  const ls = require('child_process').spawn("git", argv.slice(i + 1), {
+    cwd: fs_get_book_directory(),
+    stdio: 'inherit'
+  });
+
+  ls.on('error', (error) => {
+    console.log(`error: ${error.message}`);
+  });
+
+  ls.on("close", code => {
+    process.exit(code);
+  });
+}
+async function cmd_register(args) {
+  args.modifiers.to = args.modifiers.to || '@tomorrow';
+
+  let skipTo;
+  args.flags['skip'] &&
+     (skipTo = report_replaceDateStr(args.flags['skip'])) &&
+     !isNaN(skipTo = Date.parse(skipTo + 'T00:00:00'));
+
+  args.flags['hide-zero'] = args.flags['hide-zero'] !== false;
+  args.flags['skip-book-close'] = args.flags['skip-book-close'] !== false;
+
+  let depth = Number(args.flags['max-depth']) || Infinity;
+
+  // defaults from:@min, to:@max
+  let q = { queries: [query_args_to_filter(args, ['entries'])] };
+  q.queries[0].collect = ['entries'];
+
+  let data = (await query_exec(q))[0].entries;
+  data = report_sort_by_time(data);
+
+  let int = report_get_reporting_interval(args, true);
+
+  if (!int)
+    _cmd_register_nogroup(args, data, skipTo, depth);
+  else
+    _cmd_register_group(args, data, skipTo, depth, int, q.queries[0]);
+
+}
+
+function _cmd_register_group(args, data, skipTo, depth, int, q) {
+  let table = [['Start', 'Acc', 'Amnt', 'Tot']];
+  let align = [TAB_ALIGN_LEFT, TAB_ALIGN_LEFT, TAB_ALIGN_RIGHT, TAB_ALIGN_RIGHT, TAB_ALIGN_RIGHT];
+
+  let sum = new Big(0);
+
+  let from = q.from * 1000;
+  let to = q.to * 1000;
+
+  let crntD = new Date(from);
+  while (crntD < to) {
+    let endDate = new Date(crntD);
+    endDate.setFullYear(endDate.getFullYear() + int[0]);
+    endDate.setMonth(endDate.getMonth() + int[1]);
+    endDate.setDate(endDate.getDate() + int[2]);
+
+    let accs = {};
+    for (let i = 0;i < data.length;i++) {
+      let e = data[i];
+      if (e.time >= endDate / 1000 | 0 || e.time < crntD / 1000 | 0) continue;
+      for (let q of args.accounts) {
+        for (let t of e.transfers) {
+          if (t[1].match(q)) {
+            let a = print_truncate_account(t[1], depth);
+            accs[a] = (accs[a] || new Big(0)).add(t[2]);
+          }
+        }
+      }
+    }
+    
+    let j = -1;
+    for (let acc in accs) {
+      j++;
+      let amnt = accs[acc];
+      let row = j == 0 || args.flags.csv ?
+            [ c.cyanBright(entry_datestr(crntD / 1000)) ] : [''];
+
+      row.push(acc);
+
+      let m = args.flags.invert ? -amnt : amnt;
+      sum = sum.add(m);
+      if (!skipTo || e.time * 1000 >= skipTo) {
+        row.push(print_color_money(m, true), print_color_money(sum));
+        table.push(row);
+      }
+    }
+
+    if (j == -1 && !args.flags['hide-zero']) {
+      table.push([
+        c.cyanBright(entry_datestr(crntD / 1000)),
+        '', print_format_money(0), print_color_money(sum)
+      ]);
+    }
+
+    crntD = endDate;
+  }
+
+  console.log(tabulate(table, { align: align }));
+}
+
+function _cmd_register_nogroup(args, data, skipTo, depth) {
+  let table = [['Date', 'UUID', 'Desc', 'Acc', 'Amnt', 'Tot']];
+  let align = [TAB_ALIGN_LEFT, TAB_ALIGN_LEFT, TAB_ALIGN_LEFT, TAB_ALIGN_RIGHT, TAB_ALIGN_RIGHT, TAB_ALIGN_RIGHT];
+
+  let sum = new Big(0);
+
+  for (let i = 0;i < data.length;i++) {
+    let e = data[i];
+
+    let j = 0;
+    for (let q of args.accounts) {
+      for (let t of e.transfers) {
+        if (t[1].match(q)) {
+          let row = j == 0 || args.flags.csv ?
+                      [ c.cyanBright(entry_datestr(e)), c.cyan(e.uuid) ] : ['', ''];
+
+          let desc = t[0] || (j++ == 0 ? e.description : '');
+          desc = args.flags['light-theme'] ? c.black(desc) : c.whiteBright(desc);
+          row.push(desc, print_truncate_account(t[1], depth));
+
+          let m = args.flags.invert ? -t[2] : t[2];
+          sum = sum.add(m);
+          if (skipTo && e.time * 1000 < skipTo)
+            continue;
+          row.push(print_color_money(m, true), print_color_money(sum));
+          table.push(row);
+        }
+      }
+    }
+  }
+
+  console.log(tabulate(table, { align: align }));
+}
+async function cmd_benchmark(args) {
+  let times = Number(args._[0]) || 100;
+  for (let i = 0;i < times;i++) {
+    data_init_data();
+    await data_open_books(await fs_get_data_range());
+  }
+  console.log(_fs_entries_read + ' entries read');
+}
+async function cmd_export(args) {
+  args.flags.csv = args.flags.csv !== false;
+  let table;
+  switch (args._[0]) {
+    case 'gnucash-transactions':
+      table = await cmd_export_gnucash_transactions(args);
+      break;
+    case 'gnucash-accounts':
+      table = await cmd_export_gnucash_accounts(args);
+      break;
+    default:
+      console.error(`'${args._[0]}' is not an export option.`);
+      return 1;
+  }
+  console.log(tabulate(table));
+}
+async function cmd_count(args) {
+  let q = { queries: [query_args_to_filter(args)] };
+  q.queries[0].collect = ['count'];
+
+  let data = await query_exec(q);
+
+  let count = data[0].count;
+
+  console.log((count).toString());
+}
+
+async function cmd_budget(args) {
+  let budgetNames = Object.keys(data.budgets);
+
+  if (args._.indexOf('edit') >= 0) {
+    let path = fs_book_name + '.budgets.ledg';
+    let EDITOR = process.env.EDITOR || 'vim';
+    let args2 = EDITOR == 'vim' ? ['+autocmd BufRead,BufNewFile *.*.ledg setlocal ts=55 sw=55 expandtab! softtabstop=-1 nowrap listchars="tab:→\ ,nbsp:␣,trail:•,extends:⟩,precedes:⟨" list noautoindent nocindent nosmartindent indentexpr=', path] : [path];
+
+    const ls = require('child_process').spawn(process.env.EDITOR || 'vim', args2, {
+      cwd: fs_get_book_directory(),
+      stdio: 'inherit'
+    });
+    return;
+  } else if (args._.indexOf('list') >= 0) {
+    let table = [['#', 'Budget']];
+    let i = 0;
+    for (let b of budgetNames) {
+      table.push([++i, b]);
+    }
+    console.log('\n' + tabulate(table));
+    return;
+  }
+
+  let mpart = args._.indexOf('partition') >= 0 || args._.indexOf('disk') >= 0;
+  if (!budgetNames.length) {
+    console.log(`Please create at least one budget at ${fs_book_name}.budgets.ledg`);
+    return 1;
+  }
+
+  args.flags['skip-book-close'] = true;
+
+  if (!args.flags.budget && budgetNames.length > 1) {
+    let table = [['#', 'Budget']];
+    let i = 0;
+    for (let b of budgetNames) {
+      table.push([++i, b]);
+    }
+    console.log('\n' + tabulate(table))
+    process.stdout.write('Choose one: ');
+    let ans = Math.max(Math.min(parseInt((await readline_prompt())) || 1, budgetNames.length), 0) - 1;
+    console.log(`${ESC}[1AChoose one: ${c.green(budgetNames[ans])}`);
+    args.flags.budget = budgetNames[ans];
+  }
+  let budget = data.budgets[args.flags.budget || budgetNames[0]];
+  if (!budget) {
+    console.log(`Specified budget "${args.flags.budget}" is not found.`);
+    return 1;
+  }
+
+  if (args.flags['sum-parent'] === false) {
+    args.flags['sum-parent'] = true;
+    console.log("Warning: sum-parent is always enabled");
+  }
+
+  args.flags['max-depth'] = args.flags['max-depth'] || Infinity;
+  let countDots = (s) => {let m = s.match(/\./g); return m ? m.length + 1 : 1};
+
+  args.modifiers.from = report_replaceDateStr(args.modifiers.from);
+  args.modifiers.to = report_replaceDateStr(args.modifiers.to);
+  // specified or budget dates
+  let from = args.modifiers.from ? Date.parse(args.modifiers.from + 'T00:00:00') / 1000 | 0 : budget.from;
+  let to = args.modifiers.to ? Date.parse(args.modifiers.to + 'T00:00:00') / 1000 | 0 : budget.to;
+
+  // allow report_traverse to filter dates
+  cmd_report_modifiers.from = args.modifiers.from = entry_datestr(from);
+  cmd_report_modifiers.to = args.modifiers.to = entry_datestr(to);
+
+  let period = to - from;
+  let periodRemaining = Math.max(to - Math.max(from, new Date() / 1000 | 0), 0);
+  let periodPassed = Math.min(to, new Date() / 1000 | 0) - from;
+  if (new Date() / 1000 > to) {
+    periodRemaining = period;
+    periodPassed = 0;
+  }
+  let originalPeriod = budget.to - budget.from;
+  let zoom = period / originalPeriod;
+  let periodAltered = (from != budget.from) || (to != budget.to);
+  if (periodAltered && !args.flags['do-not-adjust']) {
+    console.log(`Due to custom time range, budget amounts had been adjusted by a factor of ${Math.round(zoom * 100) / 100}.`);
+  }
+
+  console.log('\n ' + c.bold(budget.description) + ` (${entry_datestr(budget.from)} to ${entry_datestr(budget.to)})` +
+    (periodAltered ? ` => (${entry_datestr(from)} to ${entry_datestr(to)})` : '')
+  );
+
+  let table = [];
+
+  function eta(a, b, x, reverse) {
+//     let d = Math.max(b - a, b - x);
+    let d = b - x; // remaining
+
+    const DAY = 86400;
+    const WEEK = 604800;
+    const YEAR = DAY * 365;
+    const MONTH = YEAR / 12;
+
+    let avgPrd = [YEAR, 'yr', 'years'];
+
+    if (period / 6 < WEEK || periodRemaining < WEEK) avgPrd = [DAY, 'd', 'days'];
+    else if (period / 6 < MONTH || periodRemaining < MONTH) avgPrd = [WEEK, 'wk', 'weeks'];
+    else if (period / 6 < YEAR || periodRemaining < YEAR) avgPrd = [MONTH, 'm', 'months'];
+
+    let remainPrds = Math.round(periodRemaining / avgPrd[0] * 10) / 10;
+    let prdsPsd = Math.round(periodPassed / avgPrd[0] * 10) / 10;
+
+    let cRate = Math.round(x / prdsPsd * 100) / 100 || 0;
+    let bRate = Math.round(d / remainPrds * 100) / 100 || 0;
+
+    let perc = ((x / prdsPsd) - (d / remainPrds)) / (x / remainPrds);
+
+    let color = c.yellowBright;
+    if (Math.abs(perc) > 0.15)
+      color = reverse ? (perc < 0 ? c.redBright : c.green) : (perc > 0 ? c.redBright : c.green);
+
+    let et = d / (x / periodPassed) || 0;
+
+    let etas = `${Math.ceil(et / DAY * 5) / 5} days`;
+    if (et > YEAR) etas = `${Math.ceil(et / YEAR * 5) / 5} years`;
+    else if (et > MONTH) etas = `${Math.ceil(et / MONTH * 5) / 5} months`;
+    else if (et > WEEK) etas = `${Math.ceil(et / WEEK * 5) / 5} weeks`;
+
+    if (et == Infinity) etas = '∞ years';
+    if (et == -Infinity) etas = '-∞ years';
+
+    let s = color(`${cRate == Infinity ? '∞' : cRate == -Infinity ? '-∞' : new Big(cRate).prec(4)}/${avgPrd[1]}`);
+    return [[s, strip_ansi(s).length],
+            `${bRate == Infinity ? '∞' : bRate == -Infinity ? '-∞' :  new Big(bRate).prec(4)}/${avgPrd[1]}`,
+            etas
+           ];
+  }
+
+  // ==============================================
+  //                   trackers
+  // ==============================================
+
+  if (args.flags.simple)
+    table.push(['Trackers', 'Budget', 'Used', 'Remain', 'Use%']);
+  else
+    table.push(['Trackers', '', 'Progress', '', 'Budget', 'Used', 'Remain', 'Use%', '  Rate', 'Rec  ', 'ETC  ']);
+  for (let track of budget.trackers) {
+    if (periodAltered && !args.flags['do-not-adjust']) {
+      track = JSON.parse(JSON.stringify(track));
+      track.high = Math.round(new Big(track.high).minus(track.low).times(zoom).plus(track.low).toNumber() * 100) / 100;
+    }
+
+    let args2 = argsparser(parseArgSegmentsFromStr(track.q));
+    report_extract_account(args2);
+    report_extract_tags(args2);
+
+    let total = new Big(0);
+
+    let ignored = Object.keys(cmd_report_modifiers);
+
+    let regexMod = {};
+    for (mod in args2.modifiers) {
+      if (ignored.indexOf(mod) >= 0) continue;
+      if (args2.modifiers[mod]) regexMod[mod] = new RegExp(args2.modifiers[mod], 'i');
+    }
+    await data_iterate_books(data_books_required(from * 1000, to * 1000), async function (book) {
+      let len = book.length;
+      WHILE: while (len--) {
+        if ((book[len].time >= from) && (book[len].time < to)) {
+          // skip all bookClose by force
+          if (book[len].bookClose && book[len].bookClose.toString() == 'true') continue;
+          for (mod in regexMod) {
+            if (!book[len][mod]) {
+              if (regexMod[mod].source == '(?:)') continue; // empty on both
+              else continue WHILE;
+            }
+            if (regexMod[mod].source == '(?:)') continue;
+            if (book[len][mod] && !(book[len][mod].toString()).match(regexMod[mod])) continue WHILE;
+          }
+          for (let q of args2.accounts) {
+            for (let t of book[len].transfers) {
+              if (t[1].match(q)) {
+                total = total.plus(t[2]);
+              }
+            }
+          }
+        }
+      }
+    });
+
+    let remain = new Big(track.high).minus(total).toNumber();
+    total = total.toNumber();
+    let title = ' ' + track.q + '  ';
+
+    let usePerc = Math.round((total - track.low) / (track.high - track.low) * 100) + '%';
+    let low = print_format_money(track.low);
+    let high = print_format_money(track.high);
+
+    if (args.flags.simple)
+      table.push([
+                  [c.yellowBright(title), title.length],
+                  high,
+                  print_format_money(total),
+                  print_format_money(remain),
+                  usePerc
+                 ]);
+    else
+    table.push([
+                [c.yellowBright(title), title.length],
+                [c.cyan(low), low.length],
+                [print_progress_bar(track.low, track.high, total, { reverseLowHigh: track.type == 'goal' }), 50],
+                [c.cyan(high), high.length],
+                [c.yellowBright(track.type.toUpperCase()), track.type.length],
+                print_format_money(total),
+                print_format_money(remain),
+                usePerc,
+                ...eta(track.low, track.high, total, track.type == 'goal')
+               ]);
+  }
+
+  // ==============================================
+  //                   budgets
+  // ==============================================
+
+  report_extract_account(args);
+  report_extract_tags(args);
+
+
+  let forkedBudgets = {};
+  let disks = {};
+  let baccs = Object.keys(budget.budgets).sort();
+  // sum parent for budget
+  baccs.forEach(x => {
+    if (periodAltered && !args.flags['do-not-adjust']) {
+      let high = budget.budgets[x];
+      forkedBudgets[x] = forkedBudgets[x] || new Big(Math.round(new Big(high).times(zoom).toNumber() * 100) / 100);
+    }
+    forkedBudgets[x] = forkedBudgets[x] || new Big(budget.budgets[x]);
+    let levels = x.split(".");
+    let previous = "";
+    for (let l of levels) {
+      let k = previous + l;
+      if (k == x) continue;
+      forkedBudgets[k] = (forkedBudgets[k] || new Big(0)).plus(forkedBudgets[x]);
+      previous = k + ".";
+    }
+  });
+  let balanceData = await report_sum_accounts(args, true, forkedBudgets);
+  for (let k in forkedBudgets) { forkedBudgets[k] = forkedBudgets[k].toNumber(); }
+  if (mpart) {
+    baccs.forEach(x => {
+      let levels = x.split(".");
+      let previous = "";
+      for (let l of levels) {
+        let k = previous + l;
+        if (k.indexOf('.') < 0) {
+          disks[k] = disks[k] || mpart_dsk_create(forkedBudgets[k]);
+          disks[k].label = k;
+        } else
+          disks[k] = disks[k] || mpart_partition_create(disks[previous.replace(/\.$/, '')], { fixed: forkedBudgets[k], label: l });
+        previous = k + ".";
+      }
+    });
+    console.log(JSON.stringify(mpart_disks));
+  }
+
+  table.push([]);
+  let align = [TAB_ALIGN_LEFT, TAB_ALIGN_RIGHT, TAB_ALIGN_LEFT, TAB_ALIGN_RIGHT, TAB_ALIGN_LEFT, TAB_ALIGN_RIGHT, TAB_ALIGN_RIGHT, TAB_ALIGN_RIGHT, TAB_ALIGN_RIGHT, TAB_ALIGN_RIGHT, TAB_ALIGN_RIGHT];
+  if (args.flags.simple) {
+    align = [TAB_ALIGN_LEFT, TAB_ALIGN_RIGHT, TAB_ALIGN_RIGHT, TAB_ALIGN_RIGHT, TAB_ALIGN_RIGHT];
+    table.push(['Accounts', 'Total', 'Used', 'Remain', 'Use%']);
+  } else {
+    table.push(['Accounts', '', 'Progress', '', 'Budget', 'Used', 'Remain', 'Use%', '  Rate', 'Rec  ', 'ETC  ']);
+  }
+  table[table.length - 1].header = true;
+
+  let accTree = print_accountTree(baccs);
+  accTree.list.forEach((x, i) => {
+    let fullX = accTree.fullList[i];
+    if (countDots(fullX) > args.flags['max-depth']) return;
+
+    let name = x.match(/^([^a-z0-9]+)([a-z0-9].+)$/i)
+    let row = [[name[1] + c.yellowBright(name[2]), x.length]];
+    table.push(row);
+
+    //if (baccs.indexOf(fullX) < 0) return;
+
+    let total = forkedBudgets[fullX];
+    let used = balanceData[fullX];
+    let remain = new Big(total).minus(used).toNumber();
+    let usePerc = Math.round(used / total * 100) + '%';
+    let high = print_format_money(total);
+    let et = eta(0, total, used);
+
+    if (!args.flags.simple)
+      row.push('', [print_progress_bar(0, total, used), 50]);
+    if (!args.flags.simple)
+      row.push([c.cyan(high), high.length]);
+    else
+      row.push(high);
+    if (!args.flags.simple)
+      row.push([c.yellowBright('LIMIT'), 5]);
+    row.push(print_format_money(used));
+    row.push(print_format_money(remain));
+    row.push(usePerc);
+    if (!args.flags.simple) {
+      row.push(et[0], et[1], et[2]);
+    }
+  });
+
+  /*
+   "budgets": {
+        "Expense": 300,
+        "Expense.Other.Transportation": 300,
+        "Expense.Essential.Groceries": 400,
+        "Expense.Other.Education": 800,
+        "Expense.Free.Retail.Tech": 1400
+      },
+      "*/
+  console.log(tabulate(table, {
+    align: align,
+    colBorder: ' ',
+    alternateColor: false
+  }));
+
+
+}
+async function cmd_add(args, modifyMode=false) {
+  let desc = [];
+  let transfers = [];
+  let currentTransfer = null;
+
+  let opts = JSON.parse(JSON.stringify(args.modifiers));
+  
+  delete opts.uuid;
+  delete opts.time;
+  delete opts.from;
+  delete opts.to;
+  delete opts.description;
+  
+  args.flags.date = args.flags.date || args.flags.D;
+  
+  if (!modifyMode)
+    opts.time = ((args.flags.date ? (Date.parse(report_replaceDateStr(args.flags.date) + 'T00:00:00') || new Date().getTime()) : new Date().getTime()) / 1000) | 0;
+  
+  Object.keys(opts).forEach(k => {
+    let n = Number(opts[k]);
+    if (!isNaN(n)) opts[k] = n;
+  });
+
+  let _ = args._;
+
+  for (let i = 0;i < _.length;i++) {
+    let v = _[i].trim().replace(/ /g, '');
+    let num = Number(v);
+    
+    if (v.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      opts.time = ((Date.parse(report_replaceDateStr(v) + 'T00:00:00') / 1000) | 0) || opts.time;
+    } else if (!isNaN(num)) {
+      if (currentTransfer) {
+        currentTransfer[2] = num;
+        transfers.push(currentTransfer);
+        currentTransfer = null;
+      } else // entry description
+        desc.push(_[i].trim());
+    } else if (isArgAccount(v)) { // start account with category
+      if (currentTransfer) { // start new one, commit old
+        transfers.push(currentTransfer);
+        currentTransfer = null;
+        continue;
+      }
+      let accs = fzy_query_account(v, expand_account());
+      currentTransfer = ['', null, 0];
+      if (accs.length == 0) {
+        process.stdout.write(`"${c.bold(v.replace(/\$/g, '').replace(/\!/g, ''))}" does not match anything. Create it? `);
+        let ans = args.flags.y ? 'y' : (await readline_prompt()).toLowerCase();
+        if (args.flags.y) console.log('y');
+        if (ans == 'y' || ans == 'yes') {
+          currentTransfer[1] = v.replace(/\$/g, '').replace(/\!/g, '');
+        } else {
+          console.log('Abort.');
+          return 1;
+        }
+      } else if (accs.length == 1) {
+        currentTransfer[1] = accs[0];
+      } else {
+        console.log(`Multiple accounts matched for: ${c.bold(v)}\n`);
+        for (let j = 0;j < accs.length;j++) {
+          console.log(`${j + 1} ${accs[j]}`);
+        }
+        process.stdout.write('\nChoose one: ');
+        let ans = Math.max(Math.min(parseInt((await readline_prompt())) || 1, accs.length), 0) - 1;
+        console.log(`${ESC}[1AChoose one: ${c.green(accs[ans])}`);
+        currentTransfer[1] = accs[ans];
+      }
+    } else if (v.startsWith("+")) {
+      tag_add(opts, v.substring(1));
+    } else {
+      if (currentTransfer) // transfer description
+        currentTransfer[0] = (currentTransfer[0] + ' ' + _[i].trim()).trim();
+      else // entry description
+        desc.push(_[i].trim());
+    }
+  }
+  if (currentTransfer) transfers.push(currentTransfer);
+
+  let entry = modifyMode ? entry_modify_create(desc.join(" "), transfers, opts) : entry_create(desc.join(" "), transfers, opts);
+  if (entry.transfers)
+    console.log("\n" + print_entry_ascii(entry));
+  else {
+    console.log(`${c.cyanBright(entry.time ? entry_datestr(entry.time) : '[date]')} ${c.yellowBright.bold(entry.description || '[title]')} ${c.cyan('[uuid]')}`);
+    for (let key in entry) {
+      if (key == 'description' || key == 'time' || key == 'uuid' || key == 'transfers') continue;
+      console.log(c.green('  ;' + key + ':' + JSON.stringify(entry[key])));
+    }
+  }
+  
+  // empty
+  if (transfers.length == 0 && !modifyMode) {
+    console.log('Empty entry, abort.');
+    return 1;
+  }
+  
+  // handle imbalance
+  if (transfers.filter(x => x[1] == data_acc_imb).length) {
+    process.stdout.write(`Entry is imbalanced, continue? `);
+    let ans = args.flags.y ? 'y' : (await readline_prompt()).toLowerCase();
+    if (args.flags.y) console.log('y');
+    if (ans != 'y' && ans != 'yes') {
+      console.log('Abort.');
+      return 1;
+    }
+  }
+  
+  if (modifyMode) return entry;
+  await data_push_entry(entry);
+  await fs_write_config();
+  console.log('Entry added.');
+}
+async function cmd_version() {
+  console.log(c.bold('ledg - version 0.7.1') + ' built for cli');
+}
+
+async function cmd_help() {
+  await cmd_version();
+  console.log(
+`
+**SYNOPSIS**
+\t**ledg <command> [ <filter> ] [ <flags> ]**
+
+**FLAGS**
+\tPresets of flags can be saved at ~/.ledgrc
+
+\t--file=FILE, -FFILE
+\t\tDefault: book
+\t\tif FILE="-", then ledg reads entries from stdin
+\t\tset FILE as a prefix for ledg file locations:
+\t\tex. --file=Documents/book will point to Documents/book.*.ledg
+
+\t--light-theme, --lt
+\t\tput this in your .ledgrc if your terminal has light background
+
+\t--csv
+\t\toutputs all tables in csv formats(some commands only)
+
+\t--budget=NAME
+\t\tthis can be used in your .ledgrc to point to a default budget
+\t\tex. --budget="Monthly Budget"
+\t\t    --budget="2023 Puero Rico Vacation Saving Goals"
+
+\t--income=<account filter>, --expense=<account filter>, --equity=<account filter>
+\t--asset=<account filter>, --liability=<account filter>
+\t\tDefault: Income*, Expense*, Asset*, Liability*, Equity*
+\t\tLet certain report commands to know what are the corresponding accounts
+
+\t--skip-book-close[=false], --sbc
+\t\tDefault: false
+\t\tSkips all entries with bookClose:"true" or bookClose:true
+
+**FILTER**
+\t[ modifiers ] [ account filter, ...]
+\ta set of arguments that filters entries
+
+\tfrom:yyyy-mm-dd
+\t\tlimit entries starting from this date(inclusive)
+
+\tto:yyyy-mm-dd
+\t\tlimit entries before this date(exclusive)
+
+\t@min, @max, @year-start, @year-end, @tomorrow, @today, @month-start, @month-end
+\t@last-year-today, @last-year
+\t\tused in conjunction with from: and to:
+\t\tex: "ledg info from:@min to:@max" queries everything in the book
+
+\tmodifier:regex
+\t\tqueries entries with modifiers that matches the regex
+\t\tex: payee:"amazon|steam"
+\t\t    tag:"pc|tablet"
+
+\t+TAG
+\t\tappends TAG(,|$) to tags: modifier, if tags: is empty
+
+\tuuid filter
+\t\tuuids can be filtered with the uuid:A|B|C syntax or directly putting uuids as arguments
+
+\taccount filter
+\t\taccounts in ledg follow this format: name[.name...], and name can
+\t\tONLY contain letters and numbers, and MUST contain at least one letter
+
+\t\tledg support fuzzy search of account names
+\t\t\tex: ..cash =~ Account.Current.Cash
+\t\t\t    .cash =~ Account.Cash
+\t\t\t    exp$ =~ Expense
+\t\t\t    exp|inc.sl =~ Expense | Income.Salary
+\t\t\t    exp. =~ Expense.*
+\t\t\t    exp. =~ Expense.*
+\t\t\t* - matches any character
+\t\t\t. - matches . literally
+\t\t\t    anything in between dots matches any segments of account names that
+\t\t\tcontains the letters in that order
+\t\t\t    ex: .csh. matches *\\.[^.]*c[^.]*s[^.]*h[^.]*\\.* in regex
+
+
+**COMMANDS**
+\tCommands can be shortened as long as they are not ambiguous
+\tExample: ledg accounts -> ledg acc
+\t\t\t ledg info -> ledg inf
+
+\tedit <filters> [new]
+\t\tbrings up system editor to modify filtered entries
+\t\tnew
+\t\t\topens a blank file to manually enter new entries
+
+\taccounts add <full account name>
+\t\tcreate new account and write to FILE.config.ledg
+
+\tburndown [--q1="[<filters>] <account filters>", --q2=...] [--abs=false] [--count]
+\t         [--cumulative]
+\t\tCreates multi-dataset bar graphs
+\t\tDefault: --abs=true
+
+\t\t--abs
+\t\t\tTake absolute values
+
+\t\t--cumulative
+\t\t\tcumulates count/sum
+
+\t\t--count
+\t\t\tShow graph of numbers of entries rather than sum
+
+\tregister [--daily] [--weekly] [--biweekly] [--monthly] [--quarterly]
+\t         [--yearly] [--hide-zero=true, --hz]
+\t         [--skip-book-close=true] [--csv] [--invert]
+\t         [ <account filter 1> <account filter 2> ... ] [--skip=]
+\t\tDefault: --hide-zero to:@tomorrow from:@min
+\t\tdisplays matched transferse with amounts and a running total.
+\t\tWithout a reporting interval, individual transfers are shown
+\t\tinstead of grouping together
+
+\t\t--invert
+\t\t\tnegates all amounts
+
+\t\t--hide-zero, --hz
+\t\t\tDefault: true
+\t\t\thide rows that are zeroes when used with reporting interval
+
+\t\t--skip=yyyy-mm-dd
+\t\t\thides rows up until this date but keep cumulative sum from before
+
+\t\t--csv
+\t\t\ttabulate data in csv (exporting for other use)
+
+\thistory [--daily] [--weekly] [--biweekly] [--monthly] [--quarterly]
+\t        [--yearly] [--cumulative] [--cumulative-columns=num list]
+\t        [--skip-book-close=true] [--epoch] [--csv] [--iso]
+\t        [ <account filter 1> <account filter 2> ... ] [--skip=]
+\t\tDefaults: shows accounts specified by --income, --expense, --asset, --liability,
+\t\t          and --equity, and defaults --skip-book-close=true
+\t\tprints multicolumn time by selected interval
+\t\tNote: even with cumulative columns, history command does not sum everything from
+\t\t@min, and so unless from:@min is given, asset/liability calculation is not accurate
+
+\t\t--cumulative-columns=1,2,3..., --cml-cols
+\t\t\tshows cumulative data for the given column numbers
+
+\t\t--cumulative, --cml
+\t\t\tshows cumulative data
+
+\t\t--skip=yyyy-mm-dd
+\t\t\thides rows up until this date but keep cumulative sum from before
+
+\t\t--epoch
+\t\t\tshow timestamps in epoch
+
+\t\t--csv
+\t\t\ttabulate data in csv (exporting for other use)
+
+\t\t--iso
+\t\t\tshow timestamps in ISO date string
+
+\taccounts rename <source> <dist> [ <filter> ]
+\t\tmodifies entries by replacing account source with dist
+\t\t-y
+\t\t\tdefaults confirmations to yes
+
+\taccounts [tree] [--sum-parent] [--hide-zero, --hz] [--max-depth=NUM, --dep, --depth]
+\t\t[--sum] [ <filter> ] [--sort]
+\t\tsums balances in selected accounts
+\t\tDue to the need to sum entries from the beginning of a book, from: modifier is
+\t\tdefaulted to @min.
+
+\t\t--sort
+\t\t\tunless in tree mode, sort accounts by amount in descending order
+
+\t\t--sum-parent
+\t\t\tallows child account balances to add to parent accounts
+\t\t--hide-zero, --hide-zero=false, --hz
+\t\t\thide accounts with zero balance or not
+\t\t--max-depth=NUM, --depth, --dep
+\t\t\tmax child account depth to show
+\t\t--sum
+\t\t\tsums listed accounts, best used with --max-depth=1
+\t\ttree
+\t\t\tdisplays account balances in tree view
+
+\tinfo [ <filter> ] [flat]
+\t\tdisplays entries' information
+
+\t\tflat
+\t\t\tdisplays entries row by row rather than expanding individual transfers
+
+\ttags [--field="tags"]
+\t\ttabulates tags with number of entries
+
+\t\t--field=
+\t\t\tdefault: tags
+\t\t\tThis can be used on any fields such as description or payee
+
+\tadd [--date=yyyy-mm-dd] [-y] [description] [yyyy-mm-dd] < <account filter>
+\t\t  [account description] <amount> [, ...]> [+TAG ...]
+\t\tpush entry to book
+\t\tNote: The last account transfer set can leave empty amount, and ledg will calculate it.
+\t\t  ex: "ledg add cash withdrawal from bank ast..cash 100 ast..BoA.chking"
+\t\t      will leave Asset.Current.BankOfAmerica.Checking with -100 balance
+
+\t\t<account filter>
+\t\t\t(see FILTER section)
+
+\t\t--date=yyyy-mm-dd, -Dyyyy-mm-dd, [yyyy-mm-dd]
+\t\t\tDefault: current date
+\t\t\tspecifies the date of entry
+\t\t-y
+\t\t\tdefaults most confirmations to yes (unless ledg prompts a list to choose)
+
+\tmodify <filter> [--date=yyyy-mm-dd] [--add-tag=A,B,C] [-remove-tag=A,B,C]
+\t       [--set-mod=A:123,B:123] [--remove-mod=C,D,E] [-y] [description] [+TAG ...]
+\t       [yyyy-mm-dd] [ <account filter> [account description] <amount> [, ...]]
+\t\tbatch modify entries, see more in "add" section
+\t\taccount query is not supported
+\t\tNote: using +TAG replaces everything. If only a new tag is needed, use --add-tag
+
+\tdelete [ <filter> ] [-y]
+\t\tbatch delete entries
+\t\t-y
+\t\t\tdefaults confirmations to yes
+
+\tbudget [--budget=NAME] [--do-not-adjust] [edit|list] [--simple]
+\t\tprints report for the selected budget
+\t\tNote: report excludes entries with bookClose:"true"
+\t\t      budgets can be edited at FILE.budgets.ledg
+
+\t\t--simple
+\t\t\tDisplays budget with simplified information
+
+\t\t--do-not-adjust
+\t\t\tBy default, if specified from: and to: have different range than the one in
+\t\t\tbudget file, ledg will shrink/grow amounts correspondingly. For example,
+\t\t\tfrom:@month-start and to:@month-end on an annual budget will divide all amounts
+\t\t\tby 12. This option disables the feature.
+
+\t\tedit
+\t\t\topens system editor for FILE.budgets.ledg
+
+\t\tlist
+\t\t\tlists all budget names in FILE.budgets.ledg
+
+\t\tExample book.budgets.ledg:
+\t\t~ Vacation Budget 2021
+\t\t  ;from:"@month-start"
+\t\t;this is a comment, below are tracker based budgeting
+\t\t  ;to:"@month-end"
+\t\t  ast.*.Chck	goal 0-500
+\t\t  exp.* payee:Amazon	limit 0--200
+
+\t\t; -- account based budgeting --
+\t\t  Expense	300
+\t\t; -- expense cateogries --
+\t\t  Expense.Other.Transportation	300
+\t\t  Expense.Essential.Groceries	200
+
+\tprint [<account filters>] [<filters>] [--ledger]
+\t\tprints selected entries in ledg format
+\t\tused in conjunction with -F-
+\t\tex: ledg print lia..amazon | ledg -F- accounts exp..personalcare
+
+\t\t--ledger
+\t\t\tprints ledger & hledger compatible journal
+
+\tgit [...]
+\t\texecutes git [...] at the parent directory of FILE
+
+\tstats
+\t\tdisplays stats of journal files
+
+\tcount [<account filters>] [<filters>]
+\t\treturns number of entries that match the filters
+
+\texport gnucash-transactions > transactions.csv
+\texport gnucash-accounts > accounts.csv
+\t\tcsv can be directly imported to gnucash
+`.replace(/\*\*([^\n\r]+)\*\*/g, c.bold('$1')));
+
+}
+
+async function cmd_info(args) {
+  report_extract_account(args);
+  report_extract_tags(args);
+
+  if (Object.keys(args.modifiers).length == 0 &&
+      !args.accounts.length) {
+    args.modifiers.from = '@month-start';
+    args.modifiers.to = '@max';
+    console.log(`No modifiers, using from:@month-start and to:@max\n`);
+  } else {
+    args.modifiers.from = args.modifiers.from || '@min';
+    args.modifiers.to = args.modifiers.to || '@max';
+  }
+
+  let flat = args._[0] == 'flat';
+
+  report_set_modifiers(args);
+
+  let entries = [];
+  await report_traverse(args, async function(entry) {
+    entries.push(entry);
+  });
+  entries = report_sort_by_time(entries);
+
+  if (flat) {
+    report_set_accounts(args);
+    report_compile_account_regex();
+
+    let data = [['Date', 'UUID', 'Description', 'Account', 'Amount']];
+    let align = [TAB_ALIGN_LEFT, TAB_ALIGN_LEFT, TAB_ALIGN_LEFT, TAB_ALIGN_RIGHT, TAB_ALIGN_RIGHT];
+
+    let colorFuncs = [x => c.cyanBright(x),
+                      x => c.cyan(x),
+                      args.flags['light-theme'] ? x => c.black(x) :
+                                                  x => c.whiteBright(x),
+                      x => c.yellowBright(x),
+                      undefined
+                     ];
+
+    for (let e of entries) {
+      let account;
+      let desc = e.description + '        ';
+      let amount = 0;
+      if (e.transfers.length <= 2) {
+        for (let t of e.transfers) {
+          if (t[1].match(cmd_report_accounts.expense)) {
+            amount = -t[2];
+            account = t[1];
+            break;
+          }
+        }
+        if (!account) {
+          for (let t of e.transfers) {
+            if (t[1].match(cmd_report_accounts.liability)) {
+              amount = t[2];
+              account = t[1];
+              break;
+            }
+          }
+          if (!account) {
+            for (let t of e.transfers) {
+              if (t[1].match(cmd_report_accounts.income)) {
+                amount = -t[2];
+                account = t[1];
+                break;
+              }
+            }
+          }
+        }
+      } else {
+        let totalPosAmount = new Big(0);
+        let expAmount = new Big(0);
+        for (let t of e.transfers) {
+          if (t[1].match(cmd_report_accounts.expense)) expAmount = expAmount.plus(t[2]);
+          if (t[2] > 0) totalPosAmount = totalPosAmount.plus(t[2]);
+        }
+        totalPosAmount = totalPosAmount.toNumber();
+        expAmount = expAmount.toNumber();
+        if (totalPosAmount == expAmount) {
+          amount = [print_color_money(-totalPosAmount), print_format_money(-totalPosAmount).length];
+          account = '--- Split in ' + e.transfers.length + ' transfers ---';
+        }
+      }
+      if (!account) {
+        account = e.bookClose ? '=======  Book Close  ========' : '--- Split in ' + e.transfers.length + ' transfers ---';
+        desc = e.bookClose ? '===== ' + e.description + '[' + e.transfers.length + ']' + ' =====' : desc;
+        amount = new Big(0);
+        for (let t of e.transfers) {
+          if (t[2] > 0) amount = amount.plus(t[2]);
+        }
+        amount = '±' + print_format_money(amount.toNumber());
+        amount = [c.cyanBright(amount), amount.length];
+      } else if (!amount.length) {
+        amount = [print_color_money(amount), print_format_money(amount).length];
+      }
+
+      data.push([
+        entry_datestr(e),
+        e.uuid,
+        desc,
+        account,
+        amount
+      ]);
+    }
+
+    console.log(tabulate(data, {colorizeColCallback: colorFuncs, align: align}) + '\n');
+  } else {
+    let maxWidth = print_max_width_from_entries(entries);
+    for (let e of entries) {
+      console.log(print_entry_ascii(e, maxWidth));
+    }
+  }
+}
+async function cmd_tags(args) {
+  let q = { queries: [query_args_to_filter(args, ['entries'])] };
+
+  let data = (await query_exec(q))[0].entries;
+  let tags = {};
+
+  for (let e of data) {
+    let tag = e[args.flags.field || 'tags'];
+    if (!tag) continue;
+    tag = tag.split(",");
+    for (let t of tag) {
+      tags[t] = (tags[t] + 1) || 1;
+    }
+  }
+
+  tags = Object.entries(tags).sort((a, b) => b[1] - a[1]);
+  let table = [['Tag', 'Entries']];
+  let align = [TAB_ALIGN_LEFT, TAB_ALIGN_RIGHT];
+
+  for (let e of tags) {
+    table.push(e);
+  }
+
+  console.log(tabulate(table, { align: align }))
+}
+
+async function cmd_print(args) {
+  let q = { queries: [query_args_to_filter(args, ['entries'])] };
+
+  report_sort_by_time((await query_exec(q))[0].entries).forEach(entry => {
+    console.log(args.flags.ledger ? fs_serialize_entry_ledger(entry) : fs_serialize_entry(entry));
+  });
+}
+async function cmd_delete(args) {
+  args.modifiers.from = args.modifiers.from || '@min';
+  args.modifiers.to = args.modifiers.to || '@max';
+  report_set_modifiers(args);
+  report_extract_account(args);
+  report_extract_tags(args);
+
+  let filteredEntries = [];
+  await report_traverse(args, async function(entry) {
+    filteredEntries.push(entry);
+  });
+
+  if (!filteredEntries.length) {
+    console.log('No such entries found.');
+    return 1;
+  }
+
+  let targetEntries = [];
+  let skip = false;
+
+  for (let i = 0;i < filteredEntries.length;i++) {
+    let e = filteredEntries[i];
+    if (skip) { targetEntries.push(e); continue; }
+
+    process.stdout.write(`Delete "${print_entry_title(e)}" (y/n/all/enter to abort)? `);
+    let ans = args.flags.y ? 'y' : (await readline_prompt()).toLowerCase();
+    if (args.flags.y) console.log('y');
+    switch (ans) {
+      case 'y':
+      case 'yes':
+        targetEntries.push(e);
+        break;
+      case 'n':
+      case 'no':
+        console.log('Skipped');
+        break;
+      case 'all':
+        skip = true;
+        targetEntries.push(e);
+        break;
+      default:
+        console.log('Abort.');
+        return 1;
+    }
+  }
+
+  for (let e of targetEntries) {
+    await data_remove_entry(e);
+  }
+
+  console.log(`${targetEntries.length} entries are affected.`);
+}
+
+async function cmd_edit(args) {
+  args.modifiers.from = args.modifiers.from || '@min';
+  args.modifiers.to = args.modifiers.to || '@max';
+
+  report_set_modifiers(args);
+  report_extract_account(args);
+  report_extract_tags(args);
+
+  let content = '';
+
+  if (args._[0] != 'new') {
+    await report_traverse(args, async function(entry) {
+      content += fs_serialize_entry(entry) + '\n';
+    });
+  }
+
+  let path = fs_get_book_directory() + '/~temp.edit.ledg';
+  fs.writeFileSync(path, content);
+
+  let EDITOR = process.env.EDITOR || 'vim';
+  let args2 = EDITOR == 'vim' ? ['+autocmd BufRead,BufNewFile *.*.ledg setlocal ts=55 sw=55 expandtab! softtabstop=-1 nowrap listchars="tab:→\ ,nbsp:␣,trail:•,extends:⟩,precedes:⟨" list noautoindent nocindent nosmartindent indentexpr=', path] : [path];
+
+  const ls = require('child_process').spawn(process.env.EDITOR || 'vim', args2, {
+    cwd: fs_get_book_directory(),
+    stdio: 'inherit'
+  });
+
+  ls.on('error', (error) => {
+    console.log(`error: ${error.message}`);
+  });
+
+  async function callback(code) {
+    content = fs.readFileSync(path).toString();
+    fs.unlinkSync(path);
+
+    if (code != 0) {
+      console.log(`error: editor returned with code ${code}`);
+      process.exit(code);
+      return;
+    }
+
+    let newEntries = 0;
+    let affectedEntries = 0;
+
+    let entries = fs_read_entries_from_string(content);
+    for (let entry of entries) {
+      if (!(await data_modify_entry(entry))) { // new entry
+        process.stdout.write(print_entry_ascii(entry) + '\nCreate the above new entry? ');
+        let ans = args.flags.y ? 'y' : (await readline_prompt()).toLowerCase();
+        if (args.flags.y) console.log('y');
+        if (ans == 'y' || ans == 'yes') {
+          await data_push_entry(entry);
+          newEntries++;
+        } else {
+          console.log('Discarded 1 entry.');
+        }
+      } else affectedEntries++;
+    }
+
+    await fs_write_books();
+    console.log(`Updated ${affectedEntries} entries and created ${newEntries} entries.`);
+    process.exit(code);
+  }
+
+  ls.on("close", code => {
+    callback(code);
+  });
+}
+async function cmd_accounts(args) {
+  // ===============================================================
+  //                           add accounts
+  // ===============================================================
+  if (args._[0] == 'add') {
+    let i = 1;
+    for (;i < args._.length;i++) {
+      let acc = args._[i];
+      data.accounts[acc] = 1;
+    }
+    await fs_write_config();
+    console.log(`Saved ${i - 1} account names to ` + fs_book_name + '.config.ledg');
+    return;
+  }
+
+  // ===============================================================
+  //                          rename accounts
+  // ===============================================================
+  if (args._[0] == 'rename') {
+    let source = args._[1];
+    let dst = args._[2];
+
+    args.modifiers.from = args.modifiers.from || '@min';
+    args.modifiers.to = args.modifiers.to || '@max';
+    report_set_modifiers(args);
+
+    let filteredEntries = [];
+    await report_traverse(args, async function(entry) {
+      for (let t of entry.transfers) {
+        if (t[1].match(source)) {
+          filteredEntries.push(entry);
+          break;
+        }
+      }
+    });
+
+    let targetEntries = [];
+    let skip = false;
+
+    if (filteredEntries.length == 1) targetEntries.push(filteredEntries[0]);
+    for (let i = targetEntries.length;i < filteredEntries.length;i++) {
+      let e = filteredEntries[i];
+      if (skip) { targetEntries.push(e); continue; }
+
+      process.stdout.write(`Modify "${print_entry_title(e)}" (y/n/all/enter to abort)? `);
+      let ans = args.flags.y ? 'y' : (await readline_prompt()).toLowerCase();
+      if (args.flags.y) console.log('y');
+      switch (ans) {
+        case 'y':
+        case 'yes':
+          targetEntries.push(e);
+          break;
+        case 'n':
+        case 'no':
+          console.log('Skipped');
+          break;
+        case 'all':
+          skip = true;
+          targetEntries.push(e);
+          break;
+        default:
+          console.log('Abort.');
+          return 1;
+      }
+    }
+
+    for (let e of targetEntries) {
+      for (let t of e.transfers) {
+        t[1] = t[1].replace(source, dst);
+      }
+      await data_modify_entry(e);
+    }
+
+    await fs_write_config();
+    console.log('Saved to ' + fs_book_name + '.config.ledg');
+    return;
+  }
+
+
+  // ===============================================================
+  //                         sum up accounts
+  // ===============================================================
+
+  if (args.modifiers.from && args.modifiers.from.length) {
+    console.log("Warning: using from modifier might result in wrong summation of asset and liability accounts\n");
+  }
+
+  let tree = args._[0] == 'tree';
+
+  if (args.flags['sum-parent'] === false && args.flags['max-depth']) {
+    args.flags['sum-parent'] = true;
+    console.log("Warning: with max-depth, sum-parent is always enabled");
+  } else if (args.flags['max-depth'] && !tree) {
+    args.flags['sum-parent'] = true;
+    console.log("sum-parent is enabled with max-depth set");
+  }
+
+  args.flags['max-depth'] = args.flags['max-depth'] || Infinity;
+  let countDots = (s) => {let m = s.match(/\./g); return m ? m.length + 1 : 1};
+
+  let sumParent = !!args.flags['sum-parent'];
+  if (sumParent && args.flags.sum && args.flags['max-depth'] == Infinity) {
+    console.log("Warning: With --sum-parent and no --max-depth, --sum might produce wrong results.\n");
+  }
+
+  report_extract_account(args);
+  report_extract_tags(args);
+  let balanceData = await report_sum_accounts(args, sumParent);
+  let accounts = Object.keys(balanceData);
+
+
+  let width = "Accounts".length;
+  let width2 = "Balance".length;
+  let sum = new Big(0);
+  accounts.forEach(x => {
+    width2 = Math.max(width2, print_format_money(balanceData[x]).length);
+  });
+
+  let accs = accounts.sort((a, b) =>
+    args.flags['sort'] ?
+      balanceData[b] - balanceData[a] :
+      b - a
+  ); // wait for open book then key
+
+  if (tree) {
+    if (args.flags['hide-zero'])
+      accounts = accounts.filter(x => balanceData[x] != 0);
+    let accTree = print_accountTree(accounts);
+    width = accTree.maxLength;
+
+    console.log(`\n${print_header_style(print_pad_right("Accounts", accTree.maxLength))} ${print_header_style(print_pad_right("Balance", width2))}`);
+
+    let i = -1;
+    accTree.list.forEach((x) => {
+      if (args.flags['hide-zero'] && balanceData[x] == 0) return;
+      if (countDots(accTree.fullList[++i]) > args.flags['max-depth']) return;
+      if (balanceData[accTree.fullList[i]]) sum = sum.plus(balanceData[accTree.fullList[i]]);
+      console.log(print_alternate_row(`${print_pad_right(x, accTree.maxLength)} ${print_pad_left(print_color_money(balanceData[accTree.fullList[i]]), width2, print_format_money(balanceData[accTree.fullList[i]]).length)}`, i));
+    });
+  } else {
+    accs.forEach(x => width = Math.max(width, x.length));
+
+
+    console.log(`\n${print_header_style(print_pad_right("Accounts", width))} ${print_header_style(print_pad_right("Balance", width2))}`);
+    let i = 0;
+    accs.forEach((x) => {
+      if (args.flags['hide-zero'] && balanceData[x] == 0) return;
+      if (countDots(x) > args.flags['max-depth']) return;
+      if (balanceData[x]) sum = sum.plus(balanceData[x]);
+      console.log(print_alternate_row(`${print_pad_right(x, width)} ${print_pad_left(print_color_money(balanceData[x]), width2, print_format_money(balanceData[x]).length)}`, i++));
+    });
+  }
+  sum = sum.toNumber();
+  if (args.flags.sum) console.log(c.bold(`${print_pad_right('Sum', width)} ${print_pad_left(print_format_money(sum), width2, print_format_money(sum).length)}`));
+  console.log("");
 }
 var mpart_disks = [];
 
@@ -3002,1888 +5022,6 @@ function pring_week(d) {
   var dayOfYear = ((today - onejan + 86400000)/86400000);
   return Math.ceil(dayOfYear/7)
 };
-async function cmd_export_gnucash_transactions(args) {
-  let table = [['Date', 'Num', 'Description', 'Memo', 'Account', 'Deposit', 'Withdrawal']];
-  
-  let q = { queries: [query_args_to_filter(args)] };
-  q.queries[0].collect = ['entries'];
-
-  let data = (await query_exec(q))[0].entries;
-  for (let e of data) {
-    for (let t of e.transfers) {
-      table.push([
-        entry_datestr(e),
-        e.uuid,
-        e.description,
-        t[0],
-        t[1].replace(/\./g, ':'),
-        t[2] >= 0 ? t[2] : '',
-        t[2] < 0 ? -t[2] : ''
-      ]);
-    }
-  }
-  
-  return table;
-}
-async function cmd_export_gnucash_accounts(args) {
-  report_set_accounts(args);
-  report_compile_account_regex(args);
-  
-  let table = [['type','full_name','name','code','description','color','notes','commoditym','commodityn','hidden','tax','placeholder']];
-  // ASSET,Assets,Assets,,,,,USD,CURRENCY,F,F,F
-  let q = { queries: [query_args_to_filter(args)] };
-  await query_exec(q);
-  
-  let accounts = expand_account();
-  for (let a of accounts) {
-    let type;
-    if (a.match(cmd_report_accounts_compiled.income)) type = "INCOME";
-    else if (a.match(cmd_report_accounts_compiled.expense)) type = "EXPENSE";
-    else if (a.match(cmd_report_accounts_compiled.asset)) type = "ASSET";
-    else if (a.match(cmd_report_accounts_compiled.liability)) type = "LIABILITY";
-    else type = "EQUITY";
-    table.push([
-      type,
-      a.replace(/\./g, ':'),
-      a.replace(/^(.+\.)*([^.]+)$/, '$2'),
-      '',
-      '',
-      '',
-      '',
-      'USD',
-      'CURRENCY',
-      'F',
-      'F',
-      'F',
-    ]);
-  }
-  
-  return table;
-}
-
-async function cmd_budget(args) {
-  let budgetNames = Object.keys(data.budgets);
-
-  if (args._.indexOf('edit') >= 0) {
-    let path = fs_book_name + '.budgets.ledg';
-    let EDITOR = process.env.EDITOR || 'vim';
-    let args2 = EDITOR == 'vim' ? ['+autocmd BufRead,BufNewFile *.*.ledg setlocal ts=55 sw=55 expandtab! softtabstop=-1 nowrap listchars="tab:→\ ,nbsp:␣,trail:•,extends:⟩,precedes:⟨" list noautoindent nocindent nosmartindent indentexpr=', path] : [path];
-
-    const ls = require('child_process').spawn(process.env.EDITOR || 'vim', args2, {
-      cwd: fs_get_book_directory(),
-      stdio: 'inherit'
-    });
-    return;
-  } else if (args._.indexOf('list') >= 0) {
-    let table = [['#', 'Budget']];
-    let i = 0;
-    for (let b of budgetNames) {
-      table.push([++i, b]);
-    }
-    console.log('\n' + tabulate(table));
-    return;
-  }
-
-  let mpart = args._.indexOf('partition') >= 0 || args._.indexOf('disk') >= 0;
-  if (!budgetNames.length) {
-    console.log(`Please create at least one budget at ${fs_book_name}.budgets.ledg`);
-    return 1;
-  }
-
-  args.flags['skip-book-close'] = true;
-
-  if (!args.flags.budget && budgetNames.length > 1) {
-    let table = [['#', 'Budget']];
-    let i = 0;
-    for (let b of budgetNames) {
-      table.push([++i, b]);
-    }
-    console.log('\n' + tabulate(table))
-    process.stdout.write('Choose one: ');
-    let ans = Math.max(Math.min(parseInt((await readline_prompt())) || 1, budgetNames.length), 0) - 1;
-    console.log(`${ESC}[1AChoose one: ${c.green(budgetNames[ans])}`);
-    args.flags.budget = budgetNames[ans];
-  }
-  let budget = data.budgets[args.flags.budget || budgetNames[0]];
-  if (!budget) {
-    console.log(`Specified budget "${args.flags.budget}" is not found.`);
-    return 1;
-  }
-
-  if (args.flags['sum-parent'] === false) {
-    args.flags['sum-parent'] = true;
-    console.log("Warning: sum-parent is always enabled");
-  }
-
-  args.flags['max-depth'] = args.flags['max-depth'] || Infinity;
-  let countDots = (s) => {let m = s.match(/\./g); return m ? m.length + 1 : 1};
-
-  args.modifiers.from = report_replaceDateStr(args.modifiers.from);
-  args.modifiers.to = report_replaceDateStr(args.modifiers.to);
-  // specified or budget dates
-  let from = args.modifiers.from ? Date.parse(args.modifiers.from + 'T00:00:00') / 1000 | 0 : budget.from;
-  let to = args.modifiers.to ? Date.parse(args.modifiers.to + 'T00:00:00') / 1000 | 0 : budget.to;
-
-  // allow report_traverse to filter dates
-  cmd_report_modifiers.from = args.modifiers.from = entry_datestr(from);
-  cmd_report_modifiers.to = args.modifiers.to = entry_datestr(to);
-
-  let period = to - from;
-  let periodRemaining = Math.max(to - Math.max(from, new Date() / 1000 | 0), 0);
-  let periodPassed = Math.min(to, new Date() / 1000 | 0) - from;
-  if (new Date() / 1000 > to) {
-    periodRemaining = period;
-    periodPassed = 0;
-  }
-  let originalPeriod = budget.to - budget.from;
-  let zoom = period / originalPeriod;
-  let periodAltered = (from != budget.from) || (to != budget.to);
-  if (periodAltered && !args.flags['do-not-adjust']) {
-    console.log(`Due to custom time range, budget amounts had been adjusted by a factor of ${Math.round(zoom * 100) / 100}.`);
-  }
-
-  console.log('\n ' + c.bold(budget.description) + ` (${entry_datestr(budget.from)} to ${entry_datestr(budget.to)})` +
-    (periodAltered ? ` => (${entry_datestr(from)} to ${entry_datestr(to)})` : '')
-  );
-
-  let table = [];
-
-  function eta(a, b, x, reverse) {
-//     let d = Math.max(b - a, b - x);
-    let d = b - x; // remaining
-
-    const DAY = 86400;
-    const WEEK = 604800;
-    const YEAR = DAY * 365;
-    const MONTH = YEAR / 12;
-
-    let avgPrd = [YEAR, 'yr', 'years'];
-
-    if (period / 6 < WEEK || periodRemaining < WEEK) avgPrd = [DAY, 'd', 'days'];
-    else if (period / 6 < MONTH || periodRemaining < MONTH) avgPrd = [WEEK, 'wk', 'weeks'];
-    else if (period / 6 < YEAR || periodRemaining < YEAR) avgPrd = [MONTH, 'm', 'months'];
-
-    let remainPrds = Math.round(periodRemaining / avgPrd[0] * 10) / 10;
-    let prdsPsd = Math.round(periodPassed / avgPrd[0] * 10) / 10;
-
-    let cRate = Math.round(x / prdsPsd * 100) / 100 || 0;
-    let bRate = Math.round(d / remainPrds * 100) / 100 || 0;
-
-    let perc = ((x / prdsPsd) - (d / remainPrds)) / (x / remainPrds);
-
-    let color = c.yellowBright;
-    if (Math.abs(perc) > 0.15)
-      color = reverse ? (perc < 0 ? c.redBright : c.green) : (perc > 0 ? c.redBright : c.green);
-
-    let et = d / (x / periodPassed) || 0;
-
-    let etas = `${Math.ceil(et / DAY * 5) / 5} days`;
-    if (et > YEAR) etas = `${Math.ceil(et / YEAR * 5) / 5} years`;
-    else if (et > MONTH) etas = `${Math.ceil(et / MONTH * 5) / 5} months`;
-    else if (et > WEEK) etas = `${Math.ceil(et / WEEK * 5) / 5} weeks`;
-
-    if (et == Infinity) etas = '∞ years';
-    if (et == -Infinity) etas = '-∞ years';
-
-    let s = color(`${cRate == Infinity ? '∞' : cRate == -Infinity ? '-∞' : new Big(cRate).prec(4)}/${avgPrd[1]}`);
-    return [[s, strip_ansi(s).length],
-            `${bRate == Infinity ? '∞' : bRate == -Infinity ? '-∞' :  new Big(bRate).prec(4)}/${avgPrd[1]}`,
-            etas
-           ];
-  }
-
-  // ==============================================
-  //                   trackers
-  // ==============================================
-
-  table.push(['Trackers', '', 'Progress', '', 'Budget', 'Used', 'Remain', 'Use%', '  Rate', 'Rec  ', 'ETC  ']);
-  for (let track of budget.trackers) {
-    if (periodAltered && !args.flags['do-not-adjust']) {
-      track = JSON.parse(JSON.stringify(track));
-      track.high = Math.round(new Big(track.high).minus(track.low).times(zoom).plus(track.low).toNumber() * 100) / 100;
-    }
-
-    let args2 = argsparser(parseArgSegmentsFromStr(track.q));
-    report_extract_account(args2);
-    report_extract_tags(args2);
-
-    let total = new Big(0);
-
-    let ignored = Object.keys(cmd_report_modifiers);
-
-    let regexMod = {};
-    for (mod in args2.modifiers) {
-      if (ignored.indexOf(mod) >= 0) continue;
-      if (args2.modifiers[mod]) regexMod[mod] = new RegExp(args2.modifiers[mod], 'i');
-    }
-    await data_iterate_books(data_books_required(from * 1000, to * 1000), async function (book) {
-      let len = book.length;
-      WHILE: while (len--) {
-        if ((book[len].time >= from) && (book[len].time < to)) {
-          // skip all bookClose by force
-          if (book[len].bookClose && book[len].bookClose.toString() == 'true') continue;
-          for (mod in regexMod) {
-            if (!book[len][mod]) {
-              if (regexMod[mod].source == '(?:)') continue; // empty on both
-              else continue WHILE;
-            }
-            if (regexMod[mod].source == '(?:)') continue;
-            if (book[len][mod] && !(book[len][mod].toString()).match(regexMod[mod])) continue WHILE;
-          }
-          for (let q of args2.accounts) {
-            for (let t of book[len].transfers) {
-              if (t[1].match(q)) {
-                total = total.plus(t[2]);
-              }
-            }
-          }
-        }
-      }
-    });
-
-    let remain = new Big(track.high).minus(total).toNumber();
-    total = total.toNumber();
-    let title = ' ' + track.q + '  ';
-
-    let usePerc = Math.round((total - track.low) / (track.high - track.low) * 100) + '%';
-    let low = print_format_money(track.low);
-    let high = print_format_money(track.high);
-
-    table.push([
-                [c.yellowBright(title), title.length],
-                [c.cyan(low), low.length],
-                [print_progress_bar(track.low, track.high, total, { reverseLowHigh: track.type == 'goal' }), 50],
-                [c.cyan(high), high.length],
-                [c.yellowBright(track.type.toUpperCase()), track.type.length],
-                print_format_money(total),
-                print_format_money(remain),
-                usePerc,
-                ...eta(track.low, track.high, total, track.type == 'goal')
-               ]);
-  }
-
-  // ==============================================
-  //                   budgets
-  // ==============================================
-
-  report_extract_account(args);
-  report_extract_tags(args);
-
-
-  let forkedBudgets = {};
-  let disks = {};
-  let baccs = Object.keys(budget.budgets).sort();
-  // sum parent for budget
-  baccs.forEach(x => {
-    if (periodAltered && !args.flags['do-not-adjust']) {
-      let high = budget.budgets[x];
-      forkedBudgets[x] = forkedBudgets[x] || new Big(Math.round(new Big(high).times(zoom).toNumber() * 100) / 100);
-    }
-    forkedBudgets[x] = forkedBudgets[x] || new Big(budget.budgets[x]);
-    let levels = x.split(".");
-    let previous = "";
-    for (let l of levels) {
-      let k = previous + l;
-      if (k == x) continue;
-      forkedBudgets[k] = (forkedBudgets[k] || new Big(0)).plus(forkedBudgets[x]);
-      previous = k + ".";
-    }
-  });
-  let balanceData = await report_sum_accounts(args, true, forkedBudgets);
-  for (let k in forkedBudgets) { forkedBudgets[k] = forkedBudgets[k].toNumber(); }
-  if (mpart) {
-    baccs.forEach(x => {
-      let levels = x.split(".");
-      let previous = "";
-      for (let l of levels) {
-        let k = previous + l;
-        if (k.indexOf('.') < 0) {
-          disks[k] = disks[k] || mpart_dsk_create(forkedBudgets[k]);
-          disks[k].label = k;
-        } else
-          disks[k] = disks[k] || mpart_partition_create(disks[previous.replace(/\.$/, '')], { fixed: forkedBudgets[k], label: l });
-        previous = k + ".";
-      }
-    });
-    console.log(JSON.stringify(mpart_disks));
-  }
-
-  table.push([]);
-  table.push(['Accounts', '', 'Progress', '', 'Budget', 'Used', 'Remain', 'Use%', '  Rate', 'Rec  ', 'ETC  ']);
-  table[table.length - 1].header = true;
-
-  let accTree = print_accountTree(baccs);
-  accTree.list.forEach((x, i) => {
-    let fullX = accTree.fullList[i];
-    if (countDots(fullX) > args.flags['max-depth']) return;
-
-    let name = x.match(/^([^a-z0-9]+)([a-z0-9].+)$/i)
-    let row = [[name[1] + c.yellowBright(name[2]), x.length], '', '', '', '', '', '', '', ''];
-    table.push(row);
-
-    //if (baccs.indexOf(fullX) < 0) return;
-
-    let total = forkedBudgets[fullX];
-    let used = balanceData[fullX];
-    let remain = new Big(total).minus(used).toNumber();
-    let usePerc = Math.round(used / total * 100) + '%';
-    let high = print_format_money(total);
-    let et = eta(0, total, used);
-
-    row[2] = [print_progress_bar(0, total, used), 50];
-    row[3] = [c.cyan(high), high.length];
-    row[4] = [c.yellowBright('LIMIT'), 5];
-    row[5] = print_format_money(used);
-    row[6] = print_format_money(remain);
-    row[7] = usePerc;
-    row[8] = et[0];
-    row[9] = et[1];
-    row[10] = et[2];
-  });
-
-  /*
-   "budgets": {
-        "Expense": 300,
-        "Expense.Other.Transportation": 300,
-        "Expense.Essential.Groceries": 400,
-        "Expense.Other.Education": 800,
-        "Expense.Free.Retail.Tech": 1400
-      },
-      "*/
-  console.log(tabulate(table, {
-    align: [TAB_ALIGN_LEFT, TAB_ALIGN_RIGHT, TAB_ALIGN_LEFT, TAB_ALIGN_RIGHT, TAB_ALIGN_LEFT, TAB_ALIGN_RIGHT, TAB_ALIGN_RIGHT, TAB_ALIGN_RIGHT, TAB_ALIGN_RIGHT, TAB_ALIGN_RIGHT, TAB_ALIGN_RIGHT],
-    colBorder: ' ',
-    alternateColor: false
-  }));
-
-
-}
-function cmd_git(args) {
-  let argv = process.argv;
-  let i = 1;
-  while (++i < argv.length) {
-    if (Object.keys(CMD_LIST).filter(x => x.indexOf(argv[i]) == 0).length == 1) break;
-  }
-  const ls = require('child_process').spawn("git", argv.slice(i + 1), {
-    cwd: fs_get_book_directory(),
-    stdio: 'inherit'
-  });
-
-  ls.on('error', (error) => {
-    console.log(`error: ${error.message}`);
-  });
-
-  ls.on("close", code => {
-    process.exit(code);
-  });
-}
-async function cmd_register(args) {
-  args.modifiers.to = args.modifiers.to || '@tomorrow';
-
-  let skipTo;
-  args.flags['skip'] &&
-     (skipTo = report_replaceDateStr(args.flags['skip'])) &&
-     !isNaN(skipTo = Date.parse(skipTo + 'T00:00:00'));
-
-  args.flags['hide-zero'] = args.flags['hide-zero'] !== false;
-  args.flags['skip-book-close'] = args.flags['skip-book-close'] !== false;
-
-  let depth = Number(args.flags['max-depth']) || Infinity;
-
-  // defaults from:@min, to:@max
-  let q = { queries: [query_args_to_filter(args, ['entries'])] };
-  q.queries[0].collect = ['entries'];
-
-  let data = (await query_exec(q))[0].entries;
-  data = report_sort_by_time(data);
-
-  let int = report_get_reporting_interval(args, true);
-
-  if (!int)
-    _cmd_register_nogroup(args, data, skipTo, depth);
-  else
-    _cmd_register_group(args, data, skipTo, depth, int, q.queries[0]);
-
-}
-
-function _cmd_register_group(args, data, skipTo, depth, int, q) {
-  let table = [['Start', 'Acc', 'Amnt', 'Tot']];
-  let align = [TAB_ALIGN_LEFT, TAB_ALIGN_LEFT, TAB_ALIGN_RIGHT, TAB_ALIGN_RIGHT, TAB_ALIGN_RIGHT];
-
-  let sum = new Big(0);
-
-  let from = q.from * 1000;
-  let to = q.to * 1000;
-
-  let crntD = new Date(from);
-  while (crntD < to) {
-    let endDate = new Date(crntD);
-    endDate.setFullYear(endDate.getFullYear() + int[0]);
-    endDate.setMonth(endDate.getMonth() + int[1]);
-    endDate.setDate(endDate.getDate() + int[2]);
-
-    let accs = {};
-    for (let i = 0;i < data.length;i++) {
-      let e = data[i];
-      if (e.time >= endDate / 1000 | 0 || e.time < crntD / 1000 | 0) continue;
-      for (let q of args.accounts) {
-        for (let t of e.transfers) {
-          if (t[1].match(q)) {
-            let a = print_truncate_account(t[1], depth);
-            accs[a] = (accs[a] || new Big(0)).add(t[2]);
-          }
-        }
-      }
-    }
-    
-    let j = -1;
-    for (let acc in accs) {
-      j++;
-      let amnt = accs[acc];
-      let row = j == 0 || args.flags.csv ?
-            [ c.cyanBright(entry_datestr(crntD / 1000)) ] : [''];
-
-      row.push(acc);
-
-      let m = args.flags.invert ? -amnt : amnt;
-      sum = sum.add(m);
-      if (!skipTo || e.time * 1000 >= skipTo) {
-        row.push(print_color_money(m, true), print_color_money(sum));
-        table.push(row);
-      }
-    }
-
-    if (j == -1 && !args.flags['hide-zero']) {
-      table.push([
-        c.cyanBright(entry_datestr(crntD / 1000)),
-        '', print_format_money(0), print_color_money(sum)
-      ]);
-    }
-
-    crntD = endDate;
-  }
-
-  console.log(tabulate(table, { align: align }));
-}
-
-function _cmd_register_nogroup(args, data, skipTo, depth) {
-  let table = [['Date', 'UUID', 'Desc', 'Acc', 'Amnt', 'Tot']];
-  let align = [TAB_ALIGN_LEFT, TAB_ALIGN_LEFT, TAB_ALIGN_LEFT, TAB_ALIGN_RIGHT, TAB_ALIGN_RIGHT, TAB_ALIGN_RIGHT];
-
-  let sum = new Big(0);
-
-  for (let i = 0;i < data.length;i++) {
-    let e = data[i];
-
-    let j = 0;
-    for (let q of args.accounts) {
-      for (let t of e.transfers) {
-        if (t[1].match(q)) {
-          let row = j == 0 || args.flags.csv ?
-                      [ c.cyanBright(entry_datestr(e)), c.cyan(e.uuid) ] : ['', ''];
-
-          let desc = t[0] || (j++ == 0 ? e.description : '');
-          desc = args.flags['light-theme'] ? c.black(desc) : c.whiteBright(desc);
-          row.push(desc, print_truncate_account(t[1], depth));
-
-          let m = args.flags.invert ? -t[2] : t[2];
-          sum = sum.add(m);
-          if (skipTo && e.time * 1000 < skipTo)
-            continue;
-          row.push(print_color_money(m, true), print_color_money(sum));
-          table.push(row);
-        }
-      }
-    }
-  }
-
-  console.log(tabulate(table, { align: align }));
-}
-async function cmd_accounts(args) {
-  // ===============================================================
-  //                           add accounts
-  // ===============================================================
-  if (args._[0] == 'add') {
-    let i = 1;
-    for (;i < args._.length;i++) {
-      let acc = args._[i];
-      data.accounts[acc] = 1;
-    }
-    await fs_write_config();
-    console.log(`Saved ${i - 1} account names to ` + fs_book_name + '.config.ledg');
-    return;
-  }
-
-  // ===============================================================
-  //                          rename accounts
-  // ===============================================================
-  if (args._[0] == 'rename') {
-    let source = args._[1];
-    let dst = args._[2];
-
-    args.modifiers.from = args.modifiers.from || '@min';
-    args.modifiers.to = args.modifiers.to || '@max';
-    report_set_modifiers(args);
-
-    let filteredEntries = [];
-    await report_traverse(args, async function(entry) {
-      for (let t of entry.transfers) {
-        if (t[1].match(source)) {
-          filteredEntries.push(entry);
-          break;
-        }
-      }
-    });
-
-    let targetEntries = [];
-    let skip = false;
-
-    if (filteredEntries.length == 1) targetEntries.push(filteredEntries[0]);
-    for (let i = targetEntries.length;i < filteredEntries.length;i++) {
-      let e = filteredEntries[i];
-      if (skip) { targetEntries.push(e); continue; }
-
-      process.stdout.write(`Modify "${print_entry_title(e)}" (y/n/all/enter to abort)? `);
-      let ans = args.flags.y ? 'y' : (await readline_prompt()).toLowerCase();
-      if (args.flags.y) console.log('y');
-      switch (ans) {
-        case 'y':
-        case 'yes':
-          targetEntries.push(e);
-          break;
-        case 'n':
-        case 'no':
-          console.log('Skipped');
-          break;
-        case 'all':
-          skip = true;
-          targetEntries.push(e);
-          break;
-        default:
-          console.log('Abort.');
-          return 1;
-      }
-    }
-
-    for (let e of targetEntries) {
-      for (let t of e.transfers) {
-        t[1] = t[1].replace(source, dst);
-      }
-      await data_modify_entry(e);
-    }
-
-    await fs_write_config();
-    console.log('Saved to ' + fs_book_name + '.config.ledg');
-    return;
-  }
-
-
-  // ===============================================================
-  //                         sum up accounts
-  // ===============================================================
-
-  if (args.modifiers.from && args.modifiers.from.length) {
-    console.log("Warning: using from modifier might result in wrong summation of asset and liability accounts\n");
-  }
-
-  let tree = args._[0] == 'tree';
-
-  if (args.flags['sum-parent'] === false && args.flags['max-depth']) {
-    args.flags['sum-parent'] = true;
-    console.log("Warning: with max-depth, sum-parent is always enabled");
-  } else if (args.flags['max-depth'] && !tree) {
-    args.flags['sum-parent'] = true;
-    console.log("sum-parent is enabled with max-depth set");
-  }
-
-  args.flags['max-depth'] = args.flags['max-depth'] || Infinity;
-  let countDots = (s) => {let m = s.match(/\./g); return m ? m.length + 1 : 1};
-
-  let sumParent = !!args.flags['sum-parent'];
-  if (sumParent && args.flags.sum && args.flags['max-depth'] == Infinity) {
-    console.log("Warning: With --sum-parent and no --max-depth, --sum might produce wrong results.\n");
-  }
-
-  report_extract_account(args);
-  report_extract_tags(args);
-  let balanceData = await report_sum_accounts(args, sumParent);
-  let accounts = Object.keys(balanceData);
-
-
-  let width = "Accounts".length;
-  let width2 = "Balance".length;
-  let sum = new Big(0);
-  accounts.forEach(x => {
-    width2 = Math.max(width2, print_format_money(balanceData[x]).length);
-  });
-
-  let accs = accounts.sort((a, b) =>
-    args.flags['sort'] ?
-      balanceData[b] - balanceData[a] :
-      b - a
-  ); // wait for open book then key
-
-  if (tree) {
-    if (args.flags['hide-zero'])
-      accounts = accounts.filter(x => balanceData[x] != 0);
-    let accTree = print_accountTree(accounts);
-    width = accTree.maxLength;
-
-    console.log(`\n${print_header_style(print_pad_right("Accounts", accTree.maxLength))} ${print_header_style(print_pad_right("Balance", width2))}`);
-
-    let i = -1;
-    accTree.list.forEach((x) => {
-      if (args.flags['hide-zero'] && balanceData[x] == 0) return;
-      if (countDots(accTree.fullList[++i]) > args.flags['max-depth']) return;
-      if (balanceData[accTree.fullList[i]]) sum = sum.plus(balanceData[accTree.fullList[i]]);
-      console.log(print_alternate_row(`${print_pad_right(x, accTree.maxLength)} ${print_pad_left(print_color_money(balanceData[accTree.fullList[i]]), width2, print_format_money(balanceData[accTree.fullList[i]]).length)}`, i));
-    });
-  } else {
-    accs.forEach(x => width = Math.max(width, x.length));
-
-
-    console.log(`\n${print_header_style(print_pad_right("Accounts", width))} ${print_header_style(print_pad_right("Balance", width2))}`);
-    let i = 0;
-    accs.forEach((x) => {
-      if (args.flags['hide-zero'] && balanceData[x] == 0) return;
-      if (countDots(x) > args.flags['max-depth']) return;
-      if (balanceData[x]) sum = sum.plus(balanceData[x]);
-      console.log(print_alternate_row(`${print_pad_right(x, width)} ${print_pad_left(print_color_money(balanceData[x]), width2, print_format_money(balanceData[x]).length)}`, i++));
-    });
-  }
-  sum = sum.toNumber();
-  if (args.flags.sum) console.log(c.bold(`${print_pad_right('Sum', width)} ${print_pad_left(print_format_money(sum), width2, print_format_money(sum).length)}`));
-  console.log("");
-}
-
-async function cmd_info(args) {
-  report_extract_account(args);
-  report_extract_tags(args);
-
-  if (Object.keys(args.modifiers).length == 0 &&
-      !args.accounts.length) {
-    args.modifiers.from = '@month-start';
-    args.modifiers.to = '@max';
-    console.log(`No modifiers, using from:@month-start and to:@max\n`);
-  } else {
-    args.modifiers.from = args.modifiers.from || '@min';
-    args.modifiers.to = args.modifiers.to || '@max';
-  }
-
-  let flat = args._[0] == 'flat';
-
-  report_set_modifiers(args);
-
-  let entries = [];
-  await report_traverse(args, async function(entry) {
-    entries.push(entry);
-  });
-  entries = report_sort_by_time(entries);
-
-  if (flat) {
-    report_set_accounts(args);
-    report_compile_account_regex();
-
-    let data = [['Date', 'UUID', 'Description', 'Account', 'Amount']];
-    let align = [TAB_ALIGN_LEFT, TAB_ALIGN_LEFT, TAB_ALIGN_LEFT, TAB_ALIGN_RIGHT, TAB_ALIGN_RIGHT];
-
-    let colorFuncs = [x => c.cyanBright(x),
-                      x => c.cyan(x),
-                      args.flags['light-theme'] ? x => c.black(x) :
-                                                  x => c.whiteBright(x),
-                      x => c.yellowBright(x),
-                      undefined
-                     ];
-
-    for (let e of entries) {
-      let account;
-      let desc = e.description + '        ';
-      let amount = 0;
-      if (e.transfers.length <= 2) {
-        for (let t of e.transfers) {
-          if (t[1].match(cmd_report_accounts.expense)) {
-            amount = -t[2];
-            account = t[1];
-            break;
-          }
-        }
-        if (!account) {
-          for (let t of e.transfers) {
-            if (t[1].match(cmd_report_accounts.liability)) {
-              amount = t[2];
-              account = t[1];
-              break;
-            }
-          }
-          if (!account) {
-            for (let t of e.transfers) {
-              if (t[1].match(cmd_report_accounts.income)) {
-                amount = -t[2];
-                account = t[1];
-                break;
-              }
-            }
-          }
-        }
-      } else {
-        let totalPosAmount = new Big(0);
-        let expAmount = new Big(0);
-        for (let t of e.transfers) {
-          if (t[1].match(cmd_report_accounts.expense)) expAmount = expAmount.plus(t[2]);
-          if (t[2] > 0) totalPosAmount = totalPosAmount.plus(t[2]);
-        }
-        totalPosAmount = totalPosAmount.toNumber();
-        expAmount = expAmount.toNumber();
-        if (totalPosAmount == expAmount) {
-          amount = [print_color_money(-totalPosAmount), print_format_money(-totalPosAmount).length];
-          account = '--- Split in ' + e.transfers.length + ' transfers ---';
-        }
-      }
-      if (!account) {
-        account = e.bookClose ? '=======  Book Close  ========' : '--- Split in ' + e.transfers.length + ' transfers ---';
-        desc = e.bookClose ? '===== ' + e.description + '[' + e.transfers.length + ']' + ' =====' : desc;
-        amount = new Big(0);
-        for (let t of e.transfers) {
-          if (t[2] > 0) amount = amount.plus(t[2]);
-        }
-        amount = '±' + print_format_money(amount.toNumber());
-        amount = [c.cyanBright(amount), amount.length];
-      } else if (!amount.length) {
-        amount = [print_color_money(amount), print_format_money(amount).length];
-      }
-
-      data.push([
-        entry_datestr(e),
-        e.uuid,
-        desc,
-        account,
-        amount
-      ]);
-    }
-
-    console.log(tabulate(data, {colorizeColCallback: colorFuncs, align: align}) + '\n');
-  } else {
-    let maxWidth = print_max_width_from_entries(entries);
-    for (let e of entries) {
-      console.log(print_entry_ascii(e, maxWidth));
-    }
-  }
-}
-async function cmd_tags(args) {
-  let q = { queries: [query_args_to_filter(args, ['entries'])] };
-
-  let data = (await query_exec(q))[0].entries;
-  let tags = {};
-
-  for (let e of data) {
-    let tag = e[args.flags.field || 'tags'];
-    if (!tag) continue;
-    tag = tag.split(",");
-    for (let t of tag) {
-      tags[t] = (tags[t] + 1) || 1;
-    }
-  }
-
-  tags = Object.entries(tags).sort((a, b) => b[1] - a[1]);
-  let table = [['Tag', 'Entries']];
-  let align = [TAB_ALIGN_LEFT, TAB_ALIGN_RIGHT];
-
-  for (let e of tags) {
-    table.push(e);
-  }
-
-  console.log(tabulate(table, { align: align }))
-}
-async function cmd_export(args) {
-  args.flags.csv = args.flags.csv !== false;
-  let table;
-  switch (args._[0]) {
-    case 'gnucash-transactions':
-      table = await cmd_export_gnucash_transactions(args);
-      break;
-    case 'gnucash-accounts':
-      table = await cmd_export_gnucash_accounts(args);
-      break;
-    default:
-      console.error(`'${args._[0]}' is not an export option.`);
-      return 1;
-  }
-  console.log(tabulate(table));
-}
-
-async function cmd_stats(args) {
-  let range = await fs_get_data_range();
-  await data_open_books(range);
-
-  let entries = 0;
-  let totalSize = 0;
-
-  let table = [['Stat', 'Data']];
-  table.push(['File prefix',  fs_book_name]);
-  table.push([]);
-
-  let accs = {};
-  let accounts = expand_account();
-
-  for (let y of range) {
-    let val = Object.values(data.books[y]).length;
-    entries += val;
-    let size = fs.statSync(`${fs_book_name}.${y}.ledg`).size / 1024;
-    totalSize += size;
-    size = Math.round(size * 100) / 100 + ' KiB';
-    table.push([y, `${val} entries (${size})`]);
-  }
-
-  const countDots = (s) => {let m = s.match(/\./g); return m ? m.length + 1 : 1};
-  accounts.forEach(x => {
-    let l = countDots(x);
-    accs[l] = (accs[l] || 0) + 1;
-  });
-
-  totalSize = Math.round(totalSize * 100) / 100 + ' KiB';
-
-  table.push(['Total entries', entries + ` (${totalSize})`]);
-  table.push([]);
-
-  Object.entries(accs).forEach(x => {
-    table.push([`Level ${x[0]} accounts`, x[1]]);
-  });
-
-  table.push(['Total accounts', accounts.length]);
-  table.push([]);
-
-  table.push(['Flags', Object.entries(args.flags).map(x => {
-    return (x[0].length == 1 ? '-' : '--') + x[0] + '=' + x[1]
-  }).join(", ")]);
-  table.push(['Modifiers', Object.entries(args.modifiers).map(x => x.join(":")).join(", ")]);
-
-
-
-  console.log(tabulate(table));
-}
-
-async function cmd_edit(args) {
-  args.modifiers.from = args.modifiers.from || '@min';
-  args.modifiers.to = args.modifiers.to || '@max';
-
-  report_set_modifiers(args);
-  report_extract_account(args);
-  report_extract_tags(args);
-
-  let content = '';
-
-  if (args._[0] != 'new') {
-    await report_traverse(args, async function(entry) {
-      content += fs_serialize_entry(entry) + '\n';
-    });
-  }
-
-  let path = fs_get_book_directory() + '/~temp.edit.ledg';
-  fs.writeFileSync(path, content);
-
-  let EDITOR = process.env.EDITOR || 'vim';
-  let args2 = EDITOR == 'vim' ? ['+autocmd BufRead,BufNewFile *.*.ledg setlocal ts=55 sw=55 expandtab! softtabstop=-1 nowrap listchars="tab:→\ ,nbsp:␣,trail:•,extends:⟩,precedes:⟨" list noautoindent nocindent nosmartindent indentexpr=', path] : [path];
-
-  const ls = require('child_process').spawn(process.env.EDITOR || 'vim', args2, {
-    cwd: fs_get_book_directory(),
-    stdio: 'inherit'
-  });
-
-  ls.on('error', (error) => {
-    console.log(`error: ${error.message}`);
-  });
-
-  async function callback(code) {
-    content = fs.readFileSync(path).toString();
-    fs.unlinkSync(path);
-
-    if (code != 0) {
-      console.log(`error: editor returned with code ${code}`);
-      process.exit(code);
-      return;
-    }
-
-    let newEntries = 0;
-    let affectedEntries = 0;
-
-    let entries = fs_read_entries_from_string(content);
-    for (let entry of entries) {
-      if (!(await data_modify_entry(entry))) { // new entry
-        process.stdout.write(print_entry_ascii(entry) + '\nCreate the above new entry? ');
-        let ans = args.flags.y ? 'y' : (await readline_prompt()).toLowerCase();
-        if (args.flags.y) console.log('y');
-        if (ans == 'y' || ans == 'yes') {
-          await data_push_entry(entry);
-          newEntries++;
-        } else {
-          console.log('Discarded 1 entry.');
-        }
-      } else affectedEntries++;
-    }
-
-    await fs_write_books();
-    console.log(`Updated ${affectedEntries} entries and created ${newEntries} entries.`);
-    process.exit(code);
-  }
-
-  ls.on("close", code => {
-    callback(code);
-  });
-}
-async function cmd_modify(args) {
-  args.modifiers.from = args.modifiers.from || '@min';
-  args.modifiers.to = args.modifiers.to || '@max';
-  report_set_modifiers(args);
-  //report_extract_account(args);
-
-  let filteredEntries = [];
-  await report_traverse(args, async function(entry) {
-    filteredEntries.push(entry);
-  });
-
-  if (!filteredEntries.length) {
-    console.log('No such entries found.');
-    console.log('Modifiers are used for query, not modification. Use edit command to edit entry modifiers');
-    return 1;
-  }
-
-  let mods_to_remove = (args.flags['remove-mod'] || '').split(",").filter(x => x != 'uuid' && x != 'time' && x != 'description' && x != 'transfers');
-  let mods_to_set = (args.flags['set-mod'] || '').split(",");
-  mods_to_set = argsparser(mods_to_set).modifiers;
-  delete mods_to_set.uuid;
-  delete mods_to_set.time;
-  delete mods_to_set.description;
-  delete mods_to_set.transfers;
-
-  // =================================================
-  //                     cmd_add
-  // =================================================
-
-  Object.assign(args.modifiers, mods_to_set);
-  let opts = await cmd_add(args, true);
-  if (typeof opts != 'object') return opts; // abnormal return code
-
-  // =================================================
-  //            ask for which ones to modify
-  // =================================================
-  let targetEntries = [];
-  let skip = false;
-
-  if (filteredEntries.length == 1) targetEntries.push(filteredEntries[0]);
-  for (let i = targetEntries.length;i < filteredEntries.length;i++) {
-    let e = filteredEntries[i];
-    if (skip) { targetEntries.push(e); continue; }
-
-    process.stdout.write(`Modify "${print_entry_title(e)}" (y/n/all/enter to abort)? `);
-    let ans = args.flags.y ? 'y' : (await readline_prompt()).toLowerCase();
-    if (args.flags.y) console.log('y');
-    switch (ans) {
-      case 'y':
-      case 'yes':
-        targetEntries.push(e);
-        break;
-      case 'n':
-      case 'no':
-        console.log('Skipped');
-        break;
-      case 'all':
-        skip = true;
-        targetEntries.push(e);
-        break;
-      default:
-        console.log('Abort.');
-        return 1;
-    }
-  }
-
-  let tags_to_add = (args.flags['add-tag'] || '').split(",").map(x => x.toUpperCase()).filter(x => x && x.length);
-  let tags_to_remove = (args.flags['remove-tag'] || '').split(",").map(x => x.toUpperCase()).filter(x => x && x.length);
-
-  for (let e of targetEntries) {
-    Object.assign(e, opts);
-    mods_to_remove.forEach(x => delete e[x]);
-    if (tags_to_add.length) {
-      for (let tag of tags_to_add) {
-        tag_add(e, tag);
-      }
-    }
-    if (tags_to_remove.length) {
-      for (let tag of tags_to_remove) {
-        tag_remove(e, tag);
-      }
-    }
-    await data_modify_entry(e);
-  }
-
-  console.log(`${targetEntries.length} entries are affected.`);
-}
-async function cmd_delete(args) {
-  args.modifiers.from = args.modifiers.from || '@min';
-  args.modifiers.to = args.modifiers.to || '@max';
-  report_set_modifiers(args);
-  report_extract_account(args);
-  report_extract_tags(args);
-
-  let filteredEntries = [];
-  await report_traverse(args, async function(entry) {
-    filteredEntries.push(entry);
-  });
-
-  if (!filteredEntries.length) {
-    console.log('No such entries found.');
-    return 1;
-  }
-
-  let targetEntries = [];
-  let skip = false;
-
-  for (let i = 0;i < filteredEntries.length;i++) {
-    let e = filteredEntries[i];
-    if (skip) { targetEntries.push(e); continue; }
-
-    process.stdout.write(`Delete "${print_entry_title(e)}" (y/n/all/enter to abort)? `);
-    let ans = args.flags.y ? 'y' : (await readline_prompt()).toLowerCase();
-    if (args.flags.y) console.log('y');
-    switch (ans) {
-      case 'y':
-      case 'yes':
-        targetEntries.push(e);
-        break;
-      case 'n':
-      case 'no':
-        console.log('Skipped');
-        break;
-      case 'all':
-        skip = true;
-        targetEntries.push(e);
-        break;
-      default:
-        console.log('Abort.');
-        return 1;
-    }
-  }
-
-  for (let e of targetEntries) {
-    await data_remove_entry(e);
-  }
-
-  console.log(`${targetEntries.length} entries are affected.`);
-}
-
-async function cmd_print(args) {
-  let q = { queries: [query_args_to_filter(args, ['entries'])] };
-
-  report_sort_by_time((await query_exec(q))[0].entries).forEach(entry => {
-    console.log(args.flags.ledger ? fs_serialize_entry_ledger(entry) : fs_serialize_entry(entry));
-  });
-}
-
-async function cmd_burndown(args) {
-  console.clear();
-  if (process.stdout.columns <= 10 || process.stdout.rows <= 15) {
-    console.error('Terminal too small.');
-    return 1;
-  }
-  if (args.flags['skip-book-close'] !== false)
-    args.flags['skip-book-close'] = true;
-
-  if (args.flags.abs !== false)
-    args.flags.abs = true;
-
-  let int = report_get_reporting_interval(args);
-  let showDays = true;
-  let showMonth = true;
-  let showWeeks = int[2] >= 7 && int[2] % 7 == 0;
-  let showQuarter = int[1] >= 3 && int[1] % 3 == 0;
-
-  if (int[2] > 0 && int[2] < 7) {
-    cmd_report_modifiers.from = '@month-start';
-    cmd_report_modifiers.to = '@tomorrow';
-  } else if (showWeeks) {
-    cmd_report_modifiers.from = '@year-start';
-    cmd_report_modifiers.to = '@month-end';
-  } else {
-    cmd_report_modifiers.from = '@last-year';
-    cmd_report_modifiers.to = '@month-end';
-  }
-  report_set_modifiers(args);
-  args.modifiers.from = cmd_report_modifiers.from;
-  args.modifiers.to = cmd_report_modifiers.to;
-
-  let strF = report_replaceDateStr(args.modifiers.from);
-  let strT = report_replaceDateStr(args.modifiers.to);
-  let from = Date.parse(strF + 'T00:00:00');
-  let to = Date.parse(strT + 'T00:00:00');
-
-  let legends = [];
-
-  let argQueries = Object.keys(args.flags).sort().filter(x => x.match(/q\d+/)).map(x => {
-    let v = args.flags[x];
-    if (typeof v !== 'string' || !v.length) {
-      console.error(`Warning: skipped ${x}, invalid query`);
-      return null;
-    }
-    legends.push(v);
-    let args2 = argsparser(parseArgSegmentsFromStr(v));
-    return args2;
-  }).filter(x => !!x);
-  if (!argQueries.length) {
-    argQueries = [argsparser(parseArgSegmentsFromStr(cmd_report_accounts.income)),
-                  argsparser(parseArgSegmentsFromStr(cmd_report_accounts.expense))];
-    legends = [cmd_report_accounts.income, cmd_report_accounts.expense];
-  }
-  let maxIntervals = (process.stdout.columns - 8) / (argQueries.length * 2 + 1) | 0;
-  let query = { cumulative: args.flags.cumulative && argQueries.length, from: from / 1000 | 0, to: to / 1000 | 0, queries: [] };
-  let collect = args.flags.count ? ['count'] : ['sum'];
-
-  let crntD = new Date(from);
-  let intervals = 0;
-  while (crntD < to) {
-    let a = crntD.getTime() / 1000 | 0;
-    crntD.setFullYear(crntD.getFullYear() + int[0]);
-    crntD.setMonth(crntD.getMonth() + int[1]);
-    crntD.setDate(crntD.getDate() + int[2]);
-    let b = Math.min(crntD.getTime(), to) / 1000 | 0;
-
-    for (let i = 0;i < argQueries.length;i++) {
-      let q = query_args_to_filter(argQueries[i]);
-      q.from = a;
-      q.flags['skip-book-close'] = true;
-      q.to = b;
-      q.collect = collect;
-      query.queries.push(q);
-    }
-
-    intervals++;
-  }
-  if (intervals > maxIntervals) {
-    console.error(`Terminal is too small for ${intervals} intervals, max ${maxIntervals}.`);
-    return 1;
-  }
-  let data = await query_exec(query);
-  let max = Math.max(data.maxSum || data.maxCount, 0);
-  let min = Math.min(data.minSum || data.minCount, 0);
-  if (args.flags.abs && !isNaN(data.maxSum)) {
-    max = Math.max(Math.max(Math.abs(data.minSum), data.maxSum), 0);
-    min = 0;
-  }
-  let _d = [];
-  for (let i = 0;i < data.length;i += argQueries.length) {
-    let row = [];
-    for (let j = 0;j < argQueries.length;j++) {
-      row[j] = data[i + j][args.flags.count ? 'count' : 'sum'];
-      if (args.flags.abs) row[j] = Math.abs(row[j]);
-    }
-    _d.push(row);
-  }
-
-  let chart = new Chart(min, max, _d);
-
-  let daysToDraw = Array(_d.length * (argQueries.length * 2 + 1)).fill(0);
-  let weeksToDraw = Array(_d.length * (argQueries.length * 2 + 1)).fill(0);
-  let monthsToDraw = Array(_d.length * (argQueries.length * 2 + 1)).fill(0);
-  let yearsToDraw = Array(_d.length * (argQueries.length * 2 + 1)).fill(0);
-
-  let drawWeeks = showWeeks;
-  let drawDays = int[2] > 0;
-  let drawMonths = false;
-  let drawYears = false;
-
-  crntD = new Date(from);
-  let i = -1;
-  let lastM = -1;
-  let lastY = -1;
-  while (crntD < to) {
-    i++;
-    let row = [crntD.getFullYear().toString()];
-    if (showQuarter) row.push(print_full_quarter(crntD.getMonth()));
-
-    let d = crntD.getDate();
-    daysToDraw[i] = d.toString().padStart(2, '0');
-    weeksToDraw[i] = pring_week(crntD).toString().padStart(2, '0');
-
-    if ((d == 1) || (lastM != -1 && lastM != crntD.getMonth())) {
-      drawMonths = true;
-      monthsToDraw[i] = (int[1] > 0 || int[2] >= 14) ?
-        (crntD.getMonth() + 1).toString().padStart(2, '0') : print_full_month(crntD.getMonth());
-      lastM = crntD.getMonth();
-    }
-    if ((crntD.getMonth() == 0 && d == 1) || (lastY != -1 && lastY != crntD.getFullYear())) {
-      drawYears = true;
-      yearsToDraw[i] = int[0] ? (crntD.getYear() - 100).toString() : crntD.getFullYear().toString();
-      lastY = crntD.getFullYear();
-    }
-    crntD.setFullYear(crntD.getFullYear() + int[0]);
-    crntD.setMonth(crntD.getMonth() + int[1]);
-    crntD.setDate(crntD.getDate() + int[2]);
-  }
-
-  let r = -1;
-  if (drawDays) {
-    chart.buffer.push(Array(chart.gw).fill(" "));
-    r++;
-    chart.replace(chart.gh + 2 + r, 0, ' Day');
-    daysToDraw.forEach((x, i) => {
-      chart.replace(chart.gh + 2 + r, 7 + (i * (argQueries.length * 2 + 1)), x);
-    });
-  }
-  if (drawWeeks) {
-    chart.buffer.push(Array(chart.gw).fill(" "));
-    r++;
-    chart.replace(chart.gh + 2 + r, 0, ' Week');
-    weeksToDraw.forEach((x, i) => {
-      chart.replace(chart.gh + 2 + r, 7 + (i * (argQueries.length * 2 + 1)), x);
-    });
-  }
-  if (drawMonths) {
-    chart.buffer.push(Array(chart.gw).fill(" "));
-    r++;
-    chart.replace(chart.gh + 2 + r, 0, 'Month');
-    monthsToDraw.forEach((x, i) => {
-      chart.replace(chart.gh + 2 + r, 7 + (i * (argQueries.length * 2 + 1)), x);
-    });
-  }
-  if (drawYears) {
-    chart.buffer.push(Array(chart.gw).fill(" "));
-    r++;
-    yearsToDraw.forEach((x, i) => {
-      chart.replace(chart.gh + 2 + r, 7 + (i * (argQueries.length * 2 + 1)), x);
-    });
-  }
-
-  console.log(chart.render() + '\n');
-  let table = [[]];
-  legends.forEach((x, i) => {
-    let str = `      ${chart.colors[i]('  ')} ${x}`;
-    table[0].push([str, strip_ansi(str).length]);
-  });
-  table[0].header = false;
-  console.log(tabulate(table));
-}
-
-async function cmd_history(args) {
-  if (args.flags['skip-book-close'] !== false)
-    args.flags['skip-book-close'] = true;
-
-  let int = report_get_reporting_interval(args);
-  let showDays = true;
-  let showMonth = true;
-  let showWeeks = int[2] >= 7 && int[2] % 7 == 0;
-  let showQuarter = int[1] >= 3 && int[1] % 3 == 0;
-
-  if (int[2] > 0 && int[2] < 7) {
-    cmd_report_modifiers.from = '@month-start';
-    cmd_report_modifiers.to = '@tomorrow';
-  } else if (showWeeks) {
-    cmd_report_modifiers.from = '@year-start';
-    cmd_report_modifiers.to = '@month-end';
-  } else {
-    cmd_report_modifiers.from = '@last-year';
-    cmd_report_modifiers.to = '@month-end';
-  }
-  report_set_modifiers(args);
-  report_set_accounts(args);
-  report_compile_account_regex();
-
-  args.modifiers.from = cmd_report_modifiers.from;
-  args.modifiers.to = cmd_report_modifiers.to;
-
-  let skipTo;
-  args.flags['skip'] &&
-     (skipTo = report_replaceDateStr(args.flags['skip'])) &&
-     !isNaN(skipTo = Date.parse(skipTo + 'T00:00:00'));
-
-  let strF = report_replaceDateStr(args.modifiers.from);
-  let strT = report_replaceDateStr(args.modifiers.to);
-  let from = Date.parse(strF + 'T00:00:00');
-  let to = Date.parse(strT + 'T00:00:00');
-
-  let dateFunctions = [];
-
-  let crntD = new Date(from);
-  while (crntD < to) {
-    let a = crntD.getTime() / 1000 | 0;
-    crntD.setFullYear(crntD.getFullYear() + int[0]);
-    crntD.setMonth(crntD.getMonth() + int[1]);
-    crntD.setDate(crntD.getDate() + int[2]);
-    let b = Math.min(crntD.getTime(), to) / 1000 | 0;
-    dateFunctions.push(t => t >= a && t < b);
-  }
-
-  report_extract_account(args);
-  report_extract_tags(args);
-
-  let accounts = args.accounts.length ?
-                   [...args.accounts.map((x, i) => { return { q: x, name: args.accountSrc[i], sum: new Big(0), val: Array(dateFunctions.length).fill(new Big(0)) } })] :
-                   [...Object.keys(cmd_report_accounts).map(x => { return { name: x, q: cmd_report_accounts_compiled[x], sum: new Big(0), val: Array(dateFunctions.length).fill(new Big(0)) } })];
-
-  delete args.accounts; // so report_traverse don't handle accounts
-
-  await report_traverse(args, async function (entry) {
-    let i = 0;
-    let matched = false;
-    for (;i < dateFunctions.length;i++) {
-      if (dateFunctions[i](entry.time)) {
-        matched = true;
-        break;
-      }
-    }
-    if (!matched) return; // outside date range
-    for (let acc of accounts) {
-      let q = acc.q;
-
-      for (let t of entry.transfers) {
-        if (t[1].match(q)) {
-          acc.val[i] = acc.val[i].plus(t[2]);
-          acc.sum = acc.sum.plus(t[2]);
-        }
-      }
-    }
-  });
-
-  let table = [];
-  let align = [];
-  if (!args.flags.epoch && !args.flags.iso) {
-    table.push(['Year']);
-    align.push(TAB_ALIGN_RIGHT);
-    if (showQuarter) { table[0].push('Quarter'); align.push(TAB_ALIGN_LEFT) }
-    if (showMonth) { table[0].push('Month'); align.push(TAB_ALIGN_LEFT) }
-    if (showWeeks) { table[0].push('Week'); align.push(TAB_ALIGN_RIGHT) }
-    if (showDays) { table[0].push('Day');  align.push(TAB_ALIGN_RIGHT)}
-  } else {
-    table.push(['Time']);
-    align.push(TAB_ALIGN_RIGHT);
-  }
-  let tab_left_length = table[0].length;
-
-
-  let cu_accounts = [];
-
-  if (typeof args.flags['cumulative-columns'] != 'undefined') {
-    let sp = args.flags['cumulative-columns'].toString().split(',').map(x => parseInt(x));
-    for (let n of sp) {
-      if (isNaN(n)) {
-        console.log(`Error: "${n}" is not a column number. Use this format: --cumulative-columns=1,2,3`);
-        return 1;
-      }
-      cu_accounts.push(n - 1);
-    }
-  }
-  accounts.forEach((x, i) => {
-    table[0].push(x.name[0].toUpperCase() + x.name.substring(1));
-    align.push(TAB_ALIGN_RIGHT);
-    if (args.flags.cumulative || cu_accounts.indexOf(i) >= 0) {
-      x.val.forEach((z, j) => {
-        if (j == 0) return;
-        x.val[j] = x.val[j].plus(x.val[j - 1]);
-      });
-    }
-    x.val = x.val.map(v => v.toNumber());
-  });
-
-  crntD = new Date(from);
-  let r = table.length - 2;
-  let last = [];
-  while (crntD < to) {
-    r++;
-    if (skipTo && crntD < skipTo) {
-      crntD.setFullYear(crntD.getFullYear() + int[0]);
-      crntD.setMonth(crntD.getMonth() + int[1]);
-      crntD.setDate(crntD.getDate() + int[2]);
-      continue;
-    }
-    let row = [];
-
-    if (args.flags.epoch) {
-      row.push(crntD.getTime().toString());
-    } else if (args.flags.iso) {
-      row.push(crntD.toISOString().split('T')[0]);
-    } else {
-      row.push(crntD.getFullYear().toString());
-      if (showQuarter) row.push(print_full_quarter(crntD.getMonth()));
-      if (showMonth) row.push(print_full_month(crntD.getMonth()));
-      if (showWeeks) row.push(pring_week(crntD));
-      if (showDays) row.push(crntD.getDate());
-
-      if (r == dateFunctions.length - 1) { // last entry
-        row[row.length - 1] = '≥ ' + row[row.length - 1];
-      }
-
-      let current = Array.from(row);
-      let lastChanged = !!args.flags.csv;
-      for (let i = 0;i < row.length;i++) {
-        if (table[0][i] == 'Day') continue;
-        if (!lastChanged && (current[i] == last[i])) row[i] = '';
-        else if (current[i] != last[i]) lastChanged = true;
-      }
-      last = current;
-    }
-    for (let acc of accounts) {
-      let v = acc.val[r];
-
-      let vs;
-
-      if (acc.q == cmd_report_accounts_compiled.income || acc.q == cmd_report_accounts_compiled.expense) {
-        v = -v
-      }
-      vs = print_format_money(v);
-      vs = [print_color_money(v), vs.length];
-
-      row.push(vs);
-    }
-
-    crntD.setFullYear(crntD.getFullYear() + int[0]);
-    crntD.setMonth(crntD.getMonth() + int[1]);
-    crntD.setDate(crntD.getDate() + int[2]);
-    table.push(row);
-  }
-
-  if (!args.flags.csv) {
-    table.push([]);
-    let avg = [];
-    let rowL = table[table.length - 2].length;
-    for (let i = 0;i < rowL;i++) {
-      let j = i - (rowL - accounts.length);
-      if (j < -1) {
-        avg.push('');
-      } else if (j == -1) {
-        avg.push('Avg');
-      } else {
-        let acc = accounts[j];
-        let v = Math.round(acc.sum.div(dateFunctions.length).toNumber() * 100) / 100;
-
-        let vs;
-
-        if (acc.q == cmd_report_accounts_compiled.income || acc.q == cmd_report_accounts_compiled.expense) {
-          v = -v
-        }
-        vs = print_format_money(v);
-        vs = [print_color_money(v), vs.length];
-
-        avg.push(vs);
-      }
-    }
-    table.push(avg);
-
-
-    console.log(`Reporting from ${c.bold(strF)} to ${c.bold(strT)}\n`);
-  }
-
-  console.log(tabulate(table, {
-    align: align
-  }));
-}
-async function cmd_count(args) {
-  let q = { queries: [query_args_to_filter(args)] };
-  q.queries[0].collect = ['count'];
-
-  let data = await query_exec(q);
-
-  let count = data[0].count;
-
-  console.log((count).toString());
-}
-async function cmd_version() {
-  console.log(c.bold('ledg - version 0.7.1') + ' built for cli');
-}
-
-async function cmd_help() {
-  await cmd_version();
-  console.log(
-`
-**SYNOPSIS**
-\t**ledg <command> [ <filter> ] [ <flags> ]**
-
-**FLAGS**
-\tPresets of flags can be saved at ~/.ledgrc
-
-\t--file=FILE, -FFILE
-\t\tDefault: book
-\t\tif FILE="-", then ledg reads entries from stdin
-\t\tset FILE as a prefix for ledg file locations:
-\t\tex. --file=Documents/book will point to Documents/book.*.ledg
-
-\t--light-theme, --lt
-\t\tput this in your .ledgrc if your terminal has light background
-
-\t--csv
-\t\toutputs all tables in csv formats(some commands only)
-
-\t--budget=NAME
-\t\tthis can be used in your .ledgrc to point to a default budget
-\t\tex. --budget="Monthly Budget"
-\t\t    --budget="2023 Puero Rico Vacation Saving Goals"
-
-\t--income=<account filter>, --expense=<account filter>, --equity=<account filter>
-\t--asset=<account filter>, --liability=<account filter>
-\t\tDefault: Income*, Expense*, Asset*, Liability*, Equity*
-\t\tLet certain report commands to know what are the corresponding accounts
-
-\t--skip-book-close[=false], --sbc
-\t\tDefault: false
-\t\tSkips all entries with bookClose:"true" or bookClose:true
-
-**FILTER**
-\t[ modifiers ] [ account filter, ...]
-\ta set of arguments that filters entries
-
-\tfrom:yyyy-mm-dd
-\t\tlimit entries starting from this date(inclusive)
-
-\tto:yyyy-mm-dd
-\t\tlimit entries before this date(exclusive)
-
-\t@min, @max, @year-start, @year-end, @tomorrow, @today, @month-start, @month-end
-\t@last-year-today, @last-year
-\t\tused in conjunction with from: and to:
-\t\tex: "ledg info from:@min to:@max" queries everything in the book
-
-\tmodifier:regex
-\t\tqueries entries with modifiers that matches the regex
-\t\tex: payee:"amazon|steam"
-\t\t    tag:"pc|tablet"
-
-\t+TAG
-\t\tappends TAG(,|$) to tags: modifier, if tags: is empty
-
-\tuuid filter
-\t\tuuids can be filtered with the uuid:A|B|C syntax or directly putting uuids as arguments
-
-\taccount filter
-\t\taccounts in ledg follow this format: name[.name...], and name can
-\t\tONLY contain letters and numbers, and MUST contain at least one letter
-
-\t\tledg support fuzzy search of account names
-\t\t\tex: ..cash =~ Account.Current.Cash
-\t\t\t    .cash =~ Account.Cash
-\t\t\t    exp$ =~ Expense
-\t\t\t    exp|inc.sl =~ Expense | Income.Salary
-\t\t\t    exp. =~ Expense.*
-\t\t\t    exp. =~ Expense.*
-\t\t\t* - matches any character
-\t\t\t. - matches . literally
-\t\t\t    anything in between dots matches any segments of account names that
-\t\t\tcontains the letters in that order
-\t\t\t    ex: .csh. matches *\\.[^.]*c[^.]*s[^.]*h[^.]*\\.* in regex
-
-
-**COMMANDS**
-\tCommands can be shortened as long as they are not ambiguous
-\tExample: ledg accounts -> ledg acc
-\t\t\t ledg info -> ledg inf
-
-\tedit <filters> [new]
-\t\tbrings up system editor to modify filtered entries
-\t\tnew
-\t\t\topens a blank file to manually enter new entries
-
-\taccounts add <full account name>
-\t\tcreate new account and write to FILE.config.ledg
-
-\tburndown [--q1="[<filters>] <account filters>", --q2=...] [--abs=false] [--count]
-\t         [--cumulative]
-\t\tCreates multi-dataset bar graphs
-\t\tDefault: --abs=true
-
-\t\t--abs
-\t\t\tTake absolute values
-
-\t\t--cumulative
-\t\t\tcumulates count/sum
-
-\t\t--count
-\t\t\tShow graph of numbers of entries rather than sum
-
-\tregister [--daily] [--weekly] [--biweekly] [--monthly] [--quarterly]
-\t         [--yearly] [--hide-zero=true, --hz]
-\t         [--skip-book-close=true] [--csv] [--invert]
-\t         [ <account filter 1> <account filter 2> ... ] [--skip=]
-\t\tDefault: --hide-zero to:@tomorrow from:@min
-\t\tdisplays matched transferse with amounts and a running total.
-\t\tWithout a reporting interval, individual transfers are shown
-\t\tinstead of grouping together
-
-\t\t--invert
-\t\t\tnegates all amounts
-
-\t\t--hide-zero, --hz
-\t\t\tDefault: true
-\t\t\thide rows that are zeroes when used with reporting interval
-
-\t\t--skip=yyyy-mm-dd
-\t\t\thides rows up until this date but keep cumulative sum from before
-
-\t\t--csv
-\t\t\ttabulate data in csv (exporting for other use)
-
-\thistory [--daily] [--weekly] [--biweekly] [--monthly] [--quarterly]
-\t        [--yearly] [--cumulative] [--cumulative-columns=num list]
-\t        [--skip-book-close=true] [--epoch] [--csv] [--iso]
-\t        [ <account filter 1> <account filter 2> ... ] [--skip=]
-\t\tDefaults: shows accounts specified by --income, --expense, --asset, --liability,
-\t\t          and --equity, and defaults --skip-book-close=true
-\t\tprints multicolumn time by selected interval
-\t\tNote: even with cumulative columns, history command does not sum everything from
-\t\t@min, and so unless from:@min is given, asset/liability calculation is not accurate
-
-\t\t--cumulative-columns=1,2,3..., --cml-cols
-\t\t\tshows cumulative data for the given column numbers
-
-\t\t--cumulative, --cml
-\t\t\tshows cumulative data
-
-\t\t--skip=yyyy-mm-dd
-\t\t\thides rows up until this date but keep cumulative sum from before
-
-\t\t--epoch
-\t\t\tshow timestamps in epoch
-
-\t\t--csv
-\t\t\ttabulate data in csv (exporting for other use)
-
-\t\t--iso
-\t\t\tshow timestamps in ISO date string
-
-\taccounts rename <source> <dist> [ <filter> ]
-\t\tmodifies entries by replacing account source with dist
-\t\t-y
-\t\t\tdefaults confirmations to yes
-
-\taccounts [tree] [--sum-parent] [--hide-zero, --hz] [--max-depth=NUM, --dep, --depth]
-\t\t[--sum] [ <filter> ] [--sort]
-\t\tsums balances in selected accounts
-\t\tDue to the need to sum entries from the beginning of a book, from: modifier is
-\t\tdefaulted to @min.
-
-\t\t--sort
-\t\t\tunless in tree mode, sort accounts by amount in descending order
-
-\t\t--sum-parent
-\t\t\tallows child account balances to add to parent accounts
-\t\t--hide-zero, --hide-zero=false, --hz
-\t\t\thide accounts with zero balance or not
-\t\t--max-depth=NUM, --depth, --dep
-\t\t\tmax child account depth to show
-\t\t--sum
-\t\t\tsums listed accounts, best used with --max-depth=1
-\t\ttree
-\t\t\tdisplays account balances in tree view
-
-\tinfo [ <filter> ] [flat]
-\t\tdisplays entries' information
-
-\t\tflat
-\t\t\tdisplays entries row by row rather than expanding individual transfers
-
-\ttags [--field="tags"]
-\t\ttabulates tags with number of entries
-
-\t\t--field=
-\t\t\tdefault: tags
-\t\t\tThis can be used on any fields such as description or payee
-
-\tadd [--date=yyyy-mm-dd] [-y] [description] [yyyy-mm-dd] < <account filter>
-\t\t  [account description] <amount> [, ...]> [+TAG ...]
-\t\tpush entry to book
-\t\tNote: The last account transfer set can leave empty amount, and ledg will calculate it.
-\t\t  ex: "ledg add cash withdrawal from bank ast..cash 100 ast..BoA.chking"
-\t\t      will leave Asset.Current.BankOfAmerica.Checking with -100 balance
-
-\t\t<account filter>
-\t\t\t(see FILTER section)
-
-\t\t--date=yyyy-mm-dd, -Dyyyy-mm-dd, [yyyy-mm-dd]
-\t\t\tDefault: current date
-\t\t\tspecifies the date of entry
-\t\t-y
-\t\t\tdefaults most confirmations to yes (unless ledg prompts a list to choose)
-
-\tmodify <filter> [--date=yyyy-mm-dd] [--add-tag=A,B,C] [-remove-tag=A,B,C]
-\t       [--set-mod=A:123,B:123] [--remove-mod=C,D,E] [-y] [description] [+TAG ...]
-\t       [yyyy-mm-dd] [ <account filter> [account description] <amount> [, ...]]
-\t\tbatch modify entries, see more in "add" section
-\t\taccount query is not supported
-\t\tNote: using +TAG replaces everything. If only a new tag is needed, use --add-tag
-
-\tdelete [ <filter> ] [-y]
-\t\tbatch delete entries
-\t\t-y
-\t\t\tdefaults confirmations to yes
-
-\tbudget [--budget=NAME] [--do-not-adjust] [edit|list]
-\t\tprints report for the selected budget
-\t\tNote: report excludes entries with bookClose:"true"
-\t\t      budgets can be edited at FILE.budgets.ledg
-
-\t\t--do-not-adjust
-\t\t\tBy default, if specified from: and to: have different range than the one in
-\t\t\tbudget file, ledg will shrink/grow amounts correspondingly. For example,
-\t\t\tfrom:@month-start and to:@month-end on an annual budget will divide all amounts
-\t\t\tby 12. This option disables the feature.
-
-\t\tedit
-\t\t\topens system editor for FILE.budgets.ledg
-
-\t\tlist
-\t\t\tlists all budget names in FILE.budgets.ledg
-
-\t\tExample book.budgets.ledg:
-\t\t~ Vacation Budget 2021
-\t\t  ;from:"@month-start"
-\t\t;this is a comment, below are tracker based budgeting
-\t\t  ;to:"@month-end"
-\t\t  ast.*.Chck	goal 0-500
-\t\t  exp.* payee:Amazon	limit 0--200
-
-\t\t; -- account based budgeting --
-\t\t  Expense	300
-\t\t; -- expense cateogries --
-\t\t  Expense.Other.Transportation	300
-\t\t  Expense.Essential.Groceries	200
-
-\tprint [<account filters>] [<filters>] [--ledger]
-\t\tprints selected entries in ledg format
-\t\tused in conjunction with -F-
-\t\tex: ledg print lia..amazon | ledg -F- accounts exp..personalcare
-
-\t\t--ledger
-\t\t\tprints ledger & hledger compatible journal
-
-\tgit [...]
-\t\texecutes git [...] at the parent directory of FILE
-
-\tstats
-\t\tdisplays stats of journal files
-
-\tcount [<account filters>] [<filters>]
-\t\treturns number of entries that match the filters
-
-\texport gnucash-transactions > transactions.csv
-\texport gnucash-accounts > accounts.csv
-\t\tcsv can be directly imported to gnucash
-`.replace(/\*\*([^\n\r]+)\*\*/g, c.bold('$1')));
-
-}
-async function cmd_add(args, modifyMode=false) {
-  let desc = [];
-  let transfers = [];
-  let currentTransfer = null;
-
-  let opts = JSON.parse(JSON.stringify(args.modifiers));
-  
-  delete opts.uuid;
-  delete opts.time;
-  delete opts.from;
-  delete opts.to;
-  delete opts.description;
-  
-  args.flags.date = args.flags.date || args.flags.D;
-  
-  if (!modifyMode)
-    opts.time = ((args.flags.date ? (Date.parse(report_replaceDateStr(args.flags.date) + 'T00:00:00') || new Date().getTime()) : new Date().getTime()) / 1000) | 0;
-  
-  Object.keys(opts).forEach(k => {
-    let n = Number(opts[k]);
-    if (!isNaN(n)) opts[k] = n;
-  });
-
-  let _ = args._;
-
-  for (let i = 0;i < _.length;i++) {
-    let v = _[i].trim().replace(/ /g, '');
-    let num = Number(v);
-    
-    if (v.match(/^\d{4}-\d{2}-\d{2}$/)) {
-      opts.time = ((Date.parse(report_replaceDateStr(v) + 'T00:00:00') / 1000) | 0) || opts.time;
-    } else if (!isNaN(num)) {
-      if (currentTransfer) {
-        currentTransfer[2] = num;
-        transfers.push(currentTransfer);
-        currentTransfer = null;
-      } else // entry description
-        desc.push(_[i].trim());
-    } else if (isArgAccount(v)) { // start account with category
-      if (currentTransfer) { // start new one, commit old
-        transfers.push(currentTransfer);
-        currentTransfer = null;
-        continue;
-      }
-      let accs = fzy_query_account(v, expand_account());
-      currentTransfer = ['', null, 0];
-      if (accs.length == 0) {
-        process.stdout.write(`"${c.bold(v.replace(/\$/g, '').replace(/\!/g, ''))}" does not match anything. Create it? `);
-        let ans = args.flags.y ? 'y' : (await readline_prompt()).toLowerCase();
-        if (args.flags.y) console.log('y');
-        if (ans == 'y' || ans == 'yes') {
-          currentTransfer[1] = v.replace(/\$/g, '').replace(/\!/g, '');
-        } else {
-          console.log('Abort.');
-          return 1;
-        }
-      } else if (accs.length == 1) {
-        currentTransfer[1] = accs[0];
-      } else {
-        console.log(`Multiple accounts matched for: ${c.bold(v)}\n`);
-        for (let j = 0;j < accs.length;j++) {
-          console.log(`${j + 1} ${accs[j]}`);
-        }
-        process.stdout.write('\nChoose one: ');
-        let ans = Math.max(Math.min(parseInt((await readline_prompt())) || 1, accs.length), 0) - 1;
-        console.log(`${ESC}[1AChoose one: ${c.green(accs[ans])}`);
-        currentTransfer[1] = accs[ans];
-      }
-    } else if (v.startsWith("+")) {
-      tag_add(opts, v.substring(1));
-    } else {
-      if (currentTransfer) // transfer description
-        currentTransfer[0] = (currentTransfer[0] + ' ' + _[i].trim()).trim();
-      else // entry description
-        desc.push(_[i].trim());
-    }
-  }
-  if (currentTransfer) transfers.push(currentTransfer);
-
-  let entry = modifyMode ? entry_modify_create(desc.join(" "), transfers, opts) : entry_create(desc.join(" "), transfers, opts);
-  if (entry.transfers)
-    console.log("\n" + print_entry_ascii(entry));
-  else {
-    console.log(`${c.cyanBright(entry.time ? entry_datestr(entry.time) : '[date]')} ${c.yellowBright.bold(entry.description || '[title]')} ${c.cyan('[uuid]')}`);
-    for (let key in entry) {
-      if (key == 'description' || key == 'time' || key == 'uuid' || key == 'transfers') continue;
-      console.log(c.green('  ;' + key + ':' + JSON.stringify(entry[key])));
-    }
-  }
-  
-  // empty
-  if (transfers.length == 0 && !modifyMode) {
-    console.log('Empty entry, abort.');
-    return 1;
-  }
-  
-  // handle imbalance
-  if (transfers.filter(x => x[1] == data_acc_imb).length) {
-    process.stdout.write(`Entry is imbalanced, continue? `);
-    let ans = args.flags.y ? 'y' : (await readline_prompt()).toLowerCase();
-    if (args.flags.y) console.log('y');
-    if (ans != 'y' && ans != 'yes') {
-      console.log('Abort.');
-      return 1;
-    }
-  }
-  
-  if (modifyMode) return entry;
-  await data_push_entry(entry);
-  await fs_write_config();
-  console.log('Entry added.');
-}
-async function cmd_benchmark(args) {
-  let times = Number(args._[0]) || 100;
-  for (let i = 0;i < times;i++) {
-    data_init_data();
-    await data_open_books(await fs_get_data_range());
-  }
-  console.log(_fs_entries_read + ' entries read');
-}
 // randomColor by David Merfield under the CC0 license
 // https://github.com/davidmerfield/randomColor/
 
@@ -5374,215 +5512,237 @@ function getRealHueRange(colorHue) {
     }
   }
 }
-/*
-The MIT License (MIT)
-
-Copyright (c) 2015-present, Brian Woodward.
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-*/
-
-// from github ansi-colors
-// with slight modifications
-const isObject = val => val !== null && typeof val === 'object' && !Array.isArray(val);
-const identity = val => val;
-
-/* eslint-disable no-control-regex */
-// this is a modified version of https://github.com/chalk/ansi-regex (MIT License)
-const ANSI_REGEX = /[\u001b\u009b][[\]#;?()]*(?:(?:(?:[^\W_]*;?[^\W_]*)\u0007)|(?:(?:[0-9]{1,4}(;[0-9]{0,4})*)?[~0-9=<>cf-nqrtyA-PRZ]))/g;
-
-const create_color = () => {
-  const colors = { enabled: true, visible: true, styles: {}, keys: {} };
-
-  // if ('FORCE_COLOR' in process.env) {
-  //   colors.enabled = process.env.FORCE_COLOR !== '0';
-  // }
-
-  const ansi = style => {
-    let open = style.open = `\u001b[${style.codes[0]}m`;
-    let close = style.close = `\u001b[${style.codes[1]}m`;
-    let regex = style.regex = new RegExp(`\\u001b\\[${style.codes[1]}m`, 'g');
-    style.wrap = (input, newline) => {
-      if (input.includes(close)) input = input.replace(regex, close + open);
-      let output = open + input + close;
-      // see https://github.com/chalk/chalk/pull/92, thanks to the
-      // chalk contributors for this fix. However, we've confirmed that
-      // this issue is also present in Windows terminals
-      return newline ? output.replace(/\r*\n/g, `${close}$&${open}`) : output;
-    };
-    return style;
-  };
-
-  const wrap = (style, input, newline) => {
-    return typeof style === 'function' ? style(input) : style.wrap(input, newline);
-  };
-
-  const style = (input, stack) => {
-    if (input === '' || input == null) return '';
-    if (colors.enabled === false) return input;
-    if (colors.visible === false) return '';
-    let str = '' + input;
-    let nl = str.includes('\n');
-    let n = stack.length;
-    if (n > 0 && stack.includes('unstyle')) {
-      stack = [...new Set(['unstyle', ...stack])].reverse();
-    }
-    while (n-- > 0) str = wrap(colors.styles[stack[n]], str, nl);
-    return str;
-  };
-
-  const define = (name, codes, type) => {
-    colors.styles[name] = ansi({ name, codes });
-    let keys = colors.keys[type] || (colors.keys[type] = []);
-    keys.push(name);
-
-    Reflect.defineProperty(colors, name, {
-      configurable: true,
-      enumerable: true,
-      set(value) {
-        colors.alias(name, value);
-      },
-      get() {
-        let color = input => style(input, color.stack);
-        Reflect.setPrototypeOf(color, colors);
-        color.stack = this.stack ? this.stack.concat(name) : [name];
-        return color;
-      }
-    });
-  };
-
-  define('reset', [0, 0], 'modifier');
-  define('bold', [1, 22], 'modifier');
-  define('dim', [2, 22], 'modifier');
-  define('italic', [3, 23], 'modifier');
-  define('underline', [4, 24], 'modifier');
-  define('inverse', [7, 27], 'modifier');
-  define('hidden', [8, 28], 'modifier');
-  define('strikethrough', [9, 29], 'modifier');
-
-  define('black', [30, 39], 'color');
-  define('red', [31, 39], 'color');
-  define('green', [32, 39], 'color');
-  define('yellow', [33, 39], 'color');
-  define('blue', [34, 39], 'color');
-  define('magenta', [35, 39], 'color');
-  define('cyan', [36, 39], 'color');
-  define('white', [37, 39], 'color');
-  define('gray', [90, 39], 'color');
-  define('grey', [90, 39], 'color');
-
-  define('bgBlack', [40, 49], 'bg');
-  define('bgRed', [41, 49], 'bg');
-  define('bgGreen', [42, 49], 'bg');
-  define('bgYellow', [43, 49], 'bg');
-  define('bgBlue', [44, 49], 'bg');
-  define('bgMagenta', [45, 49], 'bg');
-  define('bgCyan', [46, 49], 'bg');
-  define('bgWhite', [47, 49], 'bg');
-
-  define('blackBright', [90, 39], 'bright');
-  define('redBright', [91, 39], 'bright');
-  define('greenBright', [92, 39], 'bright');
-  define('yellowBright', [93, 39], 'bright');
-  define('blueBright', [94, 39], 'bright');
-  define('magentaBright', [95, 39], 'bright');
-  define('cyanBright', [96, 39], 'bright');
-  define('whiteBright', [97, 39], 'bright');
-
-  define('bgBlackBright', [100, 49], 'bgBright');
-  define('bgRedBright', [101, 49], 'bgBright');
-  define('bgGreenBright', [102, 49], 'bgBright');
-  define('bgYellowBright', [103, 49], 'bgBright');
-  define('bgBlueBright', [104, 49], 'bgBright');
-  define('bgMagentaBright', [105, 49], 'bgBright');
-  define('bgCyanBright', [106, 49], 'bgBright');
-  define('bgWhiteBright', [107, 49], 'bgBright');
-
-  colors.ansiRegex = ANSI_REGEX;
-  colors.hasColor = colors.hasAnsi = str => {
-    colors.ansiRegex.lastIndex = 0;
-    return typeof str === 'string' && str !== '' && colors.ansiRegex.test(str);
-  };
-
-  colors.alias = (name, color) => {
-    let fn = typeof color === 'string' ? colors[color] : color;
-
-    if (typeof fn !== 'function') {
-      throw new TypeError('Expected alias to be the name of an existing color (string) or a function');
-    }
-
-    if (!fn.stack) {
-      Reflect.defineProperty(fn, 'name', { value: name });
-      colors.styles[name] = fn;
-      fn.stack = [name];
-    }
-
-    Reflect.defineProperty(colors, name, {
-      configurable: true,
-      enumerable: true,
-      set(value) {
-        colors.alias(name, value);
-      },
-      get() {
-        let color = input => style(input, color.stack);
-        Reflect.setPrototypeOf(color, colors);
-        color.stack = this.stack ? this.stack.concat(fn.stack) : fn.stack;
-        return color;
-      }
-    });
-  };
-
-  colors.theme = custom => {
-    if (!isObject(custom)) throw new TypeError('Expected theme to be an object');
-    for (let name of Object.keys(custom)) {
-      colors.alias(name, custom[name]);
-    }
-    return colors;
-  };
-
-  colors.alias('unstyle', str => {
-    if (typeof str === 'string' && str !== '') {
-      colors.ansiRegex.lastIndex = 0;
-      return str.replace(colors.ansiRegex, '');
-    }
-    return '';
-  });
-
-  colors.alias('noop', str => str);
-  colors.none = colors.clear = colors.noop;
-
-  colors.stripColor = colors.unstyle;
-  // colors.symbols = require('./symbols');
-  colors.define = define;
-  return colors;
+const ARG_FLAG_SHORTHANDS = {
+  'sbc': 'skip-book-close',
+  'hz': 'hide-zero',
+  'lt': 'light-theme',
+  'cml': 'cumulative',
+  'cml-cols': 'cumulative-columns',
+  'dep': 'max-depth',
+  'depth': 'max-depth',
 };
 
-const c = create_color();
-const ansi_regex = (({onlyFirst = false} = {}) => {
-	const pattern = [
-		'[\\u001B\\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[-a-zA-Z\\d\\/#&.:=?%@~_]*)*)?\\u0007)',
-		'(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PR-TZcf-ntqry=><~]))'
-	].join('|');
+function argsparser(_args) {
+  let args = { _:[], flags: {}, modifiers: {} };
 
-	return new RegExp(pattern, onlyFirst ? undefined : 'g');
-})();
-const strip_ansi = string => typeof string === 'string' ? string.replace(ansi_regex, '') : string;
+  let uuids = [];
+
+  let bypass = false;
+  for (let i = 0;i < _args.length;i++) {
+    let arg = _args[i];
+
+    if (arg == '--') { bypass = true; continue; }
+    if (bypass) { args._.push(arg); continue; }
+
+    let match = Object.keys(CMD_LIST).filter(x => x.indexOf(arg) == 0).sort();
+    if (!match.length && (match = arg.match(/^[a-z0-9]{8}$/i))) {
+      uuids.push(arg);
+    } else if (match = arg.match(/^-([a-zA-Z])(.+)$/)) {
+      args.flags[match[1]] = match[2];
+    } else if (match = arg.match(/^--?([^=]+)(=(.*))?$/)) {
+      let key = match[1];
+      key = ARG_FLAG_SHORTHANDS[key] || key;
+      if (!isNaN(Number(key))) { // key cannot be number
+        args._.push(arg);
+        continue;
+      }
+      let val = match[3] || (arg.indexOf('=') > 0 ? '' : true);
+      if (!isNaN(Number(val))) val = Number(val);
+      if (val == 'true') val = true;
+      if (val == 'false') val = false;
+      args.flags[key] = val;
+    } else if (match = arg.match(/^([a-zA-Z_]+):(.*)$/)) {
+      args.modifiers[match[1]] = match[2];
+    } else {
+      args._.push(arg)
+    }
+  }
+  if (uuids.length) args.modifiers['uuid'] = args.modifiers.uuid || uuids.join("|");
+  args._ = args._.filter(x => x.length);
+  return args;
+}
+
+// '<(' is process substitution operator and
+// can be parsed the same as control operator
+const ARG_CONTROL = '(?:' + [
+    '\\|\\|', '\\&\\&', ';;', '\\|\\&', '\\<\\(', '>>', '>\\&' ].join('|') + ')';
+const ARG_META = '';
+const ARG_BAREWORD = '(\\\\[\'"' + ARG_META + ']|[^\\s\'"' + ARG_META + '])+';
+const ARG_SINGLE_QUOTE = '"((\\\\"|[^"])*?)"';
+const ARG_DOUBLE_QUOTE = '\'((\\\\\'|[^\'])*?)\'';
+
+var ARG_TOKEN = '';
+for (var i = 0; i < 4; i++) {
+    ARG_TOKEN += (Math.pow(16,8)*Math.random()).toString(16);
+}
+
+function parseArgSegmentsFromStr(s, env, opts) {
+    var mapped = _parseArgSegmentsFromStr(s, env || process.env, opts);
+    if (typeof env !== 'function') return mapped;
+    return mapped.reduce(function (acc, s) {
+        if (typeof s === 'object') return acc.concat(s);
+        var xs = s.split(RegExp('(' + ARG_TOKEN + '.*?' + ARG_TOKEN + ')', 'g'));
+        if (xs.length === 1) return acc.concat(xs[0]);
+        return acc.concat(xs.filter(Boolean).map(function (x) {
+            if (RegExp('^' + ARG_TOKEN).test(x)) {
+                return JSON.parse(x.split(ARG_TOKEN)[1]);
+            }
+            else return x;
+        }));
+    }, []).filter(x => typeof x == 'string');
+};
+
+function _parseArgSegmentsFromStr (s, env, opts) {
+    var chunker = new RegExp([
+        '(' + ARG_CONTROL + ')', // control chars
+        '(' + ARG_BAREWORD + '|' + ARG_SINGLE_QUOTE + '|' + ARG_DOUBLE_QUOTE + ')*'
+    ].join('|'), 'g');
+    var match = s.match(chunker).filter(Boolean);
+    var commented = false;
+
+    if (!match) return [];
+    if (!env) env = {};
+    if (!opts) opts = {};
+    return match.map(function (s, j) {
+        if (commented) {
+            return;
+        }
+        if (RegExp('^' + ARG_CONTROL + '$').test(s)) {
+            return { op: s };
+        }
+
+        // Hand-written scanner/parser for Bash quoting rules:
+        //
+        //  1. inside single quotes, all characters are printed literally.
+        //  2. inside double quotes, all characters are printed literally
+        //     except variables prefixed by '$' and backslashes followed by
+        //     either a double quote or another backslash.
+        //  3. outside of any quotes, backslashes are treated as escape
+        //     characters and not printed (unless they are themselves escaped)
+        //  4. quote context can switch mid-token if there is no whitespace
+        //     between the two quote contexts (e.g. all'one'"token" parses as
+        //     "allonetoken")
+        var SQ = "'";
+        var DQ = '"';
+        var DS = '$';
+        var BS = opts.escape || '\\';
+        var quote = false;
+        var esc = false;
+        var out = '';
+        var isGlob = false;
+
+        for (var i = 0, len = s.length; i < len; i++) {
+            var c = s.charAt(i);
+//             isGlob = isGlob || (!quote && (c === '*' || c === '?'));
+            if (esc) {
+                out += c;
+                esc = false;
+            }
+            else if (quote) {
+                if (c === quote) {
+                    quote = false;
+                }
+                else if (quote == SQ) {
+                    out += c;
+                }
+                else { // Double quote
+                    if (c === BS) {
+                        i += 1;
+                        c = s.charAt(i);
+                        if (c === DQ || c === BS || c === DS) {
+                            out += c;
+                        } else {
+                            out += BS + c;
+                        }
+                    }
+                    else if (c === DS) {
+                        out += parseEnvVar();
+                    }
+                    else {
+                        out += c;
+                    }
+                }
+            }
+            else if (c === DQ || c === SQ) {
+                quote = c;
+            }
+//             else if (RegExp('^' + ARG_CONTROL + '$').test(c)) {
+//                 return { op: s };
+//             }
+//             else if (RegExp('^#$').test(c)) {
+//                 commented = true;
+//                 if (out.length){
+//                     return [out, { comment: s.slice(i+1) + match.slice(j+1).join(' ') }];
+//                 }
+//                 return [{ comment: s.slice(i+1) + match.slice(j+1).join(' ') }];
+//             }
+            else if (c === BS) {
+                esc = true;
+            }
+            else if (c === DS) {
+                out += parseEnvVar();
+            }
+            else out += c;
+        }
+
+        if (isGlob) return {op: 'glob', pattern: out};
+
+        return out;
+
+        function parseEnvVar() {
+            i += 1;
+            var varend, varname;
+            //debugger
+            if (s.charAt(i) === '{') {
+                i += 1;
+                if (s.charAt(i) === '}') {
+                    throw new Error("Bad substitution: " + s.substr(i - 2, 3));
+                }
+                varend = s.indexOf('}', i);
+                if (varend < 0) {
+                    throw new Error("Bad substitution: " + s.substr(i));
+                }
+                varname = s.substr(i, varend - i);
+                i = varend;
+            }
+            else if (/[*@#?$!_\-]/.test(s.charAt(i))) {
+                varname = s.charAt(i);
+                i += 1;
+            }
+            else {
+                varend = s.substr(i).match(/[^\w\d_]/);
+                if (!varend) {
+                    varname = s.substr(i);
+                    i = s.length;
+                } else {
+                    varname = s.substr(i, varend.index);
+                    i += varend.index - 1;
+                }
+            }
+            return getVar(null, '', varname);
+        }
+    })
+    // finalize parsed aruments
+    .reduce(function(prev, arg){
+        if (arg === undefined){
+            return prev;
+        }
+        return prev.concat(arg);
+    },[]);
+
+    function getVar (_, pre, key) {
+        var r = typeof env === 'function' ? env(key) : env[key];
+        if (r === undefined && key != '')
+            r = '';
+        else if (r === undefined)
+            r = '$';
+
+        if (typeof r === 'object') {
+            return pre + ARG_TOKEN + JSON.stringify(r) + ARG_TOKEN;
+        }
+        else return pre + r;
+    }
+}
 class Chart {
   constructor(min, max, data) {
     let dataSets = data[0].length;
@@ -5683,140 +5843,6 @@ class Chart {
       .map((r, i) => i == this.zeroRow ? c.underline(r.join("")) : r.join("")).join("\n")
   }
 }
-/*
-MIT License
-
-Copyright © 2016 Igor Kroitor
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*/
- 
-var asciichart = {};
-
-(function (exports) {
-
-    // control sequences for coloring
-
-    exports.black = "\x1b[30m"
-    exports.red = "\x1b[31m"
-    exports.green = "\x1b[32m"
-    exports.yellow = "\x1b[33m"
-    exports.blue = "\x1b[34m"
-    exports.magenta = "\x1b[35m"
-    exports.cyan = "\x1b[36m"
-    exports.lightgray = "\x1b[37m"
-    exports.default = "\x1b[39m"
-    exports.darkgray = "\x1b[90m"
-    exports.lightred = "\x1b[91m"
-    exports.lightgreen = "\x1b[92m"
-    exports.lightyellow = "\x1b[93m"
-    exports.lightblue = "\x1b[94m"
-    exports.lightmagenta = "\x1b[95m"
-    exports.lightcyan = "\x1b[96m"
-    exports.white = "\x1b[97m"
-    exports.reset = "\x1b[0m"
-
-    function colored (char, color) {
-        // do not color it if color is not specified
-        return (color === undefined) ? char : (color + char + exports.reset)
-    }
-
-    exports.colored = colored
-
-    exports.plot = function (series, cfg = undefined) {
-        // this function takes both one array and array of arrays
-        // if an array of numbers is passed it is transformed to
-        // an array of exactly one array with numbers
-        if (typeof(series[0]) == "number"){
-            series = [series]
-        }
-
-        cfg = (typeof cfg !== 'undefined') ? cfg : {}
-
-        let min = (typeof cfg.min !== 'undefined') ? cfg.min : series[0][0]
-        let max = (typeof cfg.max !== 'undefined') ? cfg.max : series[0][0]
-
-        for (let j = 0; j < series.length; j++) {
-            for (let i = 0; i < series[j].length; i++) {
-                min = Math.min(min, series[j][i])
-                max = Math.max(max, series[j][i])
-            }
-        }
-
-        let defaultSymbols = [ '┼', '┤', '╶', '╴', '─', '╰', '╭', '╮', '╯', '│' ]
-        let range   = Math.abs (max - min)
-        let offset  = (typeof cfg.offset  !== 'undefined') ? cfg.offset  : 3
-        let padding = (typeof cfg.padding !== 'undefined') ? cfg.padding : '           '
-        let height  = (typeof cfg.height  !== 'undefined') ? cfg.height  : range
-        let colors  = (typeof cfg.colors !== 'undefined') ? cfg.colors : []
-        let ratio   = range !== 0 ? height / range : 1;
-        let min2    = Math.round (min * ratio)
-        let max2    = Math.round (max * ratio)
-        let rows    = Math.abs (max2 - min2)
-        let width = 0
-        for (let i = 0; i < series.length; i++) {
-            width = Math.max(width, series[i].length)
-        }
-        width = width + offset
-        let symbols = (typeof cfg.symbols !== 'undefined') ? cfg.symbols : defaultSymbols
-        let format  = (typeof cfg.format !== 'undefined') ? cfg.format : function (x) {
-            return (padding + x.toFixed (2)).slice (-padding.length)
-        }
-
-        let result = new Array (rows + 1) // empty space
-        for (let i = 0; i <= rows; i++) {
-            result[i] = new Array (width)
-            for (let j = 0; j < width; j++) {
-                result[i][j] = ' '
-            }
-        }
-        for (let y = min2; y <= max2; ++y) { // axis + labels
-            let label = format (rows > 0 ? max - (y - min2) * range / rows : y, y - min2)
-            result[y - min2][Math.max (offset - label.length, 0)] = label
-            result[y - min2][offset - 1] = (y == 0) ? symbols[0] : symbols[1]
-        }
-
-        for (let j = 0; j < series.length; j++) {
-            let currentColor = colors[j % colors.length]
-            let y0 = Math.round (series[j][0] * ratio) - min2
-            result[rows - y0][offset - 1] = colored(symbols[0], currentColor) // first value
-
-            for (let x = 0; x < series[j].length - 1; x++) { // plot the line
-                let y0 = Math.round (series[j][x + 0] * ratio) - min2
-                let y1 = Math.round (series[j][x + 1] * ratio) - min2
-                if (y0 == y1) {
-                    result[rows - y0][x + offset] = colored(symbols[4], currentColor)
-                } else {
-                    result[rows - y1][x + offset] = colored((y0 > y1) ? symbols[5] : symbols[6], currentColor)
-                    result[rows - y0][x + offset] = colored((y0 > y1) ? symbols[7] : symbols[8], currentColor)
-                    let from = Math.min (y0, y1)
-                    let to = Math.max (y0, y1)
-                    for (let y = from + 1; y < to; y++) {
-                        result[rows - y][x + offset] = colored(symbols[9], currentColor)
-                    }
-                }
-            }
-        }
-        return result.map (function (x) { return x.join ('') }).join ('\n')
-    }
-
-}) (asciichart);
 var CMD_LIST = {
   'version': cmd_version,
   'help': cmd_help,
