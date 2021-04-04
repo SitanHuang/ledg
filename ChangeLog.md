@@ -15,6 +15,7 @@
 
 ### Fixed
 - fix incorrect debug times
+- fix edit new overwrites all entries in a book
 
 ### [0.7.1] 2021-03-30
 #### Fixed
