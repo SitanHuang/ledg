@@ -1,5 +1,9 @@
 
 # Changelog
+## [Unreleased]
+### Added
+- history \-\-invert
+
 ## [0.7.2] 2021-04-04
 ### Added
 - add virt: modifier and --real

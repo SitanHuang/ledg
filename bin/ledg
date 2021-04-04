@@ -3187,7 +3187,8 @@ async function cmd_history(args) {
 
       let vs;
 
-      if (acc.q == cmd_report_accounts_compiled.income || acc.q == cmd_report_accounts_compiled.expense) {
+      if (acc.q == cmd_report_accounts_compiled.income || acc.q == cmd_report_accounts_compiled.expense ||
+          args.flags.invert) {
         v = -v
       }
       vs = print_format_money(v);
@@ -4121,13 +4122,16 @@ async function cmd_help() {
 
 \thistory [--daily] [--weekly] [--biweekly] [--monthly] [--quarterly]
 \t        [--yearly] [--cumulative] [--cumulative-columns=num list]
-\t        [--skip-book-close=true] [--epoch] [--csv] [--iso]
+\t        [--skip-book-close=true] [--epoch] [--csv] [--iso] [--invert]
 \t        [ <account filter 1> <account filter 2> ... ] [--skip=]
 \t\tDefaults: shows accounts specified by --income, --expense, --asset, --liability,
 \t\t          and --equity, and defaults --skip-book-close=true
 \t\tprints multicolumn time by selected interval
 \t\tNote: even with cumulative columns, history command does not sum everything from
 \t\t@min, and so unless from:@min is given, asset/liability calculation is not accurate
+
+\t\t--invert
+\t\t\tinvert every number
 
 \t\t--cumulative-columns=1,2,3..., --cml-cols
 \t\t\tshows cumulative data for the given column numbers
