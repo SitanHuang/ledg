@@ -105,6 +105,9 @@ FILTER
                         contains the letters in that order
                             ex: .csh. matches *\.[^.]*c[^.]*s[^.]*h[^.]*\.* in regex
 
+VIRTUAL ENTRIES
+        Entries are virtual with virt:true modifier.
+        Pass --real flag ignores these virtual entries.
 
 COMMANDS
         Commands can be shortened as long as they are not ambiguous
