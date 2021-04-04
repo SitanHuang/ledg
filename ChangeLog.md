@@ -1,6 +1,6 @@
 
 # Changelog
-## [Unreleased]
+## [0.7.2] 2021-04-04
 ### Added
 - add virt: modifier and --real
 - budget --simple
@@ -15,7 +15,6 @@
 
 ### Fixed
 - fix incorrect debug times
-- fix edit new overwrites all entries in a book
 
 ### [0.7.1] 2021-03-30
 #### Fixed
