@@ -168,6 +168,9 @@ COMMANDS
                 Note: even with cumulative columns, history command does not sum everything from
                 @min, and so unless from:@min is given, asset/liability calculation is not accurate
 
+                --invert
+                        invert every number
+
                 --cumulative-columns=1,2,3..., --cml-cols
                         shows cumulative data for the given column numbers
 
