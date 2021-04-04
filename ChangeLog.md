@@ -2,6 +2,7 @@
 # Changelog
 ## [Unreleased]
 ### Added
+- add virt: modifier and --real
 - budget --simple
 - accounts --sort
 

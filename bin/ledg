@@ -1339,12 +1339,14 @@ async function report_traverse(args, callback, afterOpenCallback) {
   await data_iterate_books(range, async function (book) {
     let len = book.length;
     WHILE: while (len--) {
-      if ((book[len].time >= (f / 1000 | 0)) && (book[len].time < t / 1000 | 0)) {
-        if (args.flags['skip-book-close'] && book[len].bookClose && book[len].bookClose.toString() == 'true') continue WHILE;
+      let entry = book[len];
+      if ((entry.time >= (f / 1000 | 0)) && (entry.time < t / 1000 | 0)) {
+        if (entry.virt && args.flags.real) continue WHILE;
+        if (args.flags['skip-book-close'] && entry.bookClose && entry.bookClose.toString() == 'true') continue WHILE;
         if (args.accounts && args.accounts.length) {
           let matchTimes = 0;
           FOR: for (let q of args.accounts) {
-            for (let t of book[len].transfers) {
+            for (let t of entry.transfers) {
               if (t[1].match(q)) {
                 matchTimes++;
                 break;
@@ -1354,13 +1356,13 @@ async function report_traverse(args, callback, afterOpenCallback) {
           if (matchTimes != args.accounts.length) continue WHILE;
         }
         for (mod in regexMod) {
-          if (!book[len][mod]) {
+          if (!entry[mod]) {
             if (regexMod[mod].source == '(?:)') continue; // empty on both
             else continue WHILE;
           }
-          if (!(book[len][mod].toString()).match(regexMod[mod])) continue WHILE;
+          if (!(entry[mod].toString()).match(regexMod[mod])) continue WHILE;
         }
-        await callback(book[len]);
+        await callback(entry);
       }
     }
   }, afterOpenCallback);
@@ -1883,6 +1885,7 @@ async function query_exec(query) {
     ENTRY: while (len--) {
       let e = book[len];
       if (e.time < query.from || e.time >= query.to) continue;
+      if (e.virt && args.flags.real) continue;
       let i = -1;
       QUERY: for (let q of query.queries) {
         i++;
@@ -4053,6 +4056,9 @@ async function cmd_help() {
 \t\t\tcontains the letters in that order
 \t\t\t    ex: .csh. matches *\\.[^.]*c[^.]*s[^.]*h[^.]*\\.* in regex
 
+**VIRTUAL ENTRIES**
+\tEntries are virtual with virt:true modifier.
+\tPass --real flag ignores these virtual entries.
 
 **COMMANDS**
 \tCommands can be shortened as long as they are not ambiguous
