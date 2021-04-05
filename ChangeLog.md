@@ -3,6 +3,14 @@
 ## [Unreleased]
 ### Added
 - history \-\-invert
+- modifier shorthands(see manual)
+
+### Changed
+- value "true" in modifier is converted to boolean
+
+### Fixed
+- booleans are interpreted as 1 or 0 in modifiers
+
 
 ## [0.7.2] 2021-04-04
 ### Added

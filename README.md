@@ -82,6 +82,12 @@ FILTER
                 ex: payee:"amazon|steam"
                     tag:"pc|tablet"
 
+                shorthands:
+                        desc: => description:
+                        f:    => from:
+                        t:    => to:
+                        bc:   => bookClose:
+
         +TAG
                 appends TAG(,|$) to tags: modifier, if tags: is empty
 
