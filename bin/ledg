@@ -1416,9 +1416,10 @@ function report_replaceDateStr(dateStr) {
   return dateStr;
 }
 class Money {
-  constructor(amt, currency=data.defaultCurrency) {
-    this.amnt = new Big(amnt);
+  constructor(amt, currency=data.defaultCurrency, date=(new Date() / 1000 | 0)) {
+    this.amnt = new Big(amt);
     this.currency = currency;
+    this.date = date;
   }
 
   toString() {
@@ -1431,15 +1432,46 @@ class Money {
     return this.val();
   }
 
-  // returns primitive
-  val(currency=this.currency) {
-
+  val() {
+    return this.amnt.toNumber();
   }
 
-  convert(currency=data.defaultCurrency) {
+  // returns new Money obj with tCur
+  convert(tCur=data.defaultCurrency, date=this.date) {
+    if (tCur == this.currency)
+      return new Money(this.amnt, tCur);
 
+    let conv = Money.resolvePath(this.currency, tCur, date);
+    return new Money(this.amnt.times(conv), tCur);
   }
 
+  /*
+   * performs depth-first search and return conversion rate
+   */
+  static resolvePath(c1, c2, date=this.date) {
+    if (c1 == c2) return new Big(0);
+    let path = graph_shortestPath(data.priceGraph, c1, c2);
+    if (!path)
+      throw `Cannot resolve conversion between ${c1} and ${c2}`;
+    let conv = new Big(1);
+    for (let i = 0;i < path.length - 1;i++) {
+      let r1 = path[i];
+      let r2 = path[i + 1];
+      let tree = data.prices[r1 + ',' + r2]; // btree history
+      if (!tree)
+        throw `Cannot resolve conversion between ${c1} and ${c2} because ${r1} and ${r2} cannot be resolved.`;
+      let v;
+      tree.walk((t, x) => {
+        if (t > date)
+          return true; // break loop
+        v = x;
+      });
+      if (!v)
+        throw `Conversion rate between ${r1} and ${r2} on ${entry_datestr(date)} cannot be resolved.`;
+      conv = conv.times(v);
+    }
+    return conv;
+  }
 }
 /*
  Copyright 2013 Daniel Wirtz <dcode@dcode.io>
@@ -2155,6 +2187,54 @@ var BTree;
     BTree = btree.create(2, btree.numcmp);
 })({ exports: null }, console);
 
+function Graph() {
+  var neighbors = this.neighbors = {}; // Key = vertex, value = array of neighbors.
+
+  this.addEdge = function (u, v) {
+    if (neighbors[u] === undefined) {  // Add the edge u -> v.
+      neighbors[u] = [];
+    }
+    neighbors[u].push(v);
+    if (neighbors[v] === undefined) {  // Also add the edge v -> u so as
+      neighbors[v] = [];               // to implement an undirected graph.
+    }
+    neighbors[v].push(u);
+  };
+
+  return this;
+}
+
+function graph_shortestPath(graph, source, target) {
+  var queue = [ source ],
+      visited = { source: true },
+      predecessor = {},
+      tail = 0;
+  while (tail < queue.length) {
+    var u = queue[tail++],  // Pop a vertex off the queue.
+        neighbors = graph.neighbors[u];
+    for (var i = 0; i < neighbors.length; ++i) {
+      var v = neighbors[i];
+      if (visited[v]) {
+        continue;
+      }
+      visited[v] = true;
+      if (v === target) {   // Check if the path is complete.
+        var path = [ v ];   // If so, backtrack through the path.
+        while (u !== source) {
+          path.push(u);
+          u = predecessor[u];
+        }
+        path.push(u);
+        path.reverse();
+        return path;
+      }
+      predecessor[v] = u;
+      queue.push(v);
+    }
+  }
+  // no path found
+  return;
+}
 
 /*!
  * accounting.js v0.4.2
@@ -2755,7 +2835,8 @@ function data_init_data() {
     defaultCurrency: '$',
     accountCurrency: {},
     priceFiles: [],
-    prices: {} // { ['min', 'hr']: bTree( [time, price] ) }
+    priceGraph: new Graph(),
+    prices: {} // { ['min', 'hr']: bTree( [time, Big(price)] ) }
   };
   return data;
 }
@@ -3215,9 +3296,15 @@ async function fs_read_price(path) {
 
     let price = null;
     const commitPrice = (price) => {
-      let key = [price.c1, price.c2];
+      let key = price.c1 + ',' + price.c2;
       let tree = data.prices[key] = data.prices[key] || new BTree();
-      tree.put(price.time, price.price);
+      tree.put(price.time, new Big(price.price));
+      // reverse
+      key = price.c2 + ',' + price.c1;
+      tree = data.prices[key] = data.prices[key] || new BTree();
+      tree.put(price.time, price.price ? new Big(1).div(price.price) : 0);
+
+      data.priceGraph.addEdge(price.c1, price.c2);
     };
 
     for await (let line of rl) {
@@ -3236,7 +3323,7 @@ function fs_read_price_proc_line(price, line, commitPrice) {
   if (line[0] == 'P') { // start price
     if (price) commitPrice(price);
 
-    let match = line.match(/^P\s+(\d{4}-\d{2}-\d{2})\s+([^\d\s]+)\s+(([\d.]+)\s*([^\d\s]+)|([^\d\s]+)\s*([\d.]+))\s*$/);
+    let match = line.match(/^P\s+(\d{4}-\d{2}-\d{2})\s+([^\d\s]+)\s+(([\d.]+)\s*([^\d\s,]+)|([^\d\s,]+)\s*([\d.]+))\s*$/);
 
     if (!match)
       throw `"${line}" is not a valid price declaration`;
@@ -4333,6 +4420,11 @@ function _cmd_register_nogroup(args, data, skipTo, depth) {
   console.log(tabulate(table, { align: align }));
 }
 async function cmd_benchmark(args) {
+  if (args._[0] == 'test') {
+    let m = new Money(1, 'hr');
+    console.log(m.convert('sec').amnt.toNumber());
+    return;
+  }
   let times = Number(args._[0]) || 100;
   for (let i = 0;i < times;i++) {
     data_init_data();
