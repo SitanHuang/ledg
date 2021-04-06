@@ -77,7 +77,6 @@ function entry_modify_create(desc, transfers, opts, balanced) {
 
 function entry_balance(e) {
   let balance = entry_check_balance(e.transfers);
-  console.log(balance.isZero(), balance.toString());
   if (balance && !balance.isZero()) {
     let lastAmnt = e.transfers[e.transfers.length - 1][2];
     if (lastAmnt.isZero()) // last entry auto balance
@@ -3323,8 +3322,6 @@ async function fs_read_book(year) {
     let entry = null;
     const commitEntry = (entry) => {
       entry_balance(entry);
-      console.log("=====commit entry=====");
-      console.log(entry.transfers.map(x => [x[0], x[1], x[2].toString()]));
       data.books[year].push(entry);
       _fs_entries_read++;
     };
