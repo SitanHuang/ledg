@@ -64,7 +64,7 @@ function entry_modify_create(desc, transfers, opts, balanced) {
   if (desc.trim().length)
     e.description = desc;
   Object.assign(e, opts);
-  
+
   if (transfers && transfers.length) {
     e.transfers = transfers;
     if (!balanced) {
@@ -77,12 +77,24 @@ function entry_modify_create(desc, transfers, opts, balanced) {
 
 function entry_balance(e) {
   let balance = entry_check_balance(e.transfers);
-  if (balance) {
-    if (e.transfers[e.transfers.length - 1][2] == 0) // last entry auto balance
+  console.log(balance.isZero(), balance.toString());
+  if (balance && !balance.isZero()) {
+    let lastAmnt = e.transfers[e.transfers.length - 1][2];
+    if (lastAmnt.isZero()) // last entry auto balance
       e.transfers[e.transfers.length - 1][2] = balance;
     else
       e.transfers.push(['', data_acc_imb, balance]);
   }
+}
+
+function entry_check_balance(transfers) {
+  let balance;
+  for (let t of transfers) {
+    if (!balance) balance = t[2];
+    else balance = balance.plus(t[2]);
+  }
+  if (!balance) return 0;
+  return balance.timesPrim(-1);
 }
 
 const date_timezone_offset = new Date().getTimezoneOffset();
@@ -96,13 +108,6 @@ function entry_datestr(entry) {
   return date.toISOString().split('T')[0];
 }
 
-function entry_check_balance(transfers) {
-  let balance = new Big(0);
-  for (let t of transfers) {
-    balance = balance.add(t[2]);
-  }
-  return -balance.toNumber();
-}
 var tree_c0 = "├";
 var tree_c1 = "─";
 var tree_c2 = "└";
@@ -1415,16 +1420,24 @@ function report_replaceDateStr(dateStr) {
   if (CMD_MODIFER_REPLACE[dateStr]) return new Date(CMD_MODIFER_REPLACE[dateStr]() * 1000).toISOString().split('T')[0];
   return dateStr;
 }
+var MON_REGEX = /((-?[\d.]+)\s*([^\d\s,\-.]+)|([^\d\s,\-.]+)\s*(-?[\d.]+)|(-?[\d.,\-.]+))/;
+
 class Money {
   constructor(amnt=0, currency=data.defaultCurrency, date=(new Date() / 1000 | 0)) {
     this.amnts = {};
     this.amnts[currency] = new Big(amnt);
+    this.initCur = currency;
     this.date = date;
   }
 
   toString() {
     return Object.keys(this.amnts).sort().filter(x => this.amnts[x] != 0)
-      .map(x => `${x} ${this.amnts[x].toNumber()}`).join(", ");
+      .map(x => x == data.defaultCurrency ? this.amnts[x].valueOf() : `${x} ${this.amnts[x].toNumber()}`)
+      .join(", ") || '0';
+  }
+
+  serialize() {
+    return this.toString();
   }
 
   clone() {
@@ -1445,10 +1458,71 @@ class Money {
     return clone;
   }
   divPrim(x) {
-    for (let cur in this.amnts) {
-      let amnt = this.amnts[cur] || new Big(0);
-      this.amnts[cur] = amnt.plus(mon);
+    let clone = this.clone();
+    for (let cur in clone.amnts) {
+      let amnt = clone.amnts[cur];
+      clone.amnts[cur] = amnt.div(x);
     }
+    return clone;
+  }
+  timesPrim(x) {
+    let clone = this.clone();
+    for (let cur in clone.amnts) {
+      let amnt = clone.amnts[cur];
+      clone.amnts[cur] = amnt.times(x);
+    }
+    return clone;
+  }
+
+  /*
+   * 0: if (this == b)
+   * -num: if (this < b)
+   * +num: if (this > b)
+   */
+  compare(b) {
+    let iz1 = this.isZero();
+    let iz2 = b.isZero();
+    if (iz1 && iz2) return 0;
+
+    let cur;
+    if (iz1) { // im zero
+      // find first non zero currency of b
+      for (let _c in b.amnts)
+        if (b.amnts[_c] && (cur = _c)) break;
+      return -b.val(cur);
+    }
+    // find first non zero currency of this
+    for (let _c in this.amnts)
+      if (this.amnts[_c] && (cur = _c)) break;
+    if (iz2) { // b is zero
+      return this.val(cur);
+    }
+    return this.val(cur) - b.val(cur);
+  }
+
+  gtr(b) {
+    return this.compare(b) > 0;
+  }
+  gtrOrEq(b) {
+    return this.compare(b) >= 0;
+  }
+
+  eq(b) {
+    return !this.compare(b);
+  }
+
+  lsr(b) {
+    return this.compare(b) < 0;
+  }
+  lsrOrEq(b) {
+    return this.compare(b) <= 0;
+  }
+
+  isZero() {
+    for (let c in this.amnts)
+      if(this.amnts[c] != 0)
+        return false;
+    return true;
   }
 
   // returns primitive amnt in defaultCurrency
@@ -1456,8 +1530,8 @@ class Money {
     return this.val();
   }
 
-  val(tCur=data.defaultCurrency) {
-    // TODO: stub
+  val(tCur=this.initCur, date=this.date) {
+    return this.convert(tCur, date).amnts[tCur].toNumber();
   }
 
   // return Money with sum of all currencies in tCur
@@ -1477,6 +1551,14 @@ class Money {
       mon.amnts[tCur] = mon.amnts[tCur].plus(amnt);
     }
     return mon;
+  }
+
+  static parseMoney(str, date=(new Date() / 1000 | 0)) {
+    let match = str.match(MON_REGEX);
+    if (!match) return false;
+    let cur = match[4] || match[3] || data.defaultCurrency;
+    let amnt = new Big(match[5] || match[2] || match[6]);
+    return new Money(amnt, cur, date);
   }
 
   /*
@@ -3240,7 +3322,10 @@ async function fs_read_book(year) {
 
     let entry = null;
     const commitEntry = (entry) => {
-      entry_balance(entry); data.books[year].push(entry);
+      entry_balance(entry);
+      console.log("=====commit entry=====");
+      console.log(entry.transfers.map(x => [x[0], x[1], x[2].toString()]));
+      data.books[year].push(entry);
       _fs_entries_read++;
     };
 
@@ -3258,7 +3343,8 @@ function fs_read_entries_from_string(str) {
 
   let entry = null;
   const commitEntry = (entry) => {
-    entry_balance(entry); entries.push(entry);
+    entry_balance(entry);
+    entries.push(entry);
   };
 
   for (let line of lines) {
@@ -3313,7 +3399,8 @@ function fs_read_book_proc_line(entry, line, commitEntry) {
       t[1] = splits[1].trim();
       data.accounts[t[1]] = 1;
       if (splits[2]) splits[2] = splits[2].trim();
-      t[2] = splits[2] && splits[2].length ? parseFloat(splits[2]) : 0;
+      t[2] = Money.parseMoney(splits[2] && splits[2].length ? splits[2] : '0', entry.time);
+      if (t[2] === false) throw `Cannot parse ${splits[2]} as a value.`;
       entry.transfers.push(t);
     }
   }
@@ -3360,7 +3447,7 @@ function fs_read_price_proc_line(price, line, commitPrice) {
   if (line[0] == 'P') { // start price
     if (price) commitPrice(price);
 
-    let match = line.match(/^P\s+(\d{4}-\d{2}-\d{2})\s+([^\d\s]+)\s+((-?[\d.]+)\s*([^\d\s,]+)|([^\d\s,]+)\s*(-?[\d.]+))\s*$/);
+    let match = line.match(/^P\s+(\d{4}-\d{2}-\d{2})\s+([^\d\s,\-.]+)\s+((-?[\d.]+)\s*([^\d\s,\-.]+)|([^\d\s,\-.]+)\s*(-?[\d.]+))\s*$/);
 
     if (!match)
       throw `"${line}" is not a valid price declaration`;
