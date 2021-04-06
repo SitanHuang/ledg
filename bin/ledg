@@ -1526,7 +1526,7 @@ class Money {
 
   // returns primitive amnt in defaultCurrency
   valueOf() {
-    return this.val();
+    return this.val(data.defaultCurrency);
   }
 
   val(tCur=this.initCur, date=this.date) {
@@ -1552,12 +1552,21 @@ class Money {
     return mon;
   }
 
-  static parseMoney(str, date=(new Date() / 1000 | 0)) {
-    let match = str.match(MON_REGEX);
-    if (!match) return false;
-    let cur = match[4] || match[3] || data.defaultCurrency;
-    let amnt = new Big(match[5] || match[2] || match[6]);
-    return new Money(amnt, cur, date);
+  static parseMoney(whole, date=(new Date() / 1000 | 0)) {
+    let sp = whole.split(/, ?/);
+    if (!sp.length) return false;
+    let mon;
+    for (let str of sp) {
+      let match = str.match(MON_REGEX);
+      if (!match) return false;
+      let cur = match[4] || match[3] || data.defaultCurrency;
+      let amnt = new Big(match[5] || match[2] || match[6]);
+      if (!mon)
+        mon = new Money(amnt, cur, date);
+      else
+        mon.amnts[cur] = (mon.amnts[cur] || new Big(0)).plus(amnt);
+    }
+    return mon;
   }
 
   /*
@@ -3322,6 +3331,8 @@ async function fs_read_book(year) {
     let entry = null;
     const commitEntry = (entry) => {
       entry_balance(entry);
+      console.log("commit====");
+      console.log(entry.transfers.map(x => [x[0], x[1], x[2].toString()]));
       data.books[year].push(entry);
       _fs_entries_read++;
     };
@@ -4542,10 +4553,8 @@ function _cmd_register_nogroup(args, data, skipTo, depth) {
 }
 async function cmd_benchmark(args) {
   if (args._[0] == 'test') {
-    let m = new Money(1, 'hr');
-    console.log(m.toString());
-    console.log(m.plus(new Money(1, 'min')).toString());
-    console.log(m.plus(new Money(1, 'min')).convert('sec').toString());
+    let m = Money.parseMoney('min -30, sec 29');
+    console.log(m.convert('sec').toString());
     return;
   }
   let times = Number(args._[0]) || 100;
