@@ -212,7 +212,7 @@ var Big;
      * The maximum number of decimal places (DP) of the results of operations involving division:
      * div and sqrt, and pow with negative exponents.
      */
-    DP = 4,            // 0 to MAX_DP
+    DP = 10,            // 0 to MAX_DP
 
     /*
      * The rounding mode (RM) used when rounding to the above decimal places.
@@ -1210,11 +1210,11 @@ var Big;
 //   AMD.
 //   if (typeof define === 'function' && define.amd) {
 //     define(function () { return Big; });
-// 
+//
 //   Node and other CommonJS-like environments that support module.exports.
 //   } else if (typeof module !== 'undefined' && module.exports) {
 //     module.exports = Big;
-// 
+//
 //   Browser.
 //   } else {
 //     GLOBAL.Big = Big;
@@ -1416,15 +1416,39 @@ function report_replaceDateStr(dateStr) {
   return dateStr;
 }
 class Money {
-  constructor(amt, currency=data.defaultCurrency, date=(new Date() / 1000 | 0)) {
-    this.amnt = new Big(amt);
-    this.currency = currency;
+  constructor(amnt=0, currency=data.defaultCurrency, date=(new Date() / 1000 | 0)) {
+    this.amnts = {};
+    this.amnts[currency] = new Big(amnt);
     this.date = date;
   }
 
   toString() {
-    // TODO: stub
-    return super.toString();
+    return Object.keys(this.amnts).sort().filter(x => this.amnts[x] != 0)
+      .map(x => `${x} ${this.amnts[x].toNumber()}`).join(", ");
+  }
+
+  clone() {
+    let mon = new Money(0, data.defaultCurrency, this.date);
+    for (let cur in this.amnts) {
+      let amnt = this.amnts[cur];
+      mon.amnts[cur] = amnt;
+    }
+    return mon;
+  }
+
+  plus(mon) {
+    let clone = this.clone();
+    for (let cur in mon.amnts) {
+      let amnt = mon.amnts[cur];
+      clone.amnts[cur] = (clone.amnts[cur] || new Big(0)).plus(amnt);
+    }
+    return clone;
+  }
+  divPrim(x) {
+    for (let cur in this.amnts) {
+      let amnt = this.amnts[cur] || new Big(0);
+      this.amnts[cur] = amnt.plus(mon);
+    }
   }
 
   // returns primitive amnt in defaultCurrency
@@ -1432,17 +1456,27 @@ class Money {
     return this.val();
   }
 
-  val() {
-    return this.amnt.toNumber();
+  val(tCur=data.defaultCurrency) {
+    // TODO: stub
   }
 
-  // returns new Money obj with tCur
+  // return Money with sum of all currencies in tCur
   convert(tCur=data.defaultCurrency, date=this.date) {
-    if (tCur == this.currency)
-      return new Money(this.amnt, tCur);
-
-    let conv = Money.resolvePath(this.currency, tCur, date);
-    return new Money(this.amnt.times(conv), tCur);
+    let mon = new Money(0, tCur);
+    for (let cur in this.amnts) {
+      let amnt = this.amnts[cur];
+      if (amnt == 0) continue;
+      if (cur != tCur) {
+        try {
+          let conv = Money.resolvePath(cur, tCur, date);
+          amnt = amnt.times(conv);
+        } catch (e) {
+          throw `Cannot convert from ${cur} to ${tCur}: ` + e;
+        }
+      }
+      mon.amnts[tCur] = mon.amnts[tCur].plus(amnt);
+    }
+    return mon;
   }
 
   /*
@@ -1450,6 +1484,7 @@ class Money {
    */
   static resolvePath(c1, c2, date=this.date) {
     if (c1 == c2) return new Big(0);
+    if (DEBUG) console.debug(`Converting ${c1} to ${c2}`);
     let path = graph_shortestPath(data.priceGraph, c1, c2);
     if (!path)
       throw `Cannot resolve conversion between ${c1} and ${c2}`;
@@ -2212,6 +2247,8 @@ function graph_shortestPath(graph, source, target) {
   while (tail < queue.length) {
     var u = queue[tail++],  // Pop a vertex off the queue.
         neighbors = graph.neighbors[u];
+    if (!neighbors)
+      throw `${u} does not exist.`;
     for (var i = 0; i < neighbors.length; ++i) {
       var v = neighbors[i];
       if (visited[v]) {
@@ -3323,7 +3360,7 @@ function fs_read_price_proc_line(price, line, commitPrice) {
   if (line[0] == 'P') { // start price
     if (price) commitPrice(price);
 
-    let match = line.match(/^P\s+(\d{4}-\d{2}-\d{2})\s+([^\d\s]+)\s+(([\d.]+)\s*([^\d\s,]+)|([^\d\s,]+)\s*([\d.]+))\s*$/);
+    let match = line.match(/^P\s+(\d{4}-\d{2}-\d{2})\s+([^\d\s]+)\s+((-?[\d.]+)\s*([^\d\s,]+)|([^\d\s,]+)\s*(-?[\d.]+))\s*$/);
 
     if (!match)
       throw `"${line}" is not a valid price declaration`;
@@ -4422,7 +4459,9 @@ function _cmd_register_nogroup(args, data, skipTo, depth) {
 async function cmd_benchmark(args) {
   if (args._[0] == 'test') {
     let m = new Money(1, 'hr');
-    console.log(m.convert('sec').amnt.toNumber());
+    console.log(m.toString());
+    console.log(m.plus(new Money(1, 'min')).toString());
+    console.log(m.plus(new Money(1, 'min')).convert('sec').toString());
     return;
   }
   let times = Number(args._[0]) || 100;
