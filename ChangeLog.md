@@ -1,6 +1,6 @@
 
 # Changelog
-## [0.8.0-beta] 2021-04-04
+## [0.8.0-beta] 2021-04-07
 ### Added
 - multicurrency support
   - complete rewrite of internal parsing and
