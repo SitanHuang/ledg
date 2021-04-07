@@ -1385,7 +1385,7 @@ async function report_sum_accounts(args, sum_parent, forkAccList) {
         let previous = "";
         for (let l of levels) {
           let k = previous + l;
-          if (!d[k]) d[k] = new Big(0);
+          if (!d[k]) d[k] = new Money();
           d[k] = d[k].plus(t[2]);
           previous = k + ".";
         }
@@ -1396,10 +1396,9 @@ async function report_sum_accounts(args, sum_parent, forkAccList) {
   }, async function() { // wait until books are opened to load accounts
 
     d = JSON.parse(JSON.stringify(forkAccList || data.accounts));
-    Object.keys(d).forEach(x => d[x] = new Big(0));
+    Object.keys(d).forEach(x => d[x] = new Money());
   });
 
-  Object.keys(d).forEach(x => d[x] = d[x].toNumber());
   Object.keys(d).forEach(x => {
     if (args.accounts && args.accounts) {
       let matchTimes = 0;
@@ -1450,11 +1449,12 @@ class Money {
     return this.convert(tCur, date).amnts[tCur].toNumber();
   }
 
-  tryConvertArgs(args) {
+  tryConvertArgs(args, date=this.date) {
     let cur = args.flags.currency;
+    let d = Date.parse(args.flags['valuation-date'] + 'T00:00:00') / 1000 | 0;
     if (cur)
       try {
-        return this.convert(cur);
+        return this.convert(cur, d || date);
       } catch (e) {}
     return this.clone();
   }
@@ -4197,8 +4197,8 @@ async function cmd_history(args) {
 
       for (let t of entry.transfers) {
         if (t[1].match(q)) {
-          acc.val[i] = acc.val[i].plus(t[2]);
-          acc.sum = acc.sum.plus(t[2]);
+          acc.val[i] = acc.val[i].plus(t[2].tryConvertArgs(args, entry.time));
+          acc.sum = acc.sum.plus(t[2].tryConvertArgs(args, entry.time));
         }
       }
     }
@@ -4241,7 +4241,6 @@ async function cmd_history(args) {
         x.val[j] = x.val[j].plus(x.val[j - 1]);
       });
     }
-    // x.val = x.val.map(v => v.toNumber());
   });
 
   crntD = new Date(from);
@@ -4282,7 +4281,7 @@ async function cmd_history(args) {
       last = current;
     }
     for (let acc of accounts) {
-      let v = acc.val[r].tryConvertArgs(args);
+      let v = acc.val[r];
 
       if (acc.q == cmd_report_accounts_compiled.income || acc.q == cmd_report_accounts_compiled.expense ||
           args.flags.invert) {
@@ -5760,13 +5759,9 @@ async function cmd_accounts(args) {
   let balanceData = await report_sum_accounts(args, sumParent);
   let accounts = Object.keys(balanceData);
 
+  let table = [["Accounts", "Balance"]];
 
-  let width = "Accounts".length;
-  let width2 = "Balance".length;
-  let sum = new Big(0);
-  accounts.forEach(x => {
-    width2 = Math.max(width2, print_format_money(balanceData[x]).length);
-  });
+  let sum = new Money();
 
   let accs = accounts.sort((a, b) =>
     args.flags['sort'] ?
