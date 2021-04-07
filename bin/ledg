@@ -64,7 +64,7 @@ function entry_modify_create(desc, transfers, opts, balanced) {
   if (desc.trim().length)
     e.description = desc;
   Object.assign(e, opts);
-  
+
   if (transfers && transfers.length) {
     e.transfers = transfers;
     if (!balanced) {
@@ -77,12 +77,25 @@ function entry_modify_create(desc, transfers, opts, balanced) {
 
 function entry_balance(e) {
   let balance = entry_check_balance(e.transfers);
-  if (balance) {
-    if (e.transfers[e.transfers.length - 1][2] == 0) // last entry auto balance
+  if (balance && !balance.isZero()) {
+    let lastAmnt = e.transfers[e.transfers.length - 1][2];
+    if (lastAmnt.isZero()) // last entry auto balance
       e.transfers[e.transfers.length - 1][2] = balance;
     else
       e.transfers.push(['', data_acc_imb, balance]);
   }
+}
+
+function entry_check_balance(transfers) {
+  let balance;
+  for (let t of transfers) {
+    if (!balance) balance = t[2];
+    else balance = balance.plus(t[2]);
+  }
+  if (!balance) return 0;
+  balance = balance.removeEmpty();
+  if (balance.isZero()) return 0;
+  return balance.timesPrim(-1);
 }
 
 const date_timezone_offset = new Date().getTimezoneOffset();
@@ -96,13 +109,6 @@ function entry_datestr(entry) {
   return date.toISOString().split('T')[0];
 }
 
-function entry_check_balance(transfers) {
-  let balance = new Big(0);
-  for (let t of transfers) {
-    balance = balance.add(t[2]);
-  }
-  return -balance.toNumber();
-}
 var tree_c0 = "├";
 var tree_c1 = "─";
 var tree_c2 = "└";
@@ -212,7 +218,7 @@ var Big;
      * The maximum number of decimal places (DP) of the results of operations involving division:
      * div and sqrt, and pow with negative exponents.
      */
-    DP = 4,            // 0 to MAX_DP
+    DP = 10,            // 0 to MAX_DP
 
     /*
      * The rounding mode (RM) used when rounding to the above decimal places.
@@ -1210,11 +1216,11 @@ var Big;
 //   AMD.
 //   if (typeof define === 'function' && define.amd) {
 //     define(function () { return Big; });
-// 
+//
 //   Node and other CommonJS-like environments that support module.exports.
 //   } else if (typeof module !== 'undefined' && module.exports) {
 //     module.exports = Big;
-// 
+//
 //   Browser.
 //   } else {
 //     GLOBAL.Big = Big;
@@ -1380,7 +1386,7 @@ async function report_sum_accounts(args, sum_parent, forkAccList) {
         let previous = "";
         for (let l of levels) {
           let k = previous + l;
-          if (!d[k]) d[k] = new Big(0);
+          if (!d[k]) d[k] = new Money();
           d[k] = d[k].plus(t[2]);
           previous = k + ".";
         }
@@ -1391,10 +1397,9 @@ async function report_sum_accounts(args, sum_parent, forkAccList) {
   }, async function() { // wait until books are opened to load accounts
 
     d = JSON.parse(JSON.stringify(forkAccList || data.accounts));
-    Object.keys(d).forEach(x => d[x] = new Big(0));
+    Object.keys(d).forEach(x => d[x] = new Money());
   });
 
-  Object.keys(d).forEach(x => d[x] = d[x].toNumber());
   Object.keys(d).forEach(x => {
     if (args.accounts && args.accounts) {
       let matchTimes = 0;
@@ -1414,6 +1419,1027 @@ async function report_sum_accounts(args, sum_parent, forkAccList) {
 function report_replaceDateStr(dateStr) {
   if (CMD_MODIFER_REPLACE[dateStr]) return new Date(CMD_MODIFER_REPLACE[dateStr]() * 1000).toISOString().split('T')[0];
   return dateStr;
+}
+var MON_REGEX = /((-?[\d.]+)\s*([^\d\s,\-.]+)|([^\d\s,\-.]+)\s*(-?[\d.]+)|(-?[\d.,\-.]+))/;
+
+class Money {
+  constructor(amnt=0, currency=data.defaultCurrency, date=(new Date() / 1000 | 0)) {
+    this.amnts = {};
+    this.amnts[currency] = new Big(amnt);
+    this.initCur = currency;
+    this.date = date;
+  }
+
+  serialize() {
+    return this.toString();
+  }
+
+  toString() {
+    let keys = Object.keys(this.amnts).filter(x => this.amnts[x] != 0);
+    let str = [];
+    for (let x of keys) {
+      if (x == data.defaultCurrency && keys.length == 1)
+        return this.amnts[x].valueOf().toString();
+      str.push(this.amnts[x].toNumber() + x);
+    }
+    return str.join(", ") || '0';
+  }
+  // returns primitive amnt in defaultCurrency
+  valueOf() {
+    return this.val(data.defaultCurrency);
+  }
+
+  val(tCur=this.initCur, date=this.date) {
+    return this.convert(tCur, date).amnts[tCur].toNumber();
+  }
+
+  tryConvertArgs(args, date=this.date) {
+    let cur = args.flags.currency;
+    let d = Date.parse(args.flags['valuation-date'] + 'T00:00:00') / 1000 | 0;
+    if (cur)
+      try {
+        return this.convert(cur, d || date);
+      } catch (e) {}
+    return this.clone();
+  }
+
+  // only to be called from cli
+  colorFormat(dp=Big.DP, plus) {
+    let keys = Object.keys(this.amnts);
+    let str = [];
+    for (let x of keys) {
+      if (this.amnts[x] == 0) continue;
+      if (x == data.defaultCurrency && keys.length == 1) {
+        return Money.colorAmount('', this.amnts[x], dp, plus);
+      }
+      str.push(Money.colorAmount(x, this.amnts[x], dp, plus));
+    }
+    return str.join(", ") || '0';
+  }
+  // only to be called from cli
+  noColorFormat(dp=Big.DP, plus) {
+    let keys = Object.keys(this.amnts);
+    let str = [];
+    for (let x of keys) {
+      if (this.amnts[x] == 0) continue;
+      if (x == data.defaultCurrency && keys.length == 1) {
+        return Money.formatAmount('', this.amnts[x], dp, plus);
+      }
+      str.push(Money.formatAmount(x, this.amnts[x], dp, plus));
+    }
+    return str.join(", ") || '0';
+  }
+
+  static colorAmount(cur, b, maxdp=Big.DP, plus) {
+    let amnt = Money.formatAmount(cur, b, maxdp, plus);
+    if (b < 0)
+      return c.redBright(amnt);
+    if (b > 0)
+      return c.green(amnt);
+    return amnt;
+  }
+
+  static formatAmount(cur, b, maxdp=Big.DP, plus) {
+    let precision = Math.min(Math.max(b.c.length - b.e - 1, 2), maxdp);
+    return cur + (plus && b > 0 ? '+' : '') + accounting.formatMoney(b, undefined, precision);
+  }
+
+  clone() {
+    let mon = new Money(0, data.defaultCurrency, this.date);
+    for (let cur in this.amnts) {
+      let amnt = this.amnts[cur];
+      mon.amnts[cur] = amnt;
+    }
+    return mon;
+  }
+
+  plus(mon) {
+    let clone = this.clone();
+    for (let cur in mon.amnts) {
+      let amnt = mon.amnts[cur];
+      clone.amnts[cur] = (clone.amnts[cur] || new Big(0)).plus(amnt);
+    }
+    return clone;
+  }
+  divPrim(x) {
+    let clone = this.clone();
+    for (let cur in clone.amnts) {
+      let amnt = clone.amnts[cur];
+      clone.amnts[cur] = amnt.div(x);
+    }
+    return clone;
+  }
+  timesPrim(x) {
+    let clone = this.clone();
+    for (let cur in clone.amnts) {
+      let amnt = clone.amnts[cur];
+      clone.amnts[cur] = amnt.times(x);
+    }
+    return clone;
+  }
+
+  /*
+   * 0: if (this == b)
+   * -num: if (this < b)
+   * +num: if (this > b)
+   */
+  compare(b) {
+    try {
+      let iz1 = this.isZero();
+      let iz2 = b.isZero();
+      if (iz1 && iz2) return 0;
+
+      let cur;
+      if (iz1) { // im zero
+        // find first non zero currency of b
+        for (let _c in b.amnts)
+          if (b.amnts[_c] && (cur = _c)) break;
+        return -b.val(cur);
+      }
+      // find first non zero currency of this
+      for (let _c in this.amnts)
+        if (this.amnts[_c] && (cur = _c)) break;
+      if (iz2) { // b is zero
+        return this.val(cur);
+      }
+      return this.val(cur) - b.val(cur);
+    } catch (e) {
+      return 0; // uncomparable due to unresolved conversion
+    }
+  }
+
+  gtr(b) {
+    return this.compare(b) > 0;
+  }
+  gtrOrEq(b) {
+    return this.compare(b) >= 0;
+  }
+
+  eq(b) {
+    return !this.compare(b);
+  }
+
+  lsr(b) {
+    return this.compare(b) < 0;
+  }
+  lsrOrEq(b) {
+    return this.compare(b) <= 0;
+  }
+
+  isZero() {
+    let cur;
+    // find first non zero currency
+    for (let _c in this.amnts)
+      if (this.amnts[_c] && (cur = _c)) break;
+
+    if (!cur) return true; // this.amnts is empty or all zeroes
+
+    // try squash into single currency
+    try {
+      return this.val(cur) == 0;
+    } catch (e) {}
+    return false;
+  }
+
+  // return Money with sum of all currencies in tCur
+  convert(tCur=data.defaultCurrency, date=this.date) {
+    let mon = new Money(0, tCur);
+    for (let cur in this.amnts) {
+      let amnt = this.amnts[cur];
+      if (amnt == 0) continue;
+      if (cur != tCur) {
+        try {
+          let conv = Money.resolvePath(cur, tCur, date);
+          amnt = amnt.times(conv);
+        } catch (e) {
+          throw `Cannot convert from ${cur} to ${tCur}: ` + e;
+        }
+      }
+      mon.amnts[tCur] = mon.amnts[tCur].plus(amnt);
+    }
+    for (let cur in mon.amnts) {
+      // drop last digit
+      mon.amnts[cur] = mon.amnts[cur].round(Big.DP - 2);
+    }
+    return mon;
+  }
+
+  removeEmpty() {
+    let clone = this.clone();
+    for (let cur in this.amnts)
+      if (this.amnts[cur] == 0) delete clone.amnts[cur];
+    return clone;
+  }
+
+  static parseMoney(whole, date=(new Date() / 1000 | 0)) {
+    let sp = whole.split(/, ?/);
+    if (!sp.length) return false;
+    let mon;
+    for (let str of sp) {
+      let match = str.match(MON_REGEX);
+      if (!match) return false;
+      let cur = match[4] || match[3] || data.defaultCurrency;
+      let amnt = new Big(match[5] || match[2] || match[6]);
+      if (!mon)
+        mon = new Money(amnt, cur, date);
+      else
+        mon.amnts[cur] = (mon.amnts[cur] || new Big(0)).plus(amnt);
+    }
+    return mon;
+  }
+
+  /*
+   * performs depth-first search and return conversion rate
+   */
+  static resolvePath(c1, c2, date=this.date) {
+    if (c1 == c2) return new Big(0);
+    if (DEBUG) console.debug(`Converting ${c1} to ${c2}`);
+    let path = graph_shortestPath(data.priceGraph, c1, c2);
+    if (!path)
+      throw `Cannot resolve conversion between ${c1} and ${c2}`;
+    let conv = new Big(1);
+    for (let i = 0;i < path.length - 1;i++) {
+      let r1 = path[i];
+      let r2 = path[i + 1];
+      let tree = data.prices[r1 + ',' + r2]; // btree history
+      if (!tree)
+        throw `Cannot resolve conversion between ${c1} and ${c2} because ${r1} and ${r2} cannot be resolved.`;
+      let v;
+      tree.walk((t, x) => {
+        if (t > date)
+          return true; // break loop
+        v = x;
+      });
+      if (v != 0 && !v)
+        throw `Conversion rate between ${r1} and ${r2} on ${entry_datestr(date)} cannot be resolved.`;
+      conv = conv.times(v);
+    }
+    return conv;
+  }
+}
+/*
+ Copyright 2013 Daniel Wirtz <dcode@dcode.io>
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+ http://www.apache.org/licenses/LICENSE-2.0
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ */
+
+/**
+ * @license btree.js (c) 2013 Daniel Wirtz <dcode@dcode.io>
+ * Released under the Apache License, Version 2.0
+ * see: http://github.com/dcodeIO/btree.js for details
+ */
+var BTree;
+(function(module, console) {
+    'use strict';
+
+    /**
+     * Concatenates multiple arrays into a new one.
+     * @param {...[Array]} var_args
+     * @returns {Array}
+     * @private
+     */
+    function concat(var_args) {
+        // Array#concat behaves strangely for empty arrays, so...
+        var a = [];
+        for (var i=0; i<arguments.length; i++) {
+            Array.prototype.push.apply(a, arguments[i]);
+        }
+        return a;
+    }
+
+    /**
+     * Searches an array for the specified value.
+     * @param {Array} a
+     * @param {*} v
+     * @returns {number} Index or -1 if not found
+     * @private
+     */
+    function asearch(a, v) {
+        // This is faster than Array#indexOf because it's raw. However, we
+        // cannot use binary search because nodes do not have a comparable
+        // key. If the compiler is smart, it will inline this.
+        for (var i=0; i<a.length; i++) {
+            if (a[i] === v) return i;
+        }
+        return -i;
+    }
+
+    /**
+     * btree namespace.
+     * @type {Object.<string,*>}
+     */
+    var btree = {};
+
+    /**
+     * Strictly compares two strings, character by character. No locales, no number extension.
+     * @param {string} a
+     * @param {string} b
+     * @returns {number} -1 if a < b, 1 if a > b, 0 otherwise
+     * @expose
+     */
+    btree.strcmp = function strcmp(a, b) {
+        /** @type {number} */
+        var ac;
+        /** @type {number} */
+        var bc;
+        for (var i=0; i<a.length; i++) {
+            if (i >= b.length) {
+                return 1;
+            }
+            if ((ac = a.charCodeAt(i)) < (bc = b.charCodeAt(i))) {
+                return -1;
+            } else if (ac > bc) {
+                return 1;
+            }
+            // If same, continue
+        }
+        return a.length == b.length ? 0 : -1;
+    };
+
+    /**
+     * Compares two numbers.
+     * @param {number} a
+     * @param {number} b
+     * @returns {number} -1 if a < b, 1 if a > b, 0 otherwise
+     * @expose
+     */
+    btree.numcmp = function intcmp(a, b) {
+        return a < b ? -1 : (a > b ? 1 : 0);
+    };
+
+    /**
+     * Creates a BTree class using the given order.
+     * Note that this method returns a class, not an instance.
+     * @param {number=} order Defaults to 2
+     * @param {function(?, ?):number=} compare Compare implementation to use on keys
+     * @returns {Function}
+     * @expose
+     */
+    btree.create = function(order, compare) {
+
+        // Validate order
+        if (typeof order == 'undefined') {
+            order = 52; // Benchmarks proofed that this is close to the optimum
+        } else if (typeof order == 'number') {
+            order = Math.floor(order);
+        } else {
+            order = parseInt(order, 10);
+        }
+        if (order < 1) order = 1;
+        var minOrder = order > 1 ? Math.floor(order/2) : 1;
+
+        // Use numcmp by default
+        if (typeof compare != 'function') {
+            compare = btree.numcmp;
+        }
+
+        /**
+         * Validates a node and prints debugging info if something went wrong.
+         * @param {!TreeNode|!Tree} node
+         * @private
+         */
+        function validate(node) { // This function will be stripped by the compiler
+            if ((node instanceof Tree)) return;
+            if (node.leaves.length+1 != node.nodes.length) {
+                console.log("ERROR: Illegal leaf/node count in "+node+": "+node.leaves.length+"/"+node.nodes.length);
+            }
+            for (var i=0; i<node.leaves.length; i++) {
+                if (!node.leaves[i]) {
+                    console.log("ERROR: Illegal leaf in "+node+" at "+i+": "+node.leaves[i]);
+                }
+            }
+            for (i=0; i<node.nodes.length; i++) {
+                if (typeof node.nodes[i] == 'undefined') {
+                    console.log("ERROR: Illegal node in "+node+" at "+i+": undefined");
+                }
+            }
+        }
+
+        /**
+         * Constructs a new TreeNode.
+         * @class A TreeNode.
+         * @param {!(TreeNode|Tree)} parent Parent node
+         * @param {Array.<!Leaf>=} leaves Leaf nodes
+         * @param {Array.<TreeNode>=} nodes Child nodes
+         * @constructor
+         */
+        var TreeNode = function(parent, leaves, nodes) {
+
+            /**
+             * Parent node.
+             * @type {!TreeNode|!Tree}
+             */
+            this.parent = parent;
+
+            /**
+             * Leaf nodes (max. order).
+             * @type {!Array.<!Leaf>}
+             */
+            this.leaves = leaves || [];
+            this.leaves.forEach(function(leaf) {
+                leaf.parent = this;
+            }, this);
+
+            /**
+             * Child nodes (max. order+1).
+             * @type {!Array.<TreeNode>}
+             */
+            this.nodes = nodes || [null];
+            this.nodes.forEach(function(node) {
+                if (node !== null) node.parent = this;
+            }, this);
+        };
+
+        /**
+         * Searches for the node that would contain the specified key.
+         * @param {!*} key
+         * @returns {{leaf: !Leaf, index: number}|{node: !TreeNode, index: number}} Leaf if the key exists, else the insertion node
+         */
+        TreeNode.prototype.search = function(key) {
+            if (this.leaves.length > 0) {
+                var a = this.leaves[0];
+                if (compare(a.key, key) == 0) return { leaf: a, index: 0 };
+                if (compare(key, a.key) < 0) {
+                    if (this.nodes[0] !== null) {
+                        return this.nodes[0].search(key); // Left
+                    }
+                    return { node: this, index: 0 }
+                }
+                for (var i=1; i<this.leaves.length; i++) {
+                    var b = this.leaves[i];
+                    if (compare(b.key, key) == 0) return { leaf: b, index: i };
+                    if (compare(key, b.key) < 0) {
+                        if (this.nodes[i] !== null) {
+                            return this.nodes[i].search(key); // Inner
+                        }
+                        return { node: this, index: i };
+                    }
+                    a = b;
+                }
+                if (this.nodes[i] !== null) {
+                    return this.nodes[i].search(key); // Right
+                }
+                return { node: this, index: i };
+            }
+            return { node: this, index: 0 };
+        };
+
+        /**
+         * Gets the value for the given key.
+         * @param {!*} key
+         * @returns {*|undefined} If there is no such key, undefined is returned
+         */
+        TreeNode.prototype.get = function(key) {
+            var result = this.search(key);
+            if (result.leaf) return result.leaf.value;
+            return undefined;
+        };
+
+        /**
+         * Inserts a key/value pair into this node.
+         * @param {!*} key
+         * @param {*} value
+         * @param {boolean=} overwrite Whether to overwrite existing values, defaults to `true`
+         * @returns {boolean} true if successfully set, false if already present and overwrite is `false`
+         */
+        TreeNode.prototype.put = function(key, value, overwrite) {
+            var result = this.search(key);
+            if (result.leaf) {
+                if (typeof overwrite !== 'undefined' && !overwrite) {
+                    return false;
+                }
+                result.leaf.value = value;
+                return true;
+            } // Key already exists
+            var node = result.node,
+                index = result.index;
+            node.leaves.splice(index, 0, new Leaf(node, key, value));
+            node.nodes.splice(index+1, 0, null);
+            if (node.leaves.length > order) { // Rebalance
+                node.split();
+            }
+            return true;
+        };
+
+        /**
+         * Deletes a key from this node.
+         * @param {!*} key
+         * @returns {boolean} true if the key has been deleted, false if the key does not exist
+         */
+        TreeNode.prototype.del = function(key) {
+            var result = this.search(key);
+            if (!result.leaf) return false;
+            var leaf = result.leaf,
+                node = leaf.parent,
+                index = result.index,
+                left = node.nodes[index];
+            if (left === null) {
+                node.leaves.splice(index, 1);
+                node.nodes.splice(index, 1);
+                node.balance();
+            } else {
+                var max = left.leaves[left.leaves.length-1];
+                left.del(max.key);
+                max.parent = node;
+                node.leaves.splice(index, 1, max);
+            }
+            return true;
+        };
+
+        /**
+         * Balances this node to fulfill all conditions.
+         */
+        TreeNode.prototype.balance = function() {
+            if (this.parent instanceof Tree) {
+                // Special case: Root has just a single child and no leaves
+                if (this.leaves.length == 0 && this.nodes[0] !== null) {
+                    this.parent.root = this.nodes[0];
+                    this.parent.root.parent = this.parent;
+                }
+                return;
+            }
+            if (this.leaves.length >= minOrder) {
+                return;
+            }
+            var index = asearch(this.parent.nodes, this),
+                left = index > 0 ? this.parent.nodes[index-1] : null,
+                right = this.parent.nodes.length > index+1 ? this.parent.nodes[index+1] : null;
+            var sep, leaf, rest;
+            if (right !== null && right.leaves.length > minOrder) {
+                // Append the seperator from parent to this
+                sep = this.parent.leaves[index];
+                sep.parent = this;
+                this.leaves.push(sep);
+                // Replace the blank with the first right leaf
+                leaf = right.leaves.shift();
+                leaf.parent = this.parent;
+                this.parent.leaves[index] = leaf;
+                // Append the right rest to this
+                rest = right.nodes.shift();
+                if (rest !== null) rest.parent = this;
+                this.nodes.push(rest);
+            } else if (left !== null && left.leaves.length > minOrder) {
+                // Prepend the seperator from parent to this
+                sep = this.parent.leaves[index-1];
+                sep.parent = this;
+                this.leaves.unshift(sep);
+                // Replace the blank with the last left leaf
+                leaf = left.leaves.pop();
+                leaf.parent = this.parent;
+                this.parent.leaves[index-1] = leaf;
+                // Prepend the left rest to this
+                rest = left.nodes.pop();
+                if (rest !== null) rest.parent = this;
+                this.nodes.unshift(rest);
+            } else {
+                var subst;
+                if (right !== null) {
+                    // Combine this + seperator from the parent + right
+                    sep = this.parent.leaves[index];
+                    subst = new TreeNode(this.parent, concat(this.leaves, [sep], right.leaves), concat(this.nodes, right.nodes));
+                    // Remove the seperator from the parent
+                    this.parent.leaves.splice(index, 1);
+                    // And replace the nodes it seperated with subst
+                    this.parent.nodes.splice(index, 2, subst);
+                } else if (left !== null) {
+                    // Combine left + seperator from parent + this
+                    sep = this.parent.leaves[index-1];
+                    subst = new TreeNode(this.parent, concat(left.leaves, [sep], this.leaves), concat(left.nodes, this.nodes));
+                    // Remove the seperator from the parent
+                    this.parent.leaves.splice(index-1, 1);
+                    // And replace the nodes it seperated with subst
+                    this.parent.nodes.splice(index-1, 2, subst);
+                } else {
+                    // We should never end here
+                    throw(new Error("Internal error: "+this.toString(true)+" has neither a left nor a right sibling"));
+                }
+                this.parent.balance();
+            }
+            // validate(this);
+            // validate(this.parent);
+        };
+
+        /**
+         * Unsplits a child.
+         * @param {!Leaf} leaf
+         * @param {!TreeNode} rest
+         */
+        TreeNode.prototype.unsplit = function(leaf, rest) {
+            leaf.parent = this;
+            rest.parent = this;
+            var a = this.leaves[0];
+            if (compare(leaf.key, a.key) < 0) {
+                this.leaves.unshift(leaf);
+                this.nodes.splice(1, 0, rest);
+            } else {
+                for (var i=1; i<this.leaves.length; i++) {
+                    var b = this.leaves[i];
+                    if (compare(leaf.key, b.key) < 0) {
+                        this.leaves.splice(i, 0, leaf);
+                        this.nodes.splice(i+1, 0, rest);
+                        break;
+                    }
+                }
+                if (i == this.leaves.length) {
+                    this.leaves.push(leaf);
+                    this.nodes.push(rest);
+                }
+            }
+            if (this.leaves.length > order) {
+                this.split();
+            }
+        };
+
+        /**
+         * Splits this node.
+         */
+        TreeNode.prototype.split = function() {
+            var index = Math.floor(this.leaves.length/2);
+            if (this.parent instanceof Tree) {
+                this.nodes = [
+                    new TreeNode(this, this.leaves.slice(0, index), this.nodes.slice(0, index+1)),
+                    new TreeNode(this, this.leaves.slice(index+1), this.nodes.slice(index+1))
+                ];
+                this.leaves = [this.leaves[index]];
+            } else {
+                var leaf = this.leaves[index];
+                var rest = new TreeNode(this.parent, this.leaves.slice(index+1), this.nodes.slice(index+1));
+                this.leaves = this.leaves.slice(0, index);
+                this.nodes = this.nodes.slice(0, index+1);
+                this.parent.unsplit(leaf, rest);
+            }
+        };
+
+        /**
+         * Returns a string representation of this node.
+         * @param {boolean=} includeNodes Whether to include sub-nodes or not
+         * @returns {string}
+         */
+        TreeNode.prototype.toString = function(includeNodes) {
+            var val = [];
+            for (var i=0; i<this.leaves.length; i++) {
+                val.push(this.leaves[i].key);
+            }
+            var s = "["+val.toString()+"]"+(this.parent instanceof Tree ? ":*" : ":"+this.parent);
+            if (includeNodes) {
+                for (i=0; i<this.nodes.length; i++) {
+                    s += " -> "+this.nodes[i];
+                }
+            }
+            return s;
+        };
+
+        /**
+         * Prints out the nodes leaves and nodes.
+         * @param {number} indent
+         */
+        TreeNode.prototype.print = function(indent) {
+            var space = ""; for (var i=0; i<indent; i++) space+=" ";
+            for (i=this.leaves.length-1; i>=0; i--) {
+                if (this.nodes[i+1] !== null) this.nodes[i+1].print(indent+2);
+                console.log(space+this.leaves[i].key+(this.parent instanceof Tree ? "*" : ""));
+            }
+            if (this.nodes[0] !== null) this.nodes[0].print(indent+2);
+        };
+
+        /**
+         * Constructs a new Leaf containing a value.
+         * @class A Leaf.
+         * @param {!TreeNode} parent
+         * @param {!*} key
+         * @param {*} value
+         * @constructor
+         */
+        var Leaf = function(parent, key, value) {
+
+            /**
+             * Parent node.
+             * @type {!TreeNode}
+             */
+            this.parent = parent;
+
+            /**
+             * Key.
+             * @type {!*}
+             */
+            this.key = key;
+
+            /**
+             * Value.
+             * @type {*}
+             */
+            this.value = value;
+        };
+
+        /**
+         * Returns a string representation of this instance.
+         * @returns {string}
+         */
+        Leaf.prototype.toString = function() {
+            return ""+this.key;
+        };
+
+        /**
+         * Constructs a new Tree.
+         * @class A Tree.
+         * @constructor
+         */
+        function Tree() {
+            this.root = new TreeNode(this);
+        }
+
+        /**
+         * Inserts a key/value pair into the tree.
+         * @param {!*} key
+         * @param {*} value
+         * @param {boolean=} overwrite Whether to overwrite existing values, defaults to `true`
+         * @returns {boolean} true if set, false if already present and overwrite is `false`
+         * @throws {Error} If the key is undefined or null or the value is undefined
+         * @expose
+         */
+        Tree.prototype.put = function(key, value, overwrite) {
+            if (typeof key === 'undefined' || key === null)  throw(new Error("Illegal key: "+key));
+            if (typeof value === 'undefined') throw(new Error("Illegal value: "+value));
+            return this.root.put(key, value, overwrite);
+        };
+
+        /**
+         * Gets the value of the specified key.
+         * @param {!*} key
+         * @returns {*|undefined} If there is no such key, undefined is returned
+         * @throws {Error} If the key is undefined or null
+         * @expose
+         */
+        Tree.prototype.get = function(key) {
+            if (typeof key === 'undefined' || key === null)  throw(new Error("Illegal key: "+key));
+            return this.root.get(key);
+        };
+
+        /**
+         * Deletes a key from the tree.
+         * @param {!*} key
+         * @returns {boolean} true if the key has been deleted, false if the key does not exist
+         * @expose
+         */
+        Tree.prototype.del = function(key) {
+            if (typeof key === 'undefined' || key === null)  throw(new Error("Illegal key: "+key));
+            return this.root.del(key);
+        };
+
+        /**
+         * Walks through all keys [minKey, ..., maxKey] in ascending order.
+         * @param {*|function(*, *):(boolean|undefined)} minKey If omitted or NULL, starts at the beginning
+         * @param {(*|function(*, *):(boolean|undefined))=} maxKey If omitted or NULL, walks till the end
+         * @param {function(*, *):(boolean|undefined)=} callback Callback receiving the key and the corresponding value as its
+         *  parameters. May explicitly return true to stop the loop.
+         * @expose
+         */
+        Tree.prototype.walkAsc = function(minKey, maxKey, callback) {
+            if (this.root.leaves.length == 0) {
+                return;
+            }
+            if (typeof minKey == 'function') {
+                callback = minKey;
+                minKey = maxKey = null;
+            } else if (typeof maxKey == 'function') {
+                callback = maxKey;
+                maxKey = null;
+            }
+            minKey = typeof minKey != 'undefined' ? minKey : null;
+            maxKey = typeof maxKey != 'undefined' ? maxKey : null;
+            var ptr, index;
+            if (minKey === null) { // If there is no minimum limit
+                ptr = this.root; // set ptr to the outer left node
+                while (ptr.nodes[0] !== null) {
+                    ptr = ptr.nodes[0];
+                }
+                index = 0; // and start at its first leaf
+            } else { // Else lookup
+                var result = this.root.search(minKey);
+                if (result.leaf) { // If the minimum key itself exists
+                    ptr = result.leaf.parent; // set ptr to the containing node
+                    index = asearch(ptr.leaves, result.leaf); // and start at its index
+                } else { // If the key does not exist
+                    ptr = result.node; // set ptr to the insertion node
+                    index = result.index; // and start at the insertion index (key > minKey)
+                    if (index >= ptr.leaves.length) { // on overrun, begin at the separator in the parent
+                        if (ptr.parent instanceof Tree) {
+                            return; // empty range
+                        }
+                        index = asearch(ptr.parent.nodes, ptr);
+                        if (index >= ptr.parent.leaves.length) {
+                            return; // empty range
+                        }
+                        ptr = ptr.parent;
+                    }
+                }
+            }
+            // ptr/index now points at our first result
+            while (true) {
+                if (maxKey !== null && compare(ptr.leaves[index].key, maxKey) > 0) {
+                    break; // if there are no more keys less than maxKey
+                }
+                if (callback(ptr.leaves[index].key, ptr.leaves[index].value)) {
+                    break; // if the user explicitly breaks the loop by returning true
+                }
+                if (ptr.nodes[index+1] !== null) { // Descend
+                    ptr = ptr.nodes[index+1];
+                    index = 0;
+                    while (ptr.nodes[0] !== null) {
+                        ptr = ptr.nodes[0];
+                    }
+                } else if (ptr.leaves.length > index+1) { // Next
+                    index++;
+                } else { // Ascend
+                    do {
+                        if ((ptr.parent instanceof Tree)) {
+                            return;
+                        }
+                        index = asearch(ptr.parent.nodes, ptr);
+                        ptr = ptr.parent;
+                    } while (index >= ptr.leaves.length);
+                }
+            }
+        };
+
+        /**
+         * Alias of {@link Tree#walkAsc}.
+         * @param {*|function(*, *):(boolean|undefined)} minKey If omitted or NULL, starts at the beginning
+         * @param {(*|(function(*, *):(boolean|undefined)))=} maxKey If omitted or NULL, walks till the end
+         * @param {function(*, *):(boolean|undefined)=} callback Callback receiving the key and the corresponding value as its
+         *  parameters. May explicitly return true to stop the loop.
+         * @expose
+         */
+        Tree.prototype.walk = Tree.prototype.walkAsc;
+
+        /**
+         * Walks through all keys [minKey, ..., maxKey] in descending order.
+         * @param {*|function(*, *):(boolean|undefined)} minKey If omitted or null, walks till the beginning
+         * @param {(*|function(*, *):(boolean|undefined))=} maxKey If omitted or null, starts at the end
+         * @param {function(*, *):(boolean|undefined)=} callback Callback receiving the key and the corresponding value as its
+         *  parameters. May explicitly return true to stop the loop.
+         * @expose
+         */
+        Tree.prototype.walkDesc = function(minKey, maxKey, callback) {
+            if (typeof minKey == 'function') {
+                callback = minKey;
+                minKey = maxKey = null;
+            } else if (typeof maxKey == 'function') {
+                callback = maxKey;
+                maxKey = null;
+            }
+            minKey = typeof minKey != 'undefined' ? minKey : null;
+            maxKey = typeof maxKey != 'undefined' ? maxKey : null;
+            var ptr, index;
+            if (maxKey === null) { // If there is no maximum limit
+                ptr = this.root; // set ptr to the outer right node
+                while (ptr.nodes[ptr.nodes.length-1] !== null) {
+                    ptr = ptr.nodes[ptr.nodes.length-1];
+                }
+                index = ptr.leaves.length-1; // and start at its last leaf
+            } else { // Else lookup
+                var result = this.root.search(maxKey);
+                if (result.leaf) { // If the maximum key itself exists
+                    ptr = result.leaf.parent; // set ptr to the containing node
+                    index = asearch(ptr.leaves, result.leaf); // and start at its index
+                } else { // If the key does not exist
+                    ptr = result.node; // set ptr to the insertion node
+                    index = result.index-1; // and start at the insertion index-1 (key < maxKey)
+                    while (index < 0) { // on underrun, begin at the separator in the parent
+                        if (ptr.parent instanceof Tree) {
+                            return; // empty range
+                        }
+                        index = asearch(ptr.parent.nodes, ptr)-1;
+                        if (index < 0) {
+                            return; // empty range
+                        }
+                        ptr = ptr.parent;
+                    }
+                }
+            }
+            // ptr/index now points at our first result
+            while (true) {
+                if (minKey !== null && compare(ptr.leaves[index].key, minKey) < 0) {
+                    break; // if there are no more keys bigger than minKey
+                }
+                if (callback(ptr.leaves[index].key, ptr.leaves[index].value)) {
+                    break; // if the user explicitly breaks the loop by returning true
+                }
+                if (ptr.nodes[index] !== null) { // Descend
+                    ptr = ptr.nodes[index];
+                    while (ptr.nodes[ptr.nodes.length-1] !== null) {
+                        ptr = ptr.nodes[ptr.nodes.length-1];
+                    }
+                    index = ptr.leaves.length-1;
+                } else if (index > 0) { // Next
+                    index--;
+                } else { // Ascend
+                    do {
+                        if ((ptr.parent instanceof Tree)) {
+                            return;
+                        }
+                        index = asearch(ptr.parent.nodes, ptr)-1;
+                        ptr = ptr.parent;
+                    } while (index < 0);
+                }
+            }
+        };
+
+        /**
+         * Counts the number of keys between minKey and maxKey (both inclusive).
+         * @param {*=} minKey If omitted, counts from the start
+         * @param {*=} maxKey If omitted, counts till the end
+         * @returns {number}
+         * @expose
+         */
+        Tree.prototype.count = function(minKey, maxKey) {
+            var n = 0;
+            this.walk(
+                typeof minKey != 'undefined' ? minKey : null,
+                typeof maxKey != 'undefined' ? maxKey : null,
+                function(key, value) { n++; }
+            );
+            return n;
+        };
+
+        /**
+         * Prints out all nodes in the tree.
+         * @expose
+         */
+        Tree.prototype.print = function() {
+            this.root.print(0);
+        };
+
+        /**
+         * Returns a string representation of this instance.
+         * @returns {string}
+         */
+        Tree.prototype.toString = function() {
+            return "Tree("+order+") "+this.root.toString();
+        };
+
+        return Tree;
+    };
+
+    BTree = btree.create(2, btree.numcmp);
+})({ exports: null }, console);
+
+function Graph() {
+  var neighbors = this.neighbors = {}; // Key = vertex, value = array of neighbors.
+
+  this.addEdge = function (u, v) {
+    if (neighbors[u] === undefined) {  // Add the edge u -> v.
+      neighbors[u] = [];
+    }
+    neighbors[u].push(v);
+    if (neighbors[v] === undefined) {  // Also add the edge v -> u so as
+      neighbors[v] = [];               // to implement an undirected graph.
+    }
+    neighbors[v].push(u);
+  };
+
+  return this;
+}
+
+function graph_shortestPath(graph, source, target) {
+  var queue = [ source ],
+      visited = { source: true },
+      predecessor = {},
+      tail = 0;
+  while (tail < queue.length) {
+    var u = queue[tail++],  // Pop a vertex off the queue.
+        neighbors = graph.neighbors[u];
+    if (!neighbors)
+      throw `${u} does not exist.`;
+    for (var i = 0; i < neighbors.length; ++i) {
+      var v = neighbors[i];
+      if (visited[v]) {
+        continue;
+      }
+      visited[v] = true;
+      if (v === target) {   // Check if the path is complete.
+        var path = [ v ];   // If so, backtrack through the path.
+        while (u !== source) {
+          path.push(u);
+          u = predecessor[u];
+        }
+        path.push(u);
+        path.reverse();
+        return path;
+      }
+      predecessor[v] = u;
+      queue.push(v);
+    }
+  }
+  // no path found
+  return;
 }
 
 /*!
@@ -1862,7 +2888,7 @@ async function query_exec(query) {
     for (let c of q.collect) {
       switch (c) {
         case 'sum':
-          d.sum = new Big(0);
+          d.sum = new Money();
           break;
         case 'count':
           d.count = 0;
@@ -1904,7 +2930,7 @@ async function query_exec(query) {
         // handle accounts && transfer sums & sum & count
         let sumTrans = q.collect.indexOf('accounts_sum') >= 0;
         let isSum = q.collect.indexOf('sum') >= 0;
-        let sum = isSum ? new Big(0) : undefined;
+        let sum = isSum ? new Money() : undefined;
         let sum_parent = q.flags['sum-parent'];
         let accSum = {};
         let matchTimes = 0;
@@ -1929,12 +2955,12 @@ async function query_exec(query) {
                 let previous = "";
                 for (let l of levels) {
                   let k = previous + l;
-                  if (!accSum[k]) accSum[k] = new Big(0);
+                  if (!accSum[k]) accSum[k] = new Money();
                   accSum[k] = accSum[k].plus(t[2]);
                   previous = k + ".";
                 }
               } else {
-                accSum[t[1]] = (accSum[t[1]] || new Big(0)).plus(t[2]);
+                accSum[t[1]] = (accSum[t[1]] || new Money()).plus(t[2]);
               }
             }
             if (isSum && q.accounts.length == 0) sum = sum.plus(t[2]);
@@ -1947,9 +2973,8 @@ async function query_exec(query) {
           data[i].entries.push(e);
         }
         // store rest of results
-        for (let x in accSum) { accSum[x] = accSum[x].toNumber() }
-        if (sumTrans) data[i].accounts_sum = accSum;
-        if (isSum) data[i].sum = data[i].sum.plus(sum);
+        if (sumTrans) data[i].accounts_sum = accSum.tryConvertArgs(q, e.time);
+        if (isSum) data[i].sum = data[i].sum.plus(sum).tryConvertArgs(q, e.time);
         data[i].count++;
       }
     }
@@ -1958,12 +2983,11 @@ async function query_exec(query) {
 
   for (let i = 0;i < data.length;i++) {
     let d = data[i];
-    d.sum = d.sum && d.sum.toNumber();
     if (query.cumulative && i - query.cumulative >= 0) {
       let prev = data[i - query.cumulative];
       for (let key in prev) {
-        if (!isNaN(prev[key]))
-          data[i][key] = new Big(prev[key]).add(data[i][key]).toNumber();
+        if (prev[key].plus)
+          data[i][key] = prev[key].plus(data[i][key]);
       }
     }
     if (!isNaN(d.sum)) data.minSum = Math.min(d.sum, data.minSum || 0);
@@ -2011,7 +3035,12 @@ function data_init_data() {
     accounts: {},
     books: {}, // { 2019: [ ... ], 2020: [ ... ], ...  }
     booksOpened: {},
-    budgets: {}
+    budgets: {},
+    defaultCurrency: '$',
+    accountCurrency: {},
+    priceFiles: [],
+    priceGraph: new Graph(),
+    prices: {} // { ['min', 'hr']: bTree( [time, Big(price)] ) }
   };
   return data;
 }
@@ -2067,7 +3096,7 @@ async function data_modify_entry(entry) {
   await data_open_books([y]);
   /* let range = await fs_get_data_range();
    * await data_open_books(range);
-   * 
+   *
    * (being able to edit means the entry must've been opened already)
    */
   FOR: for (let year in data.books) {
@@ -2259,9 +3288,15 @@ async function fs_write_config() {
   let path = fs_book_name + '.config.ledg';
   // TODO: need to be async later
   fs.writeFileSync(path, JSON.stringify({
-    data: { accounts: data.accounts },
+    data: {
+      accounts: data.accounts,
+      defaultCurrency: data.defaultCurrency,
+      accountCurrency: accountCurrency,
+      priceFiles: priceFiles
+    },
     data_acc_imb: data_acc_imb
   }, null, 2));
+  // TODO: write price table & account currency types
 }
 
 async function fs_attempt_load_config() {
@@ -2270,8 +3305,19 @@ async function fs_attempt_load_config() {
   // TODO: need to be async later
   try {
     let opts = JSON.parse(fs.readFileSync(path));
+    // assign ensures backwards compatibility
     Object.assign(data, opts.data);
     data_acc_imb = opts.data_acc_imb || data_acc_imb;
+
+    // read price files
+    let dir = fs_get_book_directory();
+    for (let path of data.priceFiles) {
+      try {
+        await fs_read_price(dir + path);
+      } catch (e) {
+        console.error(e);
+      }
+    }
   } catch (e) {}
 }
 
@@ -2308,7 +3354,7 @@ function fs_serialize_entry(entry) {
   }
   str += '\n';
   for (let t of entry.transfers) {
-    str += '  ' + t[0] + '\t' + t[1] + '\t' + t[2] + '\n';
+    str += '  ' + t[0] + '\t' + t[1] + '\t' + t[2].serialize() + '\n';
   }
   return str;
 }
@@ -2332,9 +3378,12 @@ function fs_serialize_entry_ledger(entry) {
     let acc = t[1].replace(/:/g, ESC).replace(/\./g, ':').replace(new RegExp(ESC, "i"), '.');
     if (entry.virt)
       acc = '[' + acc + ']';
-    str += '  ' +
-           acc +
-           '     ' + t[2] + '\n';
+    Object.keys(t[2].amnts).forEach(cur => {
+      let amnt = new Money(t[2].amnts[cur], cur);
+      str += '  ' +
+             acc +
+             '     ' + amnt.serialize() + '\n';
+    });
   }
   return str;
 }
@@ -2361,7 +3410,10 @@ async function fs_read_book(year) {
 
     let entry = null;
     const commitEntry = (entry) => {
-      entry_balance(entry); data.books[year].push(entry);
+      entry_balance(entry);
+      // console.log("commit====");
+      // console.log(entry.transfers.map(x => [x[0], x[1], x[2].toString()]));
+      data.books[year].push(entry);
       _fs_entries_read++;
     };
 
@@ -2379,7 +3431,8 @@ function fs_read_entries_from_string(str) {
 
   let entry = null;
   const commitEntry = (entry) => {
-    entry_balance(entry); entries.push(entry);
+    entry_balance(entry);
+    entries.push(entry);
   };
 
   for (let line of lines) {
@@ -2434,11 +3487,72 @@ function fs_read_book_proc_line(entry, line, commitEntry) {
       t[1] = splits[1].trim();
       data.accounts[t[1]] = 1;
       if (splits[2]) splits[2] = splits[2].trim();
-      t[2] = splits[2] && splits[2].length ? parseFloat(splits[2]) : 0;
+      t[2] = Money.parseMoney(splits[2] && splits[2].length ? splits[2] : '0', entry.time);
+      if (t[2] === false) throw `Cannot parse ${splits[2]} as a value.`;
       entry.transfers.push(t);
     }
   }
   return entry;
+}
+var _fs_prices_read = 0;
+async function fs_read_price(path) {
+  let _start;
+  if (DEBUG) { _start = new Date(); }
+  if (fs.existsSync(path)) {
+    let fileStream = fs.createReadStream(path);
+
+    let rl = readline.createInterface({
+      input: fileStream,
+      crlfDelay: Infinity
+    });
+
+    let price = null;
+    const commitPrice = (price) => {
+      let key = price.c1 + ',' + price.c2;
+      let tree = data.prices[key] = data.prices[key] || new BTree();
+      tree.put(price.time, new Big(price.price));
+      // reverse
+      key = price.c2 + ',' + price.c1;
+      tree = data.prices[key] = data.prices[key] || new BTree();
+      tree.put(price.time, price.price ? new Big(1).div(price.price) : 0);
+
+      data.priceGraph.addEdge(price.c1, price.c2);
+    };
+
+    for await (let line of rl) {
+      price = fs_read_price_proc_line(price, line, commitPrice);
+    }
+    if (price) { commitPrice(price) }
+  } else {
+    throw `Price file ${path} is not found.`;
+  }
+  if (DEBUG) console.debug(`Opened ${path} price table in ${new Date() - _start}ms, ${_fs_prices_read} prices read so far`);
+}
+
+function fs_read_price_proc_line(price, line, commitPrice) {
+  line = line.trim();
+  if (line[0] == ';') return price;
+  if (line[0] == 'P') { // start price
+    if (price) commitPrice(price);
+
+    let match = line.match(/^P\s+(\d{4}-\d{2}-\d{2})\s+([^\d\s,\-.]+)\s+((-?[\d.]+)\s*([^\d\s,\-.]+)|([^\d\s,\-.]+)\s*(-?[\d.]+))\s*$/);
+
+    if (!match)
+      throw `"${line}" is not a valid price declaration`;
+
+    let date = match[1];
+    let cur1 = match[2];
+    let cur2 = match[5] || match[6];
+    let p = Number(match[4] || match[7]);
+
+    price = {
+      time: Date.parse(date + 'T00:00:00') / 1000 | 0,
+      c1: cur1,
+      c2: cur2,
+      price: p
+    };
+  }
+  return price;
 }
 /*
 MIT License
@@ -2831,6 +3945,8 @@ async function cmd_burndown(args) {
     }
     legends.push(v);
     let args2 = argsparser(parseArgSegmentsFromStr(v));
+    args2.flags.currency = args2.flags.currency || args.flags.currency;
+    args2.flags['valuation-value'] = args2.flags['valuation-value'] || args.flags['valuation-value'];
     return args2;
   }).filter(x => !!x);
   if (!argQueries.length) {
@@ -2867,18 +3983,17 @@ async function cmd_burndown(args) {
     return 1;
   }
   let data = await query_exec(query);
-  let max = Math.max(data.maxSum || data.maxCount, 0);
-  let min = Math.min(data.minSum || data.minCount, 0);
-  if (args.flags.abs && !isNaN(data.maxSum)) {
-    max = Math.max(Math.max(Math.abs(data.minSum), data.maxSum), 0);
-    min = 0;
-  }
+  let min = 0;
+  let max = 0;
   let _d = [];
   for (let i = 0;i < data.length;i += argQueries.length) {
     let row = [];
     for (let j = 0;j < argQueries.length;j++) {
-      row[j] = data[i + j][args.flags.count ? 'count' : 'sum'];
+      row[j] = data[i + j][args.flags.count ? 'count' : 'sum']
+                .val(args.flags.currency || data.defaultCurrency);
       if (args.flags.abs) row[j] = Math.abs(row[j]);
+      min = Math.min(min, row[j]);
+      max = Math.max(max, row[j]);
     }
     _d.push(row);
   }
@@ -3029,6 +4144,9 @@ async function cmd_history(args) {
   if (args.flags['skip-book-close'] !== false)
     args.flags['skip-book-close'] = true;
 
+  let dp = Math.max(parseInt(args.flags.dp), 0);
+  if (isNaN(dp)) dp = undefined;
+
   let int = report_get_reporting_interval(args);
   let showDays = true;
   let showMonth = true;
@@ -3079,7 +4197,7 @@ async function cmd_history(args) {
 
   let accounts = args.accounts.length ?
                    [...args.accounts.map((x, i) => { return { q: x, name: args.accountSrc[i], sum: new Big(0), val: Array(dateFunctions.length).fill(new Big(0)) } })] :
-                   [...Object.keys(cmd_report_accounts).map(x => { return { name: x, q: cmd_report_accounts_compiled[x], sum: new Big(0), val: Array(dateFunctions.length).fill(new Big(0)) } })];
+                   [...Object.keys(cmd_report_accounts).map(x => { return { name: x, q: cmd_report_accounts_compiled[x], sum: new Money(), val: Array(dateFunctions.length).fill(new Money()) } })];
 
   delete args.accounts; // so report_traverse don't handle accounts
 
@@ -3098,8 +4216,8 @@ async function cmd_history(args) {
 
       for (let t of entry.transfers) {
         if (t[1].match(q)) {
-          acc.val[i] = acc.val[i].plus(t[2]);
-          acc.sum = acc.sum.plus(t[2]);
+          acc.val[i] = acc.val[i].plus(t[2].tryConvertArgs(args, entry.time));
+          acc.sum = acc.sum.plus(t[2].tryConvertArgs(args, entry.time));
         }
       }
     }
@@ -3142,7 +4260,6 @@ async function cmd_history(args) {
         x.val[j] = x.val[j].plus(x.val[j - 1]);
       });
     }
-    x.val = x.val.map(v => v.toNumber());
   });
 
   crntD = new Date(from);
@@ -3185,16 +4302,11 @@ async function cmd_history(args) {
     for (let acc of accounts) {
       let v = acc.val[r];
 
-      let vs;
-
       if (acc.q == cmd_report_accounts_compiled.income || acc.q == cmd_report_accounts_compiled.expense ||
           args.flags.invert) {
-        v = -v
+        v = v.timesPrim(-1);
       }
-      vs = print_format_money(v);
-      vs = [print_color_money(v), vs.length];
-
-      row.push(vs);
+      row.push(v.colorFormat(dp));
     }
 
     crntD.setFullYear(crntD.getFullYear() + int[0]);
@@ -3215,17 +4327,13 @@ async function cmd_history(args) {
         avg.push('Avg');
       } else {
         let acc = accounts[j];
-        let v = Math.round(acc.sum.div(dateFunctions.length).toNumber() * 100) / 100;
-
-        let vs;
+        let v = acc.sum.divPrim(dateFunctions.length).tryConvertArgs(args);
 
         if (acc.q == cmd_report_accounts_compiled.income || acc.q == cmd_report_accounts_compiled.expense) {
-          v = -v
+          v = v.timesPrim(-1);
         }
-        vs = print_format_money(v);
-        vs = [print_color_money(v), vs.length];
 
-        avg.push(vs);
+        avg.push(v.colorFormat(isNaN(dp) ? 2 : dp));
       }
     }
     table.push(avg);
@@ -3425,10 +4533,13 @@ async function cmd_register(args) {
 }
 
 function _cmd_register_group(args, data, skipTo, depth, int, q) {
+  let dp = Math.max(parseInt(args.flags.dp), 0);
+  if (isNaN(dp)) dp = Big.DP;
+
   let table = [['Start', 'Acc', 'Amnt', 'Tot']];
   let align = [TAB_ALIGN_LEFT, TAB_ALIGN_LEFT, TAB_ALIGN_RIGHT, TAB_ALIGN_RIGHT, TAB_ALIGN_RIGHT];
 
-  let sum = new Big(0);
+  let sum = new Money();
 
   let from = q.from * 1000;
   let to = q.to * 1000;
@@ -3448,12 +4559,12 @@ function _cmd_register_group(args, data, skipTo, depth, int, q) {
         for (let t of e.transfers) {
           if (t[1].match(q)) {
             let a = print_truncate_account(t[1], depth);
-            accs[a] = (accs[a] || new Big(0)).add(t[2]);
+            accs[a] = (accs[a] || new Money()).plus(t[2].tryConvertArgs(args, e.time));
           }
         }
       }
     }
-    
+
     let j = -1;
     for (let acc in accs) {
       j++;
@@ -3463,10 +4574,10 @@ function _cmd_register_group(args, data, skipTo, depth, int, q) {
 
       row.push(acc);
 
-      let m = args.flags.invert ? -amnt : amnt;
-      sum = sum.add(m);
+      let m = args.flags.invert ? amnt.timesPrim(-1) : amnt;
+      sum = sum.plus(m);
       if (!skipTo || e.time * 1000 >= skipTo) {
-        row.push(print_color_money(m, true), print_color_money(sum));
+        row.push(m.colorFormat(dp, true), sum.colorFormat(dp));
         table.push(row);
       }
     }
@@ -3474,7 +4585,7 @@ function _cmd_register_group(args, data, skipTo, depth, int, q) {
     if (j == -1 && !args.flags['hide-zero']) {
       table.push([
         c.cyanBright(entry_datestr(crntD / 1000)),
-        '', print_format_money(0), print_color_money(sum)
+        '', new Money().colorFormat(), sum.colorFormat(dp)
       ]);
     }
 
@@ -3485,10 +4596,13 @@ function _cmd_register_group(args, data, skipTo, depth, int, q) {
 }
 
 function _cmd_register_nogroup(args, data, skipTo, depth) {
+  let dp = Math.max(parseInt(args.flags.dp), 0);
+  if (isNaN(dp)) dp = Big.DP;
+
   let table = [['Date', 'UUID', 'Desc', 'Acc', 'Amnt', 'Tot']];
   let align = [TAB_ALIGN_LEFT, TAB_ALIGN_LEFT, TAB_ALIGN_LEFT, TAB_ALIGN_RIGHT, TAB_ALIGN_RIGHT, TAB_ALIGN_RIGHT];
 
-  let sum = new Big(0);
+  let sum = new Money();
 
   for (let i = 0;i < data.length;i++) {
     let e = data[i];
@@ -3504,11 +4618,12 @@ function _cmd_register_nogroup(args, data, skipTo, depth) {
           desc = args.flags['light-theme'] ? c.black(desc) : c.whiteBright(desc);
           row.push(desc, print_truncate_account(t[1], depth));
 
-          let m = args.flags.invert ? -t[2] : t[2];
-          sum = sum.add(m);
+          let m = args.flags.invert ? t[2].timesPrim(-1) : t[2];
+          m = m.tryConvertArgs(args, e.time);
+          sum = sum.plus(m);
           if (skipTo && e.time * 1000 < skipTo)
             continue;
-          row.push(print_color_money(m, true), print_color_money(sum));
+          row.push(m.colorFormat(dp, true), sum.colorFormat(dp));
           table.push(row);
         }
       }
@@ -3518,6 +4633,11 @@ function _cmd_register_nogroup(args, data, skipTo, depth) {
   console.log(tabulate(table, { align: align }));
 }
 async function cmd_benchmark(args) {
+  if (args._[0] == 'test') {
+    let m = Money.parseMoney('min -30, sec 29');
+    console.log(m.convert('sec').toString());
+    return;
+  }
   let times = Number(args._[0]) || 100;
   for (let i = 0;i < times;i++) {
     data_init_data();
@@ -3891,6 +5011,7 @@ async function cmd_add(args, modifyMode=false) {
     opts.time = ((args.flags.date ? (Date.parse(report_replaceDateStr(args.flags.date) + 'T00:00:00') || new Date().getTime()) : new Date().getTime()) / 1000) | 0;
 
   Object.keys(opts).forEach(k => {
+    if (typeof opts[k] == 'boolean') return;
     let n = Number(opts[k]);
     if (!isNaN(n)) opts[k] = n;
   });
@@ -3898,19 +5019,15 @@ async function cmd_add(args, modifyMode=false) {
   let _ = args._;
 
   for (let i = 0;i < _.length;i++) {
-    let v = _[i].trim().replace(/ /g, '');
-    let num = Number(v);
+    let v = _[i].trim().replace(/ +/g, ' ');
+    let num;
+    try {
+      num = Money.parseMoney(v);
+    } catch (e) {}
 
     if (v.match(/^\d{4}-\d{2}-\d{2}$/)) {
       opts.time = ((Date.parse(report_replaceDateStr(v) + 'T00:00:00') / 1000) | 0) || opts.time;
-    } else if (!isNaN(num)) {
-      if (currentTransfer) {
-        currentTransfer[2] = num;
-        transfers.push(currentTransfer);
-        currentTransfer = null;
-      } else // entry description
-        desc.push(_[i].trim());
-    } else if (isArgAccount(v)) { // start account with category
+    } else if (isArgAccount(v) && v.indexOf(' ') == -1) { // start account with category
       if (currentTransfer) { // start new one, commit old
         transfers.push(currentTransfer);
         currentTransfer = null;
@@ -3942,6 +5059,13 @@ async function cmd_add(args, modifyMode=false) {
       }
     } else if (v.startsWith("+")) {
       tag_add(opts, v.substring(1));
+    } else if (num) {
+      if (currentTransfer) {
+        currentTransfer[2] = num;
+        transfers.push(currentTransfer);
+        currentTransfer = null;
+      } else // entry description
+        desc.push(_[i].trim());
     } else {
       if (currentTransfer) // transfer description
         currentTransfer[0] = (currentTransfer[0] + ' ' + _[i].trim()).trim();
@@ -3985,7 +5109,7 @@ async function cmd_add(args, modifyMode=false) {
   console.log('Entry added.');
 }
 async function cmd_version() {
-  console.log(c.bold('ledg - version 0.7.2') + ' built for cli');
+  console.log(c.bold('ledg - version 0.8.0-beta') + ' built for cli');
 }
 
 async function cmd_help() {
@@ -4015,6 +5139,18 @@ async function cmd_help() {
 \t\tex. --budget="Monthly Budget"
 \t\t    --budget="2023 Puero Rico Vacation Saving Goals"
 
+\t--currency=CURRENCY
+\t\tattempts to convert all values to CURRENCY
+\t\tNote: in multiperiod reports, sums of each reporting period are
+\t\tderived from adding the converted values with rates at the time
+\t\tof entries, unless specified by --valuation-date
+\t\tPrice tables must be included in config.ledg as an array containing
+\t\trelative file paths in "data"."priceFiles".
+\t\tPrice file format is the ledger style price directive
+
+\t--valuation-date=yyyy-mm-dd
+\t\tspecify a date to use for currency conversion
+
 \t--income=<account filter>, --expense=<account filter>, --equity=<account filter>
 \t--asset=<account filter>, --liability=<account filter>
 \t\tDefault: Income*, Expense*, Asset*, Liability*, Equity*
@@ -4043,6 +5179,12 @@ async function cmd_help() {
 \t\tqueries entries with modifiers that matches the regex
 \t\tex: payee:"amazon|steam"
 \t\t    tag:"pc|tablet"
+
+\t\tshorthands:
+\t\t\tdesc: => description:
+\t\t\tf:    => from:
+\t\t\tt:    => to:
+\t\t\tbc:   => bookClose:
 
 \t+TAG
 \t\tappends TAG(,|$) to tags: modifier, if tags: is empty
@@ -4317,11 +5459,11 @@ async function cmd_info(args) {
     for (let e of entries) {
       let account;
       let desc = e.description + '        ';
-      let amount = 0;
+      let amount = new Money();
       if (e.transfers.length <= 2) {
         for (let t of e.transfers) {
           if (t[1].match(cmd_report_accounts.expense)) {
-            amount = -t[2];
+            amount = t[2].timesPrim(-1);
             account = t[1];
             break;
           }
@@ -4329,7 +5471,7 @@ async function cmd_info(args) {
         if (!account) {
           for (let t of e.transfers) {
             if (t[1].match(cmd_report_accounts.liability)) {
-              amount = t[2];
+              amount = t[2].timesPrim(1);
               account = t[1];
               break;
             }
@@ -4337,7 +5479,7 @@ async function cmd_info(args) {
           if (!account) {
             for (let t of e.transfers) {
               if (t[1].match(cmd_report_accounts.income)) {
-                amount = -t[2];
+                amount = t[2].timesPrim(-1);
                 account = t[1];
                 break;
               }
@@ -4345,30 +5487,30 @@ async function cmd_info(args) {
           }
         }
       } else {
-        let totalPosAmount = new Big(0);
-        let expAmount = new Big(0);
+        let totalPosAmount = new Money();
+        let expAmount = new Money();
         for (let t of e.transfers) {
           if (t[1].match(cmd_report_accounts.expense)) expAmount = expAmount.plus(t[2]);
           if (t[2] > 0) totalPosAmount = totalPosAmount.plus(t[2]);
         }
-        totalPosAmount = totalPosAmount.toNumber();
-        expAmount = expAmount.toNumber();
-        if (totalPosAmount == expAmount) {
-          amount = [print_color_money(-totalPosAmount), print_format_money(-totalPosAmount).length];
+        totalPosAmount = totalPosAmount;
+        expAmount = expAmount;
+        if (totalPosAmount.eq(expAmount)) {
+          amount = totalPosAmount.timesPrim(-1).colorFormat();
           account = '--- Split in ' + e.transfers.length + ' transfers ---';
         }
       }
       if (!account) {
         account = e.bookClose ? '=======  Book Close  ========' : '--- Split in ' + e.transfers.length + ' transfers ---';
         desc = e.bookClose ? '===== ' + e.description + '[' + e.transfers.length + ']' + ' =====' : desc;
-        amount = new Big(0);
+        amount = new Money();
         for (let t of e.transfers) {
-          if (t[2] > 0) amount = amount.plus(t[2]);
+          if (t[2].gtr(new Money())) amount = amount.plus(t[2]);
         }
-        amount = '±' + print_format_money(amount.toNumber());
-        amount = [c.cyanBright(amount), amount.length];
+        amount = '±' + amount.noColorFormat();
+        amount = c.cyanBright(amount);
       } else if (!amount.length) {
-        amount = [print_color_money(amount), print_format_money(amount).length];
+        amount = amount.colorFormat();
       }
 
       data.push([
@@ -4635,6 +5777,8 @@ async function cmd_accounts(args) {
     console.log("Warning: using from modifier might result in wrong summation of asset and liability accounts\n");
   }
 
+  let dp = Math.max(parseInt(args.flags.dp), 0);
+  if (isNaN(dp)) dp = undefined;
   let tree = args._[0] == 'tree';
 
   if (args.flags['sum-parent'] === false && args.flags['max-depth']) {
@@ -4652,57 +5796,50 @@ async function cmd_accounts(args) {
   if (sumParent && args.flags.sum && args.flags['max-depth'] == Infinity) {
     console.log("Warning: With --sum-parent and no --max-depth, --sum might produce wrong results.\n");
   }
+  let max_t = fs_data_range.length ? Date.parse((fs_data_range[fs_data_range.length - 1] + 1) + '-01-01T00:00:00') : new Date(new Date().getFullYear() + 1, 0, 1) - 1000;
+  let to = (Date.parse(report_replaceDateStr(cmd_report_modifiers.to) + 'T00:00:00') - 1000 || max_t) / 1000 | 0;
 
   report_extract_account(args);
   report_extract_tags(args);
   let balanceData = await report_sum_accounts(args, sumParent);
   let accounts = Object.keys(balanceData);
 
+  let table = [["Accounts", "Balance"]];
+  let align = [TAB_ALIGN_LEFT, TAB_ALIGN_RIGHT];
 
-  let width = "Accounts".length;
-  let width2 = "Balance".length;
-  let sum = new Big(0);
-  accounts.forEach(x => {
-    width2 = Math.max(width2, print_format_money(balanceData[x]).length);
-  });
+  let sum = new Money();
 
   let accs = accounts.sort((a, b) =>
     args.flags['sort'] ?
-      balanceData[b] - balanceData[a] :
+      balanceData[b].compare(balanceData[a]) :
       b - a
   ); // wait for open book then key
 
   if (tree) {
     if (args.flags['hide-zero'])
-      accounts = accounts.filter(x => balanceData[x] != 0);
+      accounts = accounts.filter(x => !balanceData[x].isZero());
     let accTree = print_accountTree(accounts);
-    width = accTree.maxLength;
-
-    console.log(`\n${print_header_style(print_pad_right("Accounts", accTree.maxLength))} ${print_header_style(print_pad_right("Balance", width2))}`);
 
     let i = -1;
     accTree.list.forEach((x) => {
-      if (args.flags['hide-zero'] && balanceData[x] == 0) return;
-      if (countDots(accTree.fullList[++i]) > args.flags['max-depth']) return;
-      if (balanceData[accTree.fullList[i]]) sum = sum.plus(balanceData[accTree.fullList[i]]);
-      console.log(print_alternate_row(`${print_pad_right(x, accTree.maxLength)} ${print_pad_left(print_color_money(balanceData[accTree.fullList[i]]), width2, print_format_money(balanceData[accTree.fullList[i]]).length)}`, i));
+      let fullAcc = accTree.fullList[++i];
+      //if (args.flags['hide-zero'] && balanceData[fullAcc].isZero()) return;
+      if (countDots(fullAcc) > args.flags['max-depth']) return;
+      let amnt = balanceData[fullAcc] || new Money();
+      if (amnt) sum = sum.plus(amnt);
+      table.push([x, amnt.tryConvertArgs(args, to || undefined).colorFormat(dp)]);
     });
   } else {
-    accs.forEach(x => width = Math.max(width, x.length));
-
-
-    console.log(`\n${print_header_style(print_pad_right("Accounts", width))} ${print_header_style(print_pad_right("Balance", width2))}`);
-    let i = 0;
     accs.forEach((x) => {
-      if (args.flags['hide-zero'] && balanceData[x] == 0) return;
+      if (args.flags['hide-zero'] && balanceData[x].isZero()) return;
       if (countDots(x) > args.flags['max-depth']) return;
       if (balanceData[x]) sum = sum.plus(balanceData[x]);
-      console.log(print_alternate_row(`${print_pad_right(x, width)} ${print_pad_left(print_color_money(balanceData[x]), width2, print_format_money(balanceData[x]).length)}`, i++));
+      table.push([x, balanceData[x].tryConvertArgs(args, to || undefined).colorFormat(dp)]);
     });
   }
-  sum = sum.toNumber();
-  if (args.flags.sum) console.log(c.bold(`${print_pad_right('Sum', width)} ${print_pad_left(print_format_money(sum), width2, print_format_money(sum).length)}`));
-  console.log("");
+  if (args.flags.sum)
+    table.push(['Sum', sum.tryConvertArgs(args, to || undefined).colorFormat(dp)]);
+  console.log(tabulate(table, { align: align }));
 }
 var mpart_disks = [];
 
@@ -4929,7 +6066,10 @@ var TAB_ALIGN_LEFT = 1;
 var TAB_ALIGN_RIGHT = 2;
 var TAB_ALIGN_CENTER = 3;
 
-function print_entry_ascii(entry, maxWidth) {
+function print_entry_ascii(entry, maxWidth, args=cli_args) {
+  let dp = Math.max(parseInt(args.flags.dp), 0);
+  if (isNaN(dp)) dp = undefined;
+
   maxWidth = maxWidth || print_max_width_from_entries([entry]);
   let alignrightwidth = 2 + maxWidth.transDesc + (maxWidth.transDesc ? 2 : 0) + maxWidth.acc + 2 + maxWidth.mon - 9 - 10 - (entry.description ? entry.description.length : 0);
   let str = c.cyanBright.bold(entry.time ? entry_datestr(entry) : '[time]') + ' ' + (typeof entry.description == 'string' ? entry.description : '[title]').trim() +
@@ -4940,11 +6080,12 @@ function print_entry_ascii(entry, maxWidth) {
   }
   str += '\n';
   for (let t of entry.transfers) {
-    let mon = print_format_money(t[2]);
+    let amnt = t[2].tryConvertArgs(args, entry.time);
+    let mon = amnt.noColorFormat(dp);
     str += '  ' +
            (maxWidth.transDesc ? t[0] + Array(maxWidth.transDesc - t[0].length + 2).fill(' ').join('') : '') +
            c.yellowBright(t[1] + Array(maxWidth.acc - t[1].length + 2).fill(' ').join('')) +
-           Array(maxWidth.mon - mon.length + 2).fill(' ').join('') + print_color_money(t[2]) + '\n';
+           Array(maxWidth.mon - mon.length + 2).fill(' ').join('') + amnt.colorFormat(dp) + '\n';
   }
   return str;
 }
@@ -4983,15 +6124,17 @@ function print_max_width_from_entries(entries) {
     while (len2--) {
       a.transDesc = Math.max(a.transDesc, e.transfers[len2][0].length);
       a.acc = Math.max(a.acc, e.transfers[len2][1].length);
-      a.mon = Math.max(a.mon, print_format_money(e.transfers[len2][2]).length);
+      a.mon = Math.max(a.mon, e.transfers[len2][2].noColorFormat().length);
     }
   }
   return a;
 }
 
+/* Deprecated
 function print_format_money(m) {
   return accounting.formatMoney(m);
 }
+*/
 
 function print_truncate_account(acc, depth) {
   let a = acc.split('.');
@@ -5548,6 +6691,13 @@ const ARG_FLAG_SHORTHANDS = {
   'depth': 'max-depth',
 };
 
+const ARG_MODIFIER_SHORTHANDS = {
+  'desc': 'description',
+  'f': 'from',
+  't': 'to',
+  'bc': 'bookClose'
+};
+
 function argsparser(_args) {
   let args = { _:[], flags: {}, modifiers: {} };
 
@@ -5577,8 +6727,14 @@ function argsparser(_args) {
       if (val == 'true') val = true;
       if (val == 'false') val = false;
       args.flags[key] = val;
-    } else if (match = arg.match(/^([a-zA-Z_]+):(.*)$/)) {
-      args.modifiers[match[1]] = match[2];
+    } else if (match = arg.match(/^([a-zA-Z_-]+):(.*)$/)) {
+      let key = match[1];
+      key = ARG_MODIFIER_SHORTHANDS[key] || key;
+      let val = match[2];
+      if (!isNaN(Number(val))) val = Number(val);
+      if (val == 'true') val = true;
+      if (val == 'false') val = false;
+      args.modifiers[key] = val;
     } else {
       args._.push(arg)
     }
