@@ -6052,7 +6052,10 @@ var TAB_ALIGN_LEFT = 1;
 var TAB_ALIGN_RIGHT = 2;
 var TAB_ALIGN_CENTER = 3;
 
-function print_entry_ascii(entry, maxWidth) {
+function print_entry_ascii(entry, maxWidth, args=cli_args) {
+  let dp = Math.max(parseInt(args.flags.dp), 0);
+  if (isNaN(dp)) dp = undefined;
+
   maxWidth = maxWidth || print_max_width_from_entries([entry]);
   let alignrightwidth = 2 + maxWidth.transDesc + (maxWidth.transDesc ? 2 : 0) + maxWidth.acc + 2 + maxWidth.mon - 9 - 10 - (entry.description ? entry.description.length : 0);
   let str = c.cyanBright.bold(entry.time ? entry_datestr(entry) : '[time]') + ' ' + (typeof entry.description == 'string' ? entry.description : '[title]').trim() +
@@ -6063,11 +6066,12 @@ function print_entry_ascii(entry, maxWidth) {
   }
   str += '\n';
   for (let t of entry.transfers) {
-    let mon = t[2].noColorFormat();
+    let amnt = t[2].tryConvertArgs(args, entry.time);
+    let mon = amnt.noColorFormat(dp);
     str += '  ' +
            (maxWidth.transDesc ? t[0] + Array(maxWidth.transDesc - t[0].length + 2).fill(' ').join('') : '') +
            c.yellowBright(t[1] + Array(maxWidth.acc - t[1].length + 2).fill(' ').join('')) +
-           Array(maxWidth.mon - mon.length + 2).fill(' ').join('') + t[2].colorFormat() + '\n';
+           Array(maxWidth.mon - mon.length + 2).fill(' ').join('') + amnt.colorFormat(dp) + '\n';
   }
   return str;
 }
