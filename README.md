@@ -4,6 +4,9 @@ This is a personal project aimed at creating a ledger-like cli accounting progra
 
 The ledg file format is largely incompatible with other ledger-likes. It is though easy to switch back and forth by replacing tabs with spaces, etc. Ledg also supports descriptions in each transfer as opposed to one description per entry. The program manages the journal for you, and for most of the times one does not need to touch the text files.
 
+### Update 2021-04-07
+Multicurrency support is here! Currently performing integration and extensive testing on develop branch before merging to master.
+
 ### Installation
 1. Make sure ``node`` is in your path.
 2. Download ``bin/ledg`` from this repo
@@ -53,6 +56,18 @@ FLAGS
                 ex. --budget="Monthly Budget"
                     --budget="2023 Puero Rico Vacation Saving Goals"
 
+        --currency=CURRENCY
+                attempts to convert all values to CURRENCY
+                Note: in multiperiod reports, sums of each reporting period are
+                derived from adding the converted values with rates at the time
+                of entries, unless specified by --valuation-date
+                Price tables must be included in config.ledg as an array containing
+                relative file paths in "data"."priceFiles".
+                Price file format is the ledger style price directive
+
+        --valuation-date=yyyy-mm-dd
+                specify a date to use for currency conversion
+
         --income=<account filter>, --expense=<account filter>, --equity=<account filter>
         --asset=<account filter>, --liability=<account filter>
                 Default: Income*, Expense*, Asset*, Liability*, Equity*
@@ -81,6 +96,12 @@ FILTER
                 queries entries with modifiers that matches the regex
                 ex: payee:"amazon|steam"
                     tag:"pc|tablet"
+
+                shorthands:
+                        desc: => description:
+                        f:    => from:
+                        t:    => to:
+                        bc:   => bookClose:
 
         +TAG
                 appends TAG(,|$) to tags: modifier, if tags: is empty
@@ -160,7 +181,7 @@ COMMANDS
 
         history [--daily] [--weekly] [--biweekly] [--monthly] [--quarterly]
                 [--yearly] [--cumulative] [--cumulative-columns=num list]
-                [--skip-book-close=true] [--epoch] [--csv] [--iso]
+                [--skip-book-close=true] [--epoch] [--csv] [--iso] [--invert]
                 [ <account filter 1> <account filter 2> ... ] [--skip=]
                 Defaults: shows accounts specified by --income, --expense, --asset, --liability,
                           and --equity, and defaults --skip-book-close=true
@@ -255,7 +276,7 @@ COMMANDS
                 -y
                         defaults confirmations to yes
 
-        budget [--budget=NAME] [--do-not-adjust] [edit|list]
+        budget [--budget=NAME] [--do-not-adjust] [edit|list] [--simple]
                 prints report for the selected budget
                 Note: report excludes entries with bookClose:"true"
                       budgets can be edited at FILE.budgets.ledg
