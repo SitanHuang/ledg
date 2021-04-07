@@ -1463,31 +1463,44 @@ class Money {
   }
 
   // only to be called from cli
-  colorFormat(dp=Big.DP) {
+  colorFormat(dp=Big.DP, plus) {
     let keys = Object.keys(this.amnts);
     let str = [];
     for (let x of keys) {
       if (this.amnts[x] == 0) continue;
       if (x == data.defaultCurrency && keys.length == 1) {
-        return Money.colorAmount('', this.amnts[x], dp);
+        return Money.colorAmount('', this.amnts[x], dp, plus);
       }
-      str.push(Money.colorAmount(x, this.amnts[x], dp));
+      str.push(Money.colorAmount(x, this.amnts[x], dp, plus));
+    }
+    return str.join(", ") || '0';
+  }
+  // only to be called from cli
+  noColorFormat(dp=Big.DP, plus) {
+    let keys = Object.keys(this.amnts);
+    let str = [];
+    for (let x of keys) {
+      if (this.amnts[x] == 0) continue;
+      if (x == data.defaultCurrency && keys.length == 1) {
+        return Money.formatAmount('', this.amnts[x], dp, plus);
+      }
+      str.push(Money.formatAmount(x, this.amnts[x], dp, plus));
     }
     return str.join(", ") || '0';
   }
 
   static colorAmount(cur, b, maxdp=Big.DP, plus) {
-    let amnt = Money.formatAmount(cur, b, maxdp);
+    let amnt = Money.formatAmount(cur, b, maxdp, plus);
     if (b < 0)
       return c.redBright(amnt);
     if (b > 0)
-      return c.green((plus ? '+' : '') + amnt);
+      return c.green(amnt);
     return amnt;
   }
 
   static formatAmount(cur, b, maxdp=Big.DP, plus) {
     let precision = Math.min(Math.max(b.c.length - b.e - 1, 2), maxdp);
-    return accounting.formatMoney(b, cur, precision);
+    return cur + (plus && b > 0 ? '+' : '') + accounting.formatMoney(b, undefined, precision);
   }
 
   clone() {
@@ -2874,7 +2887,7 @@ async function query_exec(query) {
     for (let c of q.collect) {
       switch (c) {
         case 'sum':
-          d.sum = new Big(0);
+          d.sum = new Money();
           break;
         case 'count':
           d.count = 0;
@@ -2916,7 +2929,7 @@ async function query_exec(query) {
         // handle accounts && transfer sums & sum & count
         let sumTrans = q.collect.indexOf('accounts_sum') >= 0;
         let isSum = q.collect.indexOf('sum') >= 0;
-        let sum = isSum ? new Big(0) : undefined;
+        let sum = isSum ? new Money() : undefined;
         let sum_parent = q.flags['sum-parent'];
         let accSum = {};
         let matchTimes = 0;
@@ -2941,12 +2954,12 @@ async function query_exec(query) {
                 let previous = "";
                 for (let l of levels) {
                   let k = previous + l;
-                  if (!accSum[k]) accSum[k] = new Big(0);
+                  if (!accSum[k]) accSum[k] = new Money();
                   accSum[k] = accSum[k].plus(t[2]);
                   previous = k + ".";
                 }
               } else {
-                accSum[t[1]] = (accSum[t[1]] || new Big(0)).plus(t[2]);
+                accSum[t[1]] = (accSum[t[1]] || new Money()).plus(t[2]);
               }
             }
             if (isSum && q.accounts.length == 0) sum = sum.plus(t[2]);
@@ -2959,9 +2972,8 @@ async function query_exec(query) {
           data[i].entries.push(e);
         }
         // store rest of results
-        for (let x in accSum) { accSum[x] = accSum[x].toNumber() }
-        if (sumTrans) data[i].accounts_sum = accSum;
-        if (isSum) data[i].sum = data[i].sum.plus(sum);
+        if (sumTrans) data[i].accounts_sum = accSum.tryConvertArgs(q, e.time);
+        if (isSum) data[i].sum = data[i].sum.plus(sum).tryConvertArgs(q, e.time);
         data[i].count++;
       }
     }
@@ -2970,12 +2982,11 @@ async function query_exec(query) {
 
   for (let i = 0;i < data.length;i++) {
     let d = data[i];
-    d.sum = d.sum && d.sum.toNumber();
     if (query.cumulative && i - query.cumulative >= 0) {
       let prev = data[i - query.cumulative];
       for (let key in prev) {
         if (!isNaN(prev[key]))
-          data[i][key] = new Big(prev[key]).add(data[i][key]).toNumber();
+          data[i][key] = prev[key].plus(data[i][key]);
       }
     }
     if (!isNaN(d.sum)) data.minSum = Math.min(d.sum, data.minSum || 0);
@@ -4520,10 +4531,13 @@ async function cmd_register(args) {
 }
 
 function _cmd_register_group(args, data, skipTo, depth, int, q) {
+  let dp = Math.max(parseInt(args.flags.dp), 0);
+  if (isNaN(dp)) dp = Big.DP;
+
   let table = [['Start', 'Acc', 'Amnt', 'Tot']];
   let align = [TAB_ALIGN_LEFT, TAB_ALIGN_LEFT, TAB_ALIGN_RIGHT, TAB_ALIGN_RIGHT, TAB_ALIGN_RIGHT];
 
-  let sum = new Big(0);
+  let sum = new Money();
 
   let from = q.from * 1000;
   let to = q.to * 1000;
@@ -4543,12 +4557,12 @@ function _cmd_register_group(args, data, skipTo, depth, int, q) {
         for (let t of e.transfers) {
           if (t[1].match(q)) {
             let a = print_truncate_account(t[1], depth);
-            accs[a] = (accs[a] || new Big(0)).add(t[2]);
+            accs[a] = (accs[a] || new Money()).plus(t[2].tryConvertArgs(args, e.time));
           }
         }
       }
     }
-    
+
     let j = -1;
     for (let acc in accs) {
       j++;
@@ -4558,10 +4572,10 @@ function _cmd_register_group(args, data, skipTo, depth, int, q) {
 
       row.push(acc);
 
-      let m = args.flags.invert ? -amnt : amnt;
-      sum = sum.add(m);
+      let m = args.flags.invert ? amnt.timesPrim(-1) : amnt;
+      sum = sum.plus(m);
       if (!skipTo || e.time * 1000 >= skipTo) {
-        row.push(print_color_money(m, true), print_color_money(sum));
+        row.push(m.colorFormat(dp, true), sum.colorFormat(dp));
         table.push(row);
       }
     }
@@ -4569,7 +4583,7 @@ function _cmd_register_group(args, data, skipTo, depth, int, q) {
     if (j == -1 && !args.flags['hide-zero']) {
       table.push([
         c.cyanBright(entry_datestr(crntD / 1000)),
-        '', print_format_money(0), print_color_money(sum)
+        '', new Money().colorFormat(), sum.colorFormat(dp)
       ]);
     }
 
@@ -4580,10 +4594,13 @@ function _cmd_register_group(args, data, skipTo, depth, int, q) {
 }
 
 function _cmd_register_nogroup(args, data, skipTo, depth) {
+  let dp = Math.max(parseInt(args.flags.dp), 0);
+  if (isNaN(dp)) dp = Big.DP;
+
   let table = [['Date', 'UUID', 'Desc', 'Acc', 'Amnt', 'Tot']];
   let align = [TAB_ALIGN_LEFT, TAB_ALIGN_LEFT, TAB_ALIGN_LEFT, TAB_ALIGN_RIGHT, TAB_ALIGN_RIGHT, TAB_ALIGN_RIGHT];
 
-  let sum = new Big(0);
+  let sum = new Money();
 
   for (let i = 0;i < data.length;i++) {
     let e = data[i];
@@ -4599,11 +4616,12 @@ function _cmd_register_nogroup(args, data, skipTo, depth) {
           desc = args.flags['light-theme'] ? c.black(desc) : c.whiteBright(desc);
           row.push(desc, print_truncate_account(t[1], depth));
 
-          let m = args.flags.invert ? -t[2] : t[2];
-          sum = sum.add(m);
+          let m = args.flags.invert ? t[2].timesPrim(-1) : t[2];
+          m = m.tryConvertArgs(args, e.time);
+          sum = sum.plus(m);
           if (skipTo && e.time * 1000 < skipTo)
             continue;
-          row.push(print_color_money(m, true), print_color_money(sum));
+          row.push(m.colorFormat(dp, true), sum.colorFormat(dp));
           table.push(row);
         }
       }
@@ -4999,19 +5017,15 @@ async function cmd_add(args, modifyMode=false) {
   let _ = args._;
 
   for (let i = 0;i < _.length;i++) {
-    let v = _[i].trim().replace(/ /g, '');
-    let num = Number(v);
+    let v = _[i].trim().replace(/ +/g, ' ');
+    let num;
+    try {
+      num = Money.parseMoney(v);
+    } catch (e) {}
 
     if (v.match(/^\d{4}-\d{2}-\d{2}$/)) {
       opts.time = ((Date.parse(report_replaceDateStr(v) + 'T00:00:00') / 1000) | 0) || opts.time;
-    } else if (!isNaN(num)) {
-      if (currentTransfer) {
-        currentTransfer[2] = num;
-        transfers.push(currentTransfer);
-        currentTransfer = null;
-      } else // entry description
-        desc.push(_[i].trim());
-    } else if (isArgAccount(v)) { // start account with category
+    } else if (isArgAccount(v) && v.indexOf(' ') == -1) { // start account with category
       if (currentTransfer) { // start new one, commit old
         transfers.push(currentTransfer);
         currentTransfer = null;
@@ -5043,6 +5057,13 @@ async function cmd_add(args, modifyMode=false) {
       }
     } else if (v.startsWith("+")) {
       tag_add(opts, v.substring(1));
+    } else if (num) {
+      if (currentTransfer) {
+        currentTransfer[2] = num;
+        transfers.push(currentTransfer);
+        currentTransfer = null;
+      } else // entry description
+        desc.push(_[i].trim());
     } else {
       if (currentTransfer) // transfer description
         currentTransfer[0] = (currentTransfer[0] + ' ' + _[i].trim()).trim();
@@ -5424,11 +5445,11 @@ async function cmd_info(args) {
     for (let e of entries) {
       let account;
       let desc = e.description + '        ';
-      let amount = 0;
+      let amount = new Money();
       if (e.transfers.length <= 2) {
         for (let t of e.transfers) {
           if (t[1].match(cmd_report_accounts.expense)) {
-            amount = -t[2];
+            amount = t[2].timesPrim(-1);
             account = t[1];
             break;
           }
@@ -5436,7 +5457,7 @@ async function cmd_info(args) {
         if (!account) {
           for (let t of e.transfers) {
             if (t[1].match(cmd_report_accounts.liability)) {
-              amount = t[2];
+              amount = t[2].timesPrim(1);
               account = t[1];
               break;
             }
@@ -5444,7 +5465,7 @@ async function cmd_info(args) {
           if (!account) {
             for (let t of e.transfers) {
               if (t[1].match(cmd_report_accounts.income)) {
-                amount = -t[2];
+                amount = t[2].timesPrim(-1);
                 account = t[1];
                 break;
               }
@@ -5452,30 +5473,30 @@ async function cmd_info(args) {
           }
         }
       } else {
-        let totalPosAmount = new Big(0);
-        let expAmount = new Big(0);
+        let totalPosAmount = new Money();
+        let expAmount = new Money();
         for (let t of e.transfers) {
           if (t[1].match(cmd_report_accounts.expense)) expAmount = expAmount.plus(t[2]);
           if (t[2] > 0) totalPosAmount = totalPosAmount.plus(t[2]);
         }
-        totalPosAmount = totalPosAmount.toNumber();
-        expAmount = expAmount.toNumber();
-        if (totalPosAmount == expAmount) {
-          amount = [print_color_money(-totalPosAmount), print_format_money(-totalPosAmount).length];
+        totalPosAmount = totalPosAmount;
+        expAmount = expAmount;
+        if (totalPosAmount.eq(expAmount)) {
+          amount = totalPosAmount.timesPrim(-1).colorFormat();
           account = '--- Split in ' + e.transfers.length + ' transfers ---';
         }
       }
       if (!account) {
         account = e.bookClose ? '=======  Book Close  ========' : '--- Split in ' + e.transfers.length + ' transfers ---';
         desc = e.bookClose ? '===== ' + e.description + '[' + e.transfers.length + ']' + ' =====' : desc;
-        amount = new Big(0);
+        amount = new Money();
         for (let t of e.transfers) {
-          if (t[2] > 0) amount = amount.plus(t[2]);
+          if (t[2].gtr(new Money())) amount = amount.plus(t[2]);
         }
-        amount = '±' + print_format_money(amount.toNumber());
-        amount = [c.cyanBright(amount), amount.length];
+        amount = '±' + amount.noColorFormat();
+        amount = c.cyanBright(amount);
       } else if (!amount.length) {
-        amount = [print_color_money(amount), print_format_money(amount).length];
+        amount = amount.colorFormat();
       }
 
       data.push([
@@ -6042,11 +6063,11 @@ function print_entry_ascii(entry, maxWidth) {
   }
   str += '\n';
   for (let t of entry.transfers) {
-    let mon = print_format_money(t[2]);
+    let mon = t[2].noColorFormat();
     str += '  ' +
            (maxWidth.transDesc ? t[0] + Array(maxWidth.transDesc - t[0].length + 2).fill(' ').join('') : '') +
            c.yellowBright(t[1] + Array(maxWidth.acc - t[1].length + 2).fill(' ').join('')) +
-           Array(maxWidth.mon - mon.length + 2).fill(' ').join('') + print_color_money(t[2]) + '\n';
+           Array(maxWidth.mon - mon.length + 2).fill(' ').join('') + t[2].colorFormat() + '\n';
   }
   return str;
 }
@@ -6085,7 +6106,7 @@ function print_max_width_from_entries(entries) {
     while (len2--) {
       a.transDesc = Math.max(a.transDesc, e.transfers[len2][0].length);
       a.acc = Math.max(a.acc, e.transfers[len2][1].length);
-      a.mon = Math.max(a.mon, print_format_money(e.transfers[len2][2]).length);
+      a.mon = Math.max(a.mon, e.transfers[len2][2].noColorFormat().length);
     }
   }
   return a;
