@@ -1431,9 +1431,60 @@ class Money {
   }
 
   toString() {
-    return Object.keys(this.amnts).sort().filter(x => this.amnts[x] != 0)
-      .map(x => x == data.defaultCurrency ? this.amnts[x].valueOf() : `${x} ${this.amnts[x].toNumber()}`)
-      .join(", ") || '0';
+    let keys = Object.keys(this.amnts);
+    let str = [];
+    for (let x of keys) {
+      if (this.amnts[x] == 0) continue;
+      if (x == data.defaultCurrency && keys.length == 1)
+        return this.amnts[x].valueOf().toString();
+      str.push(this.amnts[x].toNumber() + x);
+    }
+    return str.join(", ") || '0';
+  }
+  // returns primitive amnt in defaultCurrency
+  valueOf() {
+    return this.val(data.defaultCurrency);
+  }
+
+  val(tCur=this.initCur, date=this.date) {
+    return this.convert(tCur, date).amnts[tCur].toNumber();
+  }
+
+  tryConvertArgs(args) {
+    let cur = args.flags.currency;
+    if (cur)
+      try {
+        return this.convert(cur);
+      } catch (e) {}
+    return this.clone();
+  }
+
+  // only to be called from cli
+  colorFormat(dp=Big.DP) {
+    let keys = Object.keys(this.amnts);
+    let str = [];
+    for (let x of keys) {
+      if (this.amnts[x] == 0) continue;
+      if (x == data.defaultCurrency && keys.length == 1) {
+        return Money.colorAmount(x, this.amnts[x], dp);
+      }
+      str.push(Money.colorAmount(x, this.amnts[x], dp));
+    }
+    return str.join(", ") || '0';
+  }
+
+  static colorAmount(cur, b, maxdp=Big.DP, plus) {
+    let amnt = Money.formatAmount(cur, b, maxdp);
+    if (b < 0)
+      return c.redBright(amnt);
+    if (b > 0)
+      return c.green((plus ? '+' : '') + amnt);
+    return amnt;
+  }
+
+  static formatAmount(cur, b, maxdp=Big.DP, plus) {
+    let precision = Math.min(Math.max(b.c.length - b.e - 1, 2), maxdp);
+    return accounting.formatMoney(b, cur, precision);
   }
 
   serialize() {
@@ -1531,15 +1582,6 @@ class Money {
       return this.val(cur) == 0;
     } catch (e) {}
     return false;
-  }
-
-  // returns primitive amnt in defaultCurrency
-  valueOf() {
-    return this.val(data.defaultCurrency);
-  }
-
-  val(tCur=this.initCur, date=this.date) {
-    return this.convert(tCur, date).amnts[tCur].toNumber();
   }
 
   // return Money with sum of all currencies in tCur
@@ -4083,6 +4125,9 @@ async function cmd_history(args) {
   if (args.flags['skip-book-close'] !== false)
     args.flags['skip-book-close'] = true;
 
+  let dp = Math.max(parseInt(args.flags.dp), 0);
+  if (isNaN(dp)) dp = undefined;
+
   let int = report_get_reporting_interval(args);
   let showDays = true;
   let showMonth = true;
@@ -4133,7 +4178,7 @@ async function cmd_history(args) {
 
   let accounts = args.accounts.length ?
                    [...args.accounts.map((x, i) => { return { q: x, name: args.accountSrc[i], sum: new Big(0), val: Array(dateFunctions.length).fill(new Big(0)) } })] :
-                   [...Object.keys(cmd_report_accounts).map(x => { return { name: x, q: cmd_report_accounts_compiled[x], sum: new Big(0), val: Array(dateFunctions.length).fill(new Big(0)) } })];
+                   [...Object.keys(cmd_report_accounts).map(x => { return { name: x, q: cmd_report_accounts_compiled[x], sum: new Money(), val: Array(dateFunctions.length).fill(new Money()) } })];
 
   delete args.accounts; // so report_traverse don't handle accounts
 
@@ -4196,7 +4241,7 @@ async function cmd_history(args) {
         x.val[j] = x.val[j].plus(x.val[j - 1]);
       });
     }
-    x.val = x.val.map(v => v.toNumber());
+    // x.val = x.val.map(v => v.toNumber());
   });
 
   crntD = new Date(from);
@@ -4237,18 +4282,13 @@ async function cmd_history(args) {
       last = current;
     }
     for (let acc of accounts) {
-      let v = acc.val[r];
-
-      let vs;
+      let v = acc.val[r].tryConvertArgs(args);
 
       if (acc.q == cmd_report_accounts_compiled.income || acc.q == cmd_report_accounts_compiled.expense ||
           args.flags.invert) {
-        v = -v
+        v = v.timesPrim(-1);
       }
-      vs = print_format_money(v);
-      vs = [print_color_money(v), vs.length];
-
-      row.push(vs);
+      row.push(v.colorFormat(dp));
     }
 
     crntD.setFullYear(crntD.getFullYear() + int[0]);
@@ -4269,17 +4309,13 @@ async function cmd_history(args) {
         avg.push('Avg');
       } else {
         let acc = accounts[j];
-        let v = Math.round(acc.sum.div(dateFunctions.length).toNumber() * 100) / 100;
-
-        let vs;
+        let v = acc.sum.divPrim(dateFunctions.length).tryConvertArgs(args);
 
         if (acc.q == cmd_report_accounts_compiled.income || acc.q == cmd_report_accounts_compiled.expense) {
-          v = -v
+          v = v.timesPrim(-1);
         }
-        vs = print_format_money(v);
-        vs = [print_color_money(v), vs.length];
 
-        avg.push(vs);
+        avg.push(v.colorFormat(isNaN(dp) ? 2 : dp));
       }
     }
     table.push(avg);
@@ -6055,9 +6091,11 @@ function print_max_width_from_entries(entries) {
   return a;
 }
 
+/* Deprecated
 function print_format_money(m) {
   return accounting.formatMoney(m);
 }
+*/
 
 function print_truncate_account(acc, depth) {
   let a = acc.split('.');
