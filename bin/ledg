@@ -92,7 +92,8 @@ function entry_check_balance(transfers) {
     if (!balance) balance = t[2];
     else balance = balance.plus(t[2]);
   }
-  if (!balance) return 0;
+  balance = balance.removeEmpty();
+  if (balance.isZero()) return 0;
   return balance.timesPrim(-1);
 }
 
@@ -1518,10 +1519,18 @@ class Money {
   }
 
   isZero() {
-    for (let c in this.amnts)
-      if(this.amnts[c] != 0)
-        return false;
-    return true;
+    let cur;
+    // find first non zero currency
+    for (let _c in this.amnts)
+      if (this.amnts[_c] && (cur = _c)) break;
+
+    if (!cur) return true; // this.amnts is empty or all zeroes
+
+    // try squash into single currency
+    try {
+      return this.val(cur) == 0;
+    } catch (e) {}
+    return false;
   }
 
   // returns primitive amnt in defaultCurrency
@@ -1549,7 +1558,18 @@ class Money {
       }
       mon.amnts[tCur] = mon.amnts[tCur].plus(amnt);
     }
+    for (let cur in mon.amnts) {
+      // drop last digit
+      mon.amnts[cur] = mon.amnts[cur].round(Big.DP - 2);
+    }
     return mon;
+  }
+
+  removeEmpty() {
+    let clone = this.clone();
+    for (let cur in this.amnts)
+      if (this.amnts[cur] == 0) delete clone.amnts[cur];
+    return clone;
   }
 
   static parseMoney(whole, date=(new Date() / 1000 | 0)) {
@@ -3331,8 +3351,8 @@ async function fs_read_book(year) {
     let entry = null;
     const commitEntry = (entry) => {
       entry_balance(entry);
-      console.log("commit====");
-      console.log(entry.transfers.map(x => [x[0], x[1], x[2].toString()]));
+      // console.log("commit====");
+      // console.log(entry.transfers.map(x => [x[0], x[1], x[2].toString()]));
       data.books[year].push(entry);
       _fs_entries_read++;
     };
