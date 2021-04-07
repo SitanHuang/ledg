@@ -1,12 +1,18 @@
 
 # Changelog
-## [Unreleased]
+## [0.8.0-beta] 2021-04-04
 ### Added
+- multicurrency support
+  - complete rewrite of internal parsing and
+    data structures
+  - large refactors in cli commands
 - history \-\-invert
 - modifier shorthands(see manual)
 
 ### Changed
 - value "true" in modifier is converted to boolean
+- improved add command to better distinguish account names,
+  prices, and description
 
 ### Fixed
 - booleans are interpreted as 1 or 0 in modifiers
