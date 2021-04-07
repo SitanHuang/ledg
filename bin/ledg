@@ -92,6 +92,7 @@ function entry_check_balance(transfers) {
     if (!balance) balance = t[2];
     else balance = balance.plus(t[2]);
   }
+  if (!balance) return 0;
   balance = balance.removeEmpty();
   if (balance.isZero()) return 0;
   return balance.timesPrim(-1);
@@ -1472,6 +1473,19 @@ class Money {
         return Money.colorAmount('', this.amnts[x], dp);
       }
       str.push(Money.colorAmount(x, this.amnts[x], dp));
+    }
+    return str.join(", ") || '0';
+  }
+  // only to be called from cli
+  noColorFormat(dp=Big.DP) {
+    let keys = Object.keys(this.amnts);
+    let str = [];
+    for (let x of keys) {
+      if (this.amnts[x] == 0) continue;
+      if (x == data.defaultCurrency && keys.length == 1) {
+        return Money.formatAmount('', this.amnts[x], dp);
+      }
+      str.push(Money.formatAmount(x, this.amnts[x], dp));
     }
     return str.join(", ") || '0';
   }
@@ -4999,19 +5013,15 @@ async function cmd_add(args, modifyMode=false) {
   let _ = args._;
 
   for (let i = 0;i < _.length;i++) {
-    let v = _[i].trim().replace(/ /g, '');
-    let num = Number(v);
+    let v = _[i].trim().replace(/ +/g, ' ');
+    let num;
+    try {
+      num = Money.parseMoney(v);
+    } catch (e) {}
 
     if (v.match(/^\d{4}-\d{2}-\d{2}$/)) {
       opts.time = ((Date.parse(report_replaceDateStr(v) + 'T00:00:00') / 1000) | 0) || opts.time;
-    } else if (!isNaN(num)) {
-      if (currentTransfer) {
-        currentTransfer[2] = num;
-        transfers.push(currentTransfer);
-        currentTransfer = null;
-      } else // entry description
-        desc.push(_[i].trim());
-    } else if (isArgAccount(v)) { // start account with category
+    } else if (isArgAccount(v) && v.indexOf(' ') == -1) { // start account with category
       if (currentTransfer) { // start new one, commit old
         transfers.push(currentTransfer);
         currentTransfer = null;
@@ -5043,6 +5053,13 @@ async function cmd_add(args, modifyMode=false) {
       }
     } else if (v.startsWith("+")) {
       tag_add(opts, v.substring(1));
+    } else if (num) {
+      if (currentTransfer) {
+        currentTransfer[2] = num;
+        transfers.push(currentTransfer);
+        currentTransfer = null;
+      } else // entry description
+        desc.push(_[i].trim());
     } else {
       if (currentTransfer) // transfer description
         currentTransfer[0] = (currentTransfer[0] + ' ' + _[i].trim()).trim();
@@ -5424,11 +5441,11 @@ async function cmd_info(args) {
     for (let e of entries) {
       let account;
       let desc = e.description + '        ';
-      let amount = 0;
+      let amount = new Money();
       if (e.transfers.length <= 2) {
         for (let t of e.transfers) {
           if (t[1].match(cmd_report_accounts.expense)) {
-            amount = -t[2];
+            amount = t[2].timesPrim(-1);
             account = t[1];
             break;
           }
@@ -5436,7 +5453,7 @@ async function cmd_info(args) {
         if (!account) {
           for (let t of e.transfers) {
             if (t[1].match(cmd_report_accounts.liability)) {
-              amount = t[2];
+              amount = t[2].timesPrim(1);
               account = t[1];
               break;
             }
@@ -5444,7 +5461,7 @@ async function cmd_info(args) {
           if (!account) {
             for (let t of e.transfers) {
               if (t[1].match(cmd_report_accounts.income)) {
-                amount = -t[2];
+                amount = t[2].timesPrim(-1);
                 account = t[1];
                 break;
               }
@@ -5452,30 +5469,30 @@ async function cmd_info(args) {
           }
         }
       } else {
-        let totalPosAmount = new Big(0);
-        let expAmount = new Big(0);
+        let totalPosAmount = new Money();
+        let expAmount = new Money();
         for (let t of e.transfers) {
           if (t[1].match(cmd_report_accounts.expense)) expAmount = expAmount.plus(t[2]);
           if (t[2] > 0) totalPosAmount = totalPosAmount.plus(t[2]);
         }
-        totalPosAmount = totalPosAmount.toNumber();
-        expAmount = expAmount.toNumber();
-        if (totalPosAmount == expAmount) {
-          amount = [print_color_money(-totalPosAmount), print_format_money(-totalPosAmount).length];
+        totalPosAmount = totalPosAmount;
+        expAmount = expAmount;
+        if (totalPosAmount.eq(expAmount)) {
+          amount = totalPosAmount.timesPrim(-1).colorFormat()
           account = '--- Split in ' + e.transfers.length + ' transfers ---';
         }
       }
       if (!account) {
         account = e.bookClose ? '=======  Book Close  ========' : '--- Split in ' + e.transfers.length + ' transfers ---';
         desc = e.bookClose ? '===== ' + e.description + '[' + e.transfers.length + ']' + ' =====' : desc;
-        amount = new Big(0);
+        amount = new Money();
         for (let t of e.transfers) {
-          if (t[2] > 0) amount = amount.plus(t[2]);
+          if (t[2].gtr(new Money())) amount = amount.plus(t[2]);
         }
-        amount = '±' + print_format_money(amount.toNumber());
-        amount = [c.cyanBright(amount), amount.length];
+        amount = '±' + amount.noColorFormat();
+        amount = c.cyanBright(amount);
       } else if (!amount.length) {
-        amount = [print_color_money(amount), print_format_money(amount).length];
+        amount = amount.colorFormat();
       }
 
       data.push([
@@ -6042,11 +6059,11 @@ function print_entry_ascii(entry, maxWidth) {
   }
   str += '\n';
   for (let t of entry.transfers) {
-    let mon = print_format_money(t[2]);
+    let mon = t[2].noColorFormat();
     str += '  ' +
            (maxWidth.transDesc ? t[0] + Array(maxWidth.transDesc - t[0].length + 2).fill(' ').join('') : '') +
            c.yellowBright(t[1] + Array(maxWidth.acc - t[1].length + 2).fill(' ').join('')) +
-           Array(maxWidth.mon - mon.length + 2).fill(' ').join('') + print_color_money(t[2]) + '\n';
+           Array(maxWidth.mon - mon.length + 2).fill(' ').join('') + t[2].colorFormat() + '\n';
   }
   return str;
 }
@@ -6085,7 +6102,7 @@ function print_max_width_from_entries(entries) {
     while (len2--) {
       a.transDesc = Math.max(a.transDesc, e.transfers[len2][0].length);
       a.acc = Math.max(a.acc, e.transfers[len2][1].length);
-      a.mon = Math.max(a.mon, print_format_money(e.transfers[len2][2]).length);
+      a.mon = Math.max(a.mon, e.transfers[len2][2].noColorFormat().length);
     }
   }
   return a;
