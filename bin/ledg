@@ -7078,7 +7078,7 @@ const ansi_regex = (({onlyFirst = false} = {}) => {
 const strip_ansi = string => typeof string === 'string' ? string.replace(ansi_regex, '') : string;
 async function cmd_eval(args) {
   args._.forEach(x => {
-    console.log(eval(x));
+    console.log(eval(x) + '');
   });
 }
 var CMD_LIST = {
