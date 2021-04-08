@@ -1,6 +1,9 @@
 
 # Changelog
 ## [Unreleased]
+### Changed
+- long table outputs now pipes into less
+
 ### Fixed
 - fix add money with currency parsed as flags
 - cmd\_add crash
