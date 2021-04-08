@@ -10,6 +10,7 @@
 
 ### Changed
 - long table outputs now pipes into less
+- report\_sort\_by\_time sorts clockOut as a backup
 
 ### Fixed
 - fix history with interval flag crashes
