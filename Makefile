@@ -1,4 +1,4 @@
-all: check_node clean bin/ledg scripts
+all: check_node clean bin/ledg SCRIPTS
 
 SOURCE_CORE = $(shell find lib/core/ -type f -name '*.js')
 SOURCE_FS = $(shell find lib/fs/ -type f -name '*.js')
