@@ -1,18 +1,18 @@
 
 ## ledg
-This is a personal project aimed at creating a ledger-like cli accounting program, and one that I can customize according to my likings and workflow. It supports fancier reports than ledger and hledger in the cli; it is 25% faster than hledger when benchmarked for reading 10000 entries as it lacks a lot more features such as commodities and price search.
+This is a personal project aimed at creating a ledger-like cli accounting program, and one that I can customize according to my likings and workflow. It supports fancier reports than ledger and hledger in the cli; it is 25% faster than hledger when benchmarked for reading 10000 entries.
 
-The ledg file format is largely incompatible with other ledger-likes. It is though easy to switch back and forth by replacing tabs with spaces, etc. Ledg also supports descriptions in each transfer as opposed to one description per entry. The program manages the journal for you, and for most of the times one does not need to touch the text files.
+The ledg file format is largely incompatible with other ledger-likes. It is though easy to switch back and forth by replacing tabs with spaces, etc. Ledg also supports descriptions in each transfer as opposed to one description per entry, and multiple currencies in one posting/transfer. The program manages the journal for you, and for most of the times one does not need to touch the text files.
 
-### Update 2021-04-07
-Multicurrency support is here! Currently performing integration and extensive testing on develop branch before merging to master.
+The project is under active development. [ChangeLogs](ChangeLog.md)
 
 ### Installation
+MacOS/Linux supported only. Use WSL on Windows.
+
 1. Make sure ``node`` is in your path.
 2. Download ``bin/ledg`` from this repo
 3. ``chmod +x ledg``
 4. Put ``ledg`` in your path
-
 
 ### Screenshots
 <img
