@@ -117,6 +117,7 @@ switch (cmd) {
       (argv[3] || 'Expense') + '$',
       str.join(", "),
       'Income$',
+      '0',
       '--',
       argv.slice(4).join(' ')
     ], true);
