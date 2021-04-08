@@ -1,6 +1,9 @@
 
 # Changelog
 ## [Unreleased]
+### Added
+- eval command
+
 ### Changed
 - long table outputs now pipes into less
 
