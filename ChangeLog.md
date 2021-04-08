@@ -2,6 +2,7 @@
 # Changelog
 ## [Unreleased]
 ### Fixed
+- fix add money with currency parsed as flags
 - cmd\_add crash
 
 ## [0.8.0-beta] 2021-04-07
