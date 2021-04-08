@@ -3,11 +3,19 @@
 const fs = require('fs');
 
 function help() {
-  console.log('ledg-time <[setup|init]|[i|clock-in|in]|[o|clock-out|out]>');
+  console.log('ledg-time <[setup|init]|[i|clock-in|in]>');
+  console.log('          <[o|clock-out|out]> "AccountName" "Description"');
+}
+
+function ledg(args, inherit) {
+  if (inherit)
+    require('child_process').spawnSync('ledg', args, {stdio: 'inherit'});
+  else
+    return require('child_process').spawnSync('ledg', args).stdout.toString().trim();
 }
 
 function ledgEval(sc) {
-  return require('child_process').spawnSync('ledg', ['eval', sc]).stdout.toString().trim();
+  return ledg(['eval', 'sc']);
 }
 
 function isSetup() {
@@ -23,6 +31,7 @@ function isSetup() {
 }
 
 let cmd = process.argv[2];
+let argv = process.argv;
 
 let fs_book_name = ledgEval('fs_book_name');
 let fs_get_book_directory = ledgEval('fs_get_book_directory()');
@@ -72,10 +81,43 @@ switch (cmd) {
   case 'i':
   case 'clock-in':
   case 'in':
+    fs.writeFileSync(fs_get_book_directory + '.clock-in.ledg-time', new Date().getTime().toString());
     break;
   case 'o':
   case 'clock-out':
   case 'out':
+    let from;
+    try {
+      from = fs.readFileSync(fs_get_book_directory + '.clock-in.ledg-time').toString().trim();
+      from = new Date(Number(from));
+      if (isNaN(from)) throw '';
+    } catch (e) {
+      console.log('Error reading .clock-in.ledg-time');
+      return;
+    }
+    let now = new Date();
+    let d = (now - from) / 1000 | 0;
+    let day = d / 60 / 60 / 24 | 0;
+    let hour = (d - day * 60 * 60 * 24) / 60 / 60 | 0;
+    let minute = (d - day * 60 * 60 * 24 - hour * 60 * 60) / 60 | 0;
+    let second = d - day * 60 * 60 * 24 - hour * 60 * 60 - minute * 60;
+    let str = [];
+    if (day) str.push(day + 'd');
+    if (hour) str.push(hour + 'h');
+    if (minute) str.push(minute + 'm');
+    if (second) str.push(second + 's');
+    ledg([
+      'add',
+      'virt:true',
+      'clockIn:' + from.toISOString(),
+      'clockOut:' + now.toISOString(),
+      (argv[3] || 'Expense') + '$',
+      str.join(", "),
+      'Income$',
+      '--',
+      argv.slice(4).join(' ')
+    ], true);
+    fs.unlinkSync(fs_get_book_directory + '.clock-in.ledg-time');
     break;
   default:
     help();
