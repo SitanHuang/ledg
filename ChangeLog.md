@@ -3,6 +3,10 @@
 ## [Unreleased]
 ### Added
 - eval command
+- add ledg-time script for time tracking
+  - ledg-time init
+  - ledg-time clock-in
+  - ledg-time clock-out Account Description
 
 ### Changed
 - long table outputs now pipes into less
