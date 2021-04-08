@@ -12,6 +12,7 @@
 - long table outputs now pipes into less
 
 ### Fixed
+- fix history with interval flag crashes
 - fix add money with currency parsed as flags
 - cmd\_add crash
 
