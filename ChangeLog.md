@@ -1,5 +1,9 @@
 
 # Changelog
+## [Unreleased]
+### Fixed
+- cmd\_add crash
+
 ## [0.8.0-beta] 2021-04-07
 ### Added
 - multicurrency support
