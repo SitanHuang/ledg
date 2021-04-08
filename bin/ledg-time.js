@@ -97,10 +97,13 @@ switch (cmd) {
     }
     let now = new Date();
     let d = (now - from) / 1000 | 0;
-    let day = d / 60 / 60 / 24 | 0;
-    let hour = (d - day * 60 * 60 * 24) / 60 / 60 | 0;
-    let minute = (d - day * 60 * 60 * 24 - hour * 60 * 60) / 60 | 0;
-    let second = d - day * 60 * 60 * 24 - hour * 60 * 60 - minute * 60;
+    let day = Math.floor(d / 86400);
+    d -= day * 86400;
+    let hour = Math.floor(d / 3600) % 24;
+    d -= hour * 3600;
+    let minute = Math.floor(d / 60) % 60;
+    d -= minute * 60;
+    let second = d % 60;
     let str = [];
     if (day) str.push(day + 'd');
     if (hour) str.push(hour + 'h');
