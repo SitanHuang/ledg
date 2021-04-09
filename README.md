@@ -321,6 +321,9 @@ COMMANDS
         git [...]
                 executes git [...] at the parent directory of FILE
 
+        eval \[js\] \[js\]
+                executes js code within cmd_eval context
+
         stats
                 displays stats of journal files
 
