@@ -1285,7 +1285,10 @@ function report_get_reporting_interval(args, rtnNull) {
 }
 
 function report_sort_by_time(entries) {
-  return entries = entries.sort((a, b) => a.time - b.time);
+  return entries = entries.sort((a, b) =>
+    (a.time - b.time) ||
+    // if no difference (0)
+    (a.clockOut && b.clockOut && (a.clockOut.toString().localeCompare(b.clockOut.toString()))));
 }
 
 function report_extract_account(args) {
@@ -2822,6 +2825,16 @@ class Money {
     }
     return clone;
   }
+
+  minus(mon) {
+    let clone = this.clone();
+    for (let cur in mon.amnts) {
+      let amnt = mon.amnts[cur];
+      clone.amnts[cur] = (clone.amnts[cur] || new Big(0)).minus(amnt);
+    }
+    return clone;
+  }
+
   divPrim(x) {
     let clone = this.clone();
     for (let cur in clone.amnts) {
@@ -3289,17 +3302,17 @@ function fs_read_book_proc_line(entry, line, commitEntry) {
 function fs_read_budgets_from_string(str) {
   let lines = str.replace(/\r/g, "").split("\n");
   let budgets = {};
-  
+
   let entry = null;
   const commitEntry = (entry) => {
     budgets[entry.description] = entry;
   };
-  
+
   for (let line of lines) {
     entry = fs_read_budget_proc_line(entry, line, commitEntry, Object.keys(budgets).length);
   }
   if (entry) { commitEntry(entry) }
-  
+
   return budgets;
 }
 
@@ -3321,7 +3334,7 @@ function fs_read_budget_proc_line(entry, line, commitEntry, entriesLength) {
     if (colonIndex < 0) { colonIndex = line.length; line += ':""'; }
     let key = line.substring(3, colonIndex);
     entry[key] = JSON.parse(line.substring(colonIndex + 1));
-    
+
     if (key == 'from' || key == 'to') {
       entry[key] = Math.floor(Date.parse(report_replaceDateStr(entry[key]) + 'T00:00:00') / 1000);
     }
@@ -3330,15 +3343,24 @@ function fs_read_budget_proc_line(entry, line, commitEntry, entriesLength) {
     if (splits.length == 2) {
       let q = splits[0].trim();
       let amnt = splits[1].trim();
-      
-      let m = amnt.match(/(goal|limit) (-?\d+(\.\d*)?)-(-?\d+(\.\d*)?)/i);
-      if (m) { // tracker
-        entry.trackers.push({q: q, type: m[1], low: m[2], high: m[4]});
-      } else if (!isNaN(m = Number(amnt))) { // traditional budget
-        entry.budgets[q] = entry.budgets[q] || 0;
-        entry.budgets[q] = new Big(entry.budgets[q]).plus(m).toNumber();
+      let parsed;
+      try {
+        parsed = Money.parseMoney(amnt);
+      } catch (e) {}
+
+      let tReg = new RegExp(`(goal|limit) 0 *- *(${MON_REGEX.source})`, 'i');
+      let tReg2 = new RegExp(`(goal|limit) (${MON_REGEX.source}) *- *0`, 'i');
+      let m = amnt.match(tReg);
+      if (m) {
+        let a2 = Money.parseMoney(m[2]);
+        entry.trackers.push({q: q, type: m[1], low: new Money(0, a2.initCur), high: a2});
+      } else if (m = amnt.match(tReg2)) {
+        let a2 = Money.parseMoney(m[2]);
+        entry.trackers.push({q: q, type: m[1], low: a2, high: new Money(0, a2.initCur)});
+      } else if (parsed) { // traditional budget
+        entry.budgets[q] = entry.budgets[q] || new Money();
+        entry.budgets[q] = entry.budgets[q].plus(parsed);
       }
-      
     }
   }
   return entry;
@@ -3402,7 +3424,6 @@ async function fs_write_config() {
 async function fs_attempt_load_config() {
   if (fs_book_name == '-') return;
   let path = fs_book_name + '.config.ledg';
-  // TODO: need to be async later
   try {
     let opts = JSON.parse(fs.readFileSync(path));
     // assign ensures backwards compatibility
@@ -3424,11 +3445,15 @@ async function fs_attempt_load_config() {
 async function fs_attempt_load_budgets() {
   if (fs_book_name == '-') return;
   let path = fs_book_name + '.budgets.ledg';
-  // TODO: need to be async later
-  try {
-    let content = fs.readFileSync(path).toString();
-    data.budgets = fs_read_budgets_from_string(content);
-  } catch (e) {}
+  if (fs.existsSync(path))
+    try {
+      let content = fs.readFileSync(path).toString();
+      data.budgets = fs_read_budgets_from_string(content);
+    } catch (e) {
+      console.error('Error reading budgets: ' + e.message);
+      if (cli_args.flags.debug)
+        console.error(e);
+    }
 }
 
 async function fs_construct_config() {
@@ -3596,7 +3621,7 @@ function sys_log_startBuf() {
 function sys_log_rlsBuf() {
   if (cli_args.flags.csv) return;
   if (buf_lines > process.stdout.rows)
-    child_process.spawnSync('less', ['-r', '-S', '-'], {
+    child_process.spawnSync('less', ['-r', '-S', '+G', '-'], {
       input: _sys_log_buffer,
       stdio: ['pipe', 'inherit', 'inherit']
     });
@@ -4864,7 +4889,7 @@ async function cmd_history(args) {
   report_extract_tags(args);
 
   let accounts = args.accounts.length ?
-                   [...args.accounts.map((x, i) => { return { q: x, name: args.accountSrc[i], sum: new Big(0), val: Array(dateFunctions.length).fill(new Big(0)) } })] :
+                   [...args.accounts.map((x, i) => { return { q: x, name: args.accountSrc[i], sum: new Money(), val: Array(dateFunctions.length).fill(new Money()) } })] :
                    [...Object.keys(cmd_report_accounts).map(x => { return { name: x, q: cmd_report_accounts_compiled[x], sum: new Money(), val: Array(dateFunctions.length).fill(new Money()) } })];
 
   delete args.accounts; // so report_traverse don't handle accounts
@@ -5016,6 +5041,9 @@ async function cmd_history(args) {
 }
 
 async function cmd_budget(args) {
+  let dp = Math.max(parseInt(args.flags.dp), 0);
+  if (isNaN(dp)) dp = 2;
+
   let budgetNames = Object.keys(data.budgets);
 
   if (args._.indexOf('edit') >= 0) {
@@ -5155,16 +5183,16 @@ async function cmd_budget(args) {
   else
     table.push(['Trackers', '', 'Progress', '', 'Budget', 'Used', 'Remain', 'Use%', '  Rate', 'Rec  ', 'ETC  ']);
   for (let track of budget.trackers) {
+    track = Object.assign({}, track);
     if (periodAltered && !args.flags['do-not-adjust']) {
-      track = JSON.parse(JSON.stringify(track));
-      track.high = Math.round(new Big(track.high).minus(track.low).times(zoom).plus(track.low).toNumber() * 100) / 100;
+      track.high = track.high.minus(track.low).timesPrim(zoom).plus(track.low);
     }
 
     let args2 = argsparser(parseArgSegmentsFromStr(track.q));
     report_extract_account(args2);
     report_extract_tags(args2);
 
-    let total = new Big(0);
+    let total = new Money(0);
 
     let ignored = Object.keys(cmd_report_modifiers);
 
@@ -5190,7 +5218,7 @@ async function cmd_budget(args) {
           for (let q of args2.accounts) {
             for (let t of book[len].transfers) {
               if (t[1].match(q)) {
-                total = total.plus(t[2]);
+                total = total.plus(t[2].tryConvertArgs(args, book[len].time));
               }
             }
           }
@@ -5198,33 +5226,32 @@ async function cmd_budget(args) {
       }
     });
 
-    let remain = new Big(track.high).minus(total).toNumber();
-    total = total.toNumber();
+    let remain = track.high.minus(total);
     let title = ' ' + track.q + '  ';
 
-    let usePerc = Math.round((total - track.low) / (track.high - track.low) * 100) + '%';
-    let low = print_format_money(track.low);
-    let high = print_format_money(track.high);
+    let usePerc = Math.round(total.minus(track.low).val() / track.high.minus(track.low).val() * 100) + '%';
+    let low = track.low.tryConvertArgs(args).noColorFormat(dp);
+    let high = track.high.tryConvertArgs(args).noColorFormat(dp);
 
     if (args.flags.simple)
       table.push([
                   [c.yellowBright(title), title.length],
                   high,
-                  print_format_money(total),
-                  print_format_money(remain),
+                  total.tryConvertArgs(args).noColorFormat(dp),
+                  remain.tryConvertArgs(args).noColorFormat(dp),
                   usePerc
                  ]);
     else
     table.push([
                 [c.yellowBright(title), title.length],
                 [c.cyan(low), low.length],
-                [print_progress_bar(track.low, track.high, total, { reverseLowHigh: track.type == 'goal' }), 50],
+                [print_progress_bar(track.low.val(), track.high.val(), total.val(), { reverseLowHigh: track.type == 'goal' }), 50],
                 [c.cyan(high), high.length],
                 [c.yellowBright(track.type.toUpperCase()), track.type.length],
-                print_format_money(total),
-                print_format_money(remain),
+                total.tryConvertArgs(args).noColorFormat(dp),
+                remain.tryConvertArgs(args).noColorFormat(dp),
                 usePerc,
-                ...eta(track.low, track.high, total, track.type == 'goal')
+                ...eta(track.low.val(), track.high.val(), total.val(), track.type == 'goal')
                ]);
   }
 
@@ -5243,20 +5270,19 @@ async function cmd_budget(args) {
   baccs.forEach(x => {
     if (periodAltered && !args.flags['do-not-adjust']) {
       let high = budget.budgets[x];
-      forkedBudgets[x] = forkedBudgets[x] || new Big(Math.round(new Big(high).times(zoom).toNumber() * 100) / 100);
+      forkedBudgets[x] = forkedBudgets[x] || high.timesPrim(zoom);
     }
-    forkedBudgets[x] = forkedBudgets[x] || new Big(budget.budgets[x]);
+    forkedBudgets[x] = forkedBudgets[x] || budget.budgets[x];
     let levels = x.split(".");
     let previous = "";
     for (let l of levels) {
       let k = previous + l;
       if (k == x) continue;
-      forkedBudgets[k] = (forkedBudgets[k] || new Big(0)).plus(forkedBudgets[x]);
+      forkedBudgets[k] = (forkedBudgets[k] || new Money()).plus(forkedBudgets[x]);
       previous = k + ".";
     }
   });
   let balanceData = await report_sum_accounts(args, true, forkedBudgets);
-  for (let k in forkedBudgets) { forkedBudgets[k] = forkedBudgets[k].toNumber(); }
   if (mpart) {
     baccs.forEach(x => {
       let levels = x.split(".");
@@ -5264,14 +5290,15 @@ async function cmd_budget(args) {
       for (let l of levels) {
         let k = previous + l;
         if (k.indexOf('.') < 0) {
-          disks[k] = disks[k] || mpart_dsk_create(forkedBudgets[k]);
+          disks[k] = disks[k] || mpart_dsk_create(forkedBudgets[k].tryConvertArgs(args).val());
           disks[k].label = k;
         } else
-          disks[k] = disks[k] || mpart_partition_create(disks[previous.replace(/\.$/, '')], { fixed: forkedBudgets[k], label: l });
+          disks[k] = disks[k] || mpart_partition_create(disks[previous.replace(/\.$/, '')], { fixed: forkedBudgets[k].tryConvertArgs(args).val(), label: l });
         previous = k + ".";
       }
     });
     console.log(JSON.stringify(mpart_disks));
+    return;
   }
 
   table.push([]);
@@ -5297,21 +5324,22 @@ async function cmd_budget(args) {
 
     let total = forkedBudgets[fullX];
     let used = balanceData[fullX];
-    let remain = new Big(total).minus(used).toNumber();
-    let usePerc = Math.round(used / total * 100) + '%';
-    let high = print_format_money(total);
-    let et = eta(0, total, used);
+    used.initCur = total.initCur;
+    let remain = total.minus(used);
+    let usePerc = Math.round(used.val() / total.val() * 100) + '%';
+    let high = total.tryConvertArgs(args).noColorFormat(dp);
+    let et = eta(0, total.val(), used.val());
 
     if (!args.flags.simple)
-      row.push('', [print_progress_bar(0, total, used), 50]);
+      row.push('', [print_progress_bar(0, total.val(), used.val()), 50]);
     if (!args.flags.simple)
       row.push([c.cyan(high), high.length]);
     else
       row.push(high);
     if (!args.flags.simple)
       row.push([c.yellowBright('LIMIT'), 5]);
-    row.push(print_format_money(used));
-    row.push(print_format_money(remain));
+    row.push(used.tryConvertArgs(args).noColorFormat(dp));
+    row.push(remain.tryConvertArgs(args).noColorFormat(dp));
     row.push(usePerc);
     if (!args.flags.simple) {
       row.push(et[0], et[1], et[2]);
@@ -5327,16 +5355,16 @@ async function cmd_budget(args) {
         "Expense.Free.Retail.Tech": 1400
       },
       "*/
-  console.log(tabulate(table, {
+  tabulate_less(table, {
     align: align,
     colBorder: ' ',
     alternateColor: false
-  }));
+  });
 
 
 }
 async function cmd_version() {
-  console.log(c.bold('ledg - version 0.8.0-beta') + ' built for cli');
+  console.log(c.bold('ledg - version 0.8.0') + ' built for cli');
 }
 
 async function cmd_help() {
@@ -5630,6 +5658,9 @@ async function cmd_help() {
 
 \tgit [...]
 \t\texecutes git [...] at the parent directory of FILE
+
+\teval [js] [js]
+\t\texecutes js code within cmd_eval context
 
 \tstats
 \t\tdisplays stats of journal files
@@ -7076,10 +7107,17 @@ const ansi_regex = (({onlyFirst = false} = {}) => {
 	return new RegExp(pattern, onlyFirst ? undefined : 'g');
 })();
 const strip_ansi = string => typeof string === 'string' ? string.replace(ansi_regex, '') : string;
+async function cmd_eval(args) {
+  args._.forEach(x => {
+    console.log(eval(x) + '');
+  });
+}
 var CMD_LIST = {
   'version': cmd_version,
   'help': cmd_help,
   'benchmark': cmd_benchmark,
+  'stats': cmd_stats,
+  'eval': cmd_eval,
 
   'add': cmd_add,
   'modify': cmd_modify,
@@ -7095,7 +7133,6 @@ var CMD_LIST = {
   'burndown': cmd_burndown,
 
   'tags': cmd_tags,
-  'stats': cmd_stats,
   'count': cmd_count,
 
   'export': cmd_export,
