@@ -47,8 +47,5 @@ install: bin/ledg SCRIPTS
 	ln -s $(realpath bin/ledg) ~/bin/ledg
 	ln -s $(realpath bin/ledg-time.js) ~/bin/ledg-time
 
-web: bin/ledg
-	cp bin/ledg lib/gui/ledg.js
-
 test: bin/ledg
 	./node_modules/mocha/bin/mocha
