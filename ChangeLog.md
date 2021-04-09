@@ -1,6 +1,9 @@
 
 # Changelog
 ## [Unreleased]
+### Changed
+- print --ledger no longer omits default currency
+  - \-\-show-default-currency for regular print
 ### Fixed
 - fix --currency and --dp not working with info flat
 
