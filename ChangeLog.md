@@ -1,5 +1,9 @@
 
 # Changelog
+## [Unreleased]
+### Fixed
+- fix --currency and --dp not working with info flat
+
 ## [0.8.0] 2021-04-09
 ### Added
 - eval command
