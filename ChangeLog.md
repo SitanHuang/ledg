@@ -4,6 +4,11 @@
 ### Changed
 - print --ledger no longer omits default currency
   - \-\-show-default-currency for regular print
+- removed lib/gui support (due to incompatible api in
+  recent releases)
+  - fallback to v0.7.2 version if you want to use gui
+    and convert your journals to one currency
+
 ### Fixed
 - fix --currency and --dp not working with info flat
 
