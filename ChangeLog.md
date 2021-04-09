@@ -1,12 +1,13 @@
 
 # Changelog
-## [Unreleased]
+## [0.8.0] 2021-04-09
 ### Added
 - eval command
 - add ledg-time script for time tracking
   - ledg-time init
   - ledg-time clock-in
   - ledg-time clock-out Account Description
+- budget multicurrency support
 
 ### Changed
 - long table outputs now pipes into less
@@ -33,7 +34,6 @@
 
 ### Fixed
 - booleans are interpreted as 1 or 0 in modifiers
-
 
 ## [0.7.2] 2021-04-04
 ### Added
