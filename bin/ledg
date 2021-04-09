@@ -2734,15 +2734,15 @@ class Money {
     this.date = date;
   }
 
-  serialize() {
-    return this.toString();
+  serialize(explicit) {
+    return this.toString(explicit);
   }
 
-  toString() {
+  toString(explicit) {
     let keys = Object.keys(this.amnts).filter(x => this.amnts[x] != 0);
     let str = [];
     for (let x of keys) {
-      if (x == data.defaultCurrency && keys.length == 1)
+      if (!explicit && x == data.defaultCurrency && keys.length == 1)
         return this.amnts[x].valueOf().toString();
       str.push(this.amnts[x].toNumber() + x);
     }
@@ -3471,7 +3471,7 @@ async function fs_construct_config() {
   3	Liability.CC	-1449.51
   	Imbalance	-50.51
 */
-function fs_serialize_entry(entry) {
+function fs_serialize_entry(entry, explicit) {
   let str = entry_datestr(entry) + ' ' + entry.description.trim() + ' #' + entry.uuid;
   for (let key in entry) {
     if (key == 'description' || key == 'time' || key == 'uuid' || key == 'transfers') continue;
@@ -3479,7 +3479,7 @@ function fs_serialize_entry(entry) {
   }
   str += '\n';
   for (let t of entry.transfers) {
-    str += '  ' + t[0] + '\t' + t[1] + '\t' + t[2].serialize() + '\n';
+    str += '  ' + t[0] + '\t' + t[1] + '\t' + t[2].serialize(explicit) + '\n';
   }
   return str;
 }
@@ -3507,7 +3507,7 @@ function fs_serialize_entry_ledger(entry) {
       let amnt = new Money(t[2].amnts[cur], cur);
       str += '  ' +
              acc +
-             '     ' + amnt.serialize() + '\n';
+             '     ' + amnt.serialize(1) + '\n';
     });
   }
   return str;
@@ -3771,9 +3771,10 @@ async function cmd_count(args) {
 
 async function cmd_print(args) {
   let q = { queries: [query_args_to_filter(args, ['entries'])] };
+  let exp = !!args.flags['show-default-currency'];
 
   report_sort_by_time((await query_exec(q))[0].entries).forEach(entry => {
-    console.log(args.flags.ledger ? fs_serialize_entry_ledger(entry) : fs_serialize_entry(entry));
+    console.log(args.flags.ledger ? fs_serialize_entry_ledger(entry) : fs_serialize_entry(entry, exp));
   });
 }
 async function cmd_export_gnucash_transactions(args) {
@@ -5651,10 +5652,14 @@ async function cmd_help() {
 \t\t  Expense.Other.Transportation	300
 \t\t  Expense.Essential.Groceries	200
 
-\tprint [<account filters>] [<filters>] [--ledger]
+\tprint [<account filters>] [<filters>] [--ledger] [--show-default-currency]
 \t\tprints selected entries in ledg format
 \t\tused in conjunction with -F-
 \t\tex: ledg print lia..amazon | ledg -F- accounts exp..personalcare
+
+\t\t--show-default-currency
+\t\t\tDefault: true if --ledger
+\t\t\tprint default currency symbol
 
 \t\t--ledger
 \t\t\tprints ledger & hledger compatible journal
