@@ -6664,6 +6664,7 @@ function getRealHueRange(colorHue) {
 }
 const ARG_FLAG_SHORTHANDS = {
   'sbc': 'skip-book-close',
+  'sp': 'sum-parent',
   'hz': 'hide-zero',
   'lt': 'light-theme',
   'cml': 'cumulative',
