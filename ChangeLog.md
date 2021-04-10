@@ -8,9 +8,11 @@
   recent releases)
   - fallback to v0.7.2 version if you want to use gui
     and convert your journals to one currency
+- hide error stacktrace unless with --debug
 
 ### Fixed
 - fix --currency and --dp not working with info flat
+- fix burndown --count crashing
 
 ## [0.8.0] 2021-04-09
 ### Added
