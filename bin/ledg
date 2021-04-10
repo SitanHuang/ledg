@@ -3436,7 +3436,7 @@ async function fs_attempt_load_config() {
       try {
         await fs_read_price(dir + path);
       } catch (e) {
-        console.error(e);
+        console.error('WARNING: Price file corrupted: ' + e);
       }
     }
   } catch (e) {}
@@ -7216,12 +7216,23 @@ async function index() {
   if (cmd) {
     args._.splice(0,1);
     let _endCmd = new Date();
-    let c = await cmd(args);
-    if (DEBUG) {
-      console.debug(`_endConfig=${_endConfig - _start}ms, _endCmd=${new Date() - _endCmd}ms`);
+    try {
+      let c = await cmd(args);
+      if (DEBUG) {
+        console.debug(`_endConfig=${_endConfig - _start}ms, _endCmd=${new Date() - _endCmd}ms`);
+      }
+      if (c) { process.exit(c) }
+      else if (fs_book_name != '-') { await fs_write_books(); }
+    } catch (e) {
+      if (typeof e == 'string') {
+        console.error(`ERROR: ${e}`);
+      } else if (typeof e == 'number') {
+        process.exit(e);
+      } else if (e instanceof Error) {
+        console.error(`ERROR: ${args.flags.debug ? e.stack : e.message}`);
+      } else
+        throw e;
     }
-    if (c) { process.exit(c) }
-    else if (fs_book_name != '-') { await fs_write_books(); }
   }
 }
 
