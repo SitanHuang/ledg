@@ -36,6 +36,48 @@ function isArgAccount(v) {
   }
   return false;
 }
+const err_ignores_list = {
+  "invalid-price-declaration": false,
+  "unknown-book-directive": false,
+  "imbalanced-entries": false,
+  "invalid-amount-format": false
+};
+
+function err_set_ignores_list(str) {
+  str = str || '';
+  let args = str.split(",");
+  for (let arg of args) {
+    arg = arg.trim();
+    if (arg == 'all') {
+      for (let key in err_ignores_list)
+        err_ignores_list[key] = true;
+      return;
+    }
+    err_ignores_list[arg] = true;
+  }
+}
+
+
+function err_rethrow(newError, oldError) {
+  newError.original = oldError;
+  newError.stack = newError.stack.split('\n').slice(0,2).join('\n') + '\n' +
+            oldError.stack;
+  throw newError;
+}
+
+class LedgError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "LedgError";
+  }
+}
+
+class EntryImbalancedError extends LedgError {
+  constructor(message) {
+    super(message);
+    this.name = "EntryImbalancedError";
+  }
+}
 var data = null;
 
 function data_init_data() {
@@ -185,7 +227,7 @@ var data_acc_imb = 'Imbalance';
  * opts = { ... }
  * balanced = pass true if already balanced
  */
-function entry_create(desc, transfers, opts, balanced) {
+function entry_create(desc, transfers, opts, balanced, emitError) {
   let e = {
     uuid: nanoid(8),
     time: Math.floor(new Date().getTime() / 1000),
@@ -217,14 +259,18 @@ function entry_modify_create(desc, transfers, opts, balanced) {
   return e;
 }
 
-function entry_balance(e) {
+function entry_balance(e, emitError) {
   let balance = entry_check_balance(e.transfers);
   if (balance && !balance.isZero()) {
     let lastAmnt = e.transfers[e.transfers.length - 1][2];
-    if (lastAmnt.isZero()) // last entry auto balance
+    if (lastAmnt.isZero()) { // last entry auto balance
       e.transfers[e.transfers.length - 1][2] = balance;
-    else
+    } else {
+      data.accounts[data_acc_imb] = 1;
+      if (emitError && !err_ignores_list['imbalanced-entries'])
+        throw new EntryImbalancedError(`#${e.uuid} ${entry_datestr(e)} has an imbalance of ${balance.toString()}`);
       e.transfers.push(['', data_acc_imb, balance]);
+    }
   }
 }
 
@@ -3199,7 +3245,7 @@ async function fs_read_book(year) {
 
     let entry = null;
     const commitEntry = (entry) => {
-      entry_balance(entry);
+      entry_balance(entry, true);
       // console.log("commit====");
       // console.log(entry.transfers.map(x => [x[0], x[1], x[2].toString()]));
       data.books[year].push(entry);
@@ -3220,7 +3266,7 @@ function fs_read_entries_from_string(str) {
 
   let entry = null;
   const commitEntry = (entry) => {
-    entry_balance(entry);
+    entry_balance(entry, true);
     entries.push(entry);
   };
 
@@ -3278,10 +3324,12 @@ function fs_read_book_proc_line(entry, line, commitEntry) {
       data.accounts[t[1]] = 1;
       if (splits[2]) splits[2] = splits[2].trim();
       t[2] = Money.parseMoney(splits[2] && splits[2].length ? splits[2] : '0', entry.time);
-      if (t[2] === false) throw `Cannot parse ${splits[2]} as a value.`;
+      if (t[2] === false && !err_ignores_list["invalid-amount-format"])
+        throw new ParseError(`Cannot parse ${splits[2]} as a value.`);
+      t[2] = t[2] || new Money();
       entry.transfers.push(t);
     }
-  } else if (trimmedLine.length && !fs_ignores_list["unknown-book-directive"]) {
+  } else if (trimmedLine.length && !err_ignores_list["unknown-book-directive"]) {
     throw new ParseError(`"${line}": unknown book directive`);
   }
   return entry;
@@ -3348,10 +3396,10 @@ function fs_read_budget_proc_line(entry, line, commitEntry, entriesLength) {
         entry.budgets[q] = entry.budgets[q] || new Money();
         entry.budgets[q] = entry.budgets[q].plus(parsed);
       }
-    } else if (!fs_ignores_list["unknown-budget-directive"]) {
+    } else if (!err_ignores_list["unknown-budget-directive"]) {
       throw new ParseError(`"${line}": unknown budget directive`);
     }
-  } else if (line.trim().length && !fs_ignores_list["unknown-budget-directive"]) {
+  } else if (line.trim().length && !err_ignores_list["unknown-budget-directive"]) {
     throw new ParseError(`"${line}": unknown budget directive`);
   }
 
@@ -3401,7 +3449,7 @@ function fs_read_price_proc_line(price, line, commitPrice) {
     let match = line.match(/^P\s+(\d{4}-\d{2}-\d{2})\s+([^\d\s,\-.]+)\s+((-?[\d.]+)\s*([^\d\s,\-.]+)|([^\d\s,\-.]+)\s*(-?[\d.]+))\s*$/);
 
     if (!match) {
-      if (fs_ignores_list["invalid-price-declaration"])
+      if (err_ignores_list["invalid-price-declaration"])
         return price;
       throw new ParseError(`"${line}" is not a valid price declaration`);
     }
@@ -3418,20 +3466,14 @@ function fs_read_price_proc_line(price, line, commitPrice) {
       price: p
     };
   } else if (line.length) {
-    if (fs_ignores_list["invalid-price-declaration"])
+    if (err_ignores_list["invalid-price-declaration"])
       return price;
     throw new ParseError(`"${line}" is not a valid price declaration`);
   }
   return price;
 }
-function err_rethrow(newError, oldError) {
-  newError.original = oldError;
-  newError.stack = newError.stack.split('\n').slice(0,2).join('\n') + '\n' +
-            oldError.stack;
-  throw newError;
-}
 
-class FSError extends Error {
+class FSError extends LedgError {
   constructor(message) {
     super(message);
     this.name = "FSError";
@@ -3471,25 +3513,6 @@ var fs = typeof require != "undefined" ? require('fs') : {};
 var readline = typeof require != "undefined" ? require('readline') : {};
 
 var fs_data_range = [];
-
-const fs_ignores_list = {
-  "invalid-price-declaration": false,
-  "unknown-book-directive": false
-};
-
-function fs_set_ignores_list(str) {
-  str = str || '';
-  let args = str.split(",");
-  for (let arg of args) {
-    arg = arg.trim();
-    if (arg == 'all') {
-      for (let key in fs_ignores_list)
-        fs_ignores_list[key] = true;
-      return;
-    }
-    fs_ignores_list[arg] = true;
-  }
-}
 
 function fs_get_book_directory() {
   let match = fs_book_name.match(/^(.*\/)([^/]+)$/);
@@ -7257,7 +7280,7 @@ async function index() {
   }
 
   cli_args = args = argsparser(argv);
-  fs_set_ignores_list(args.flags.W);
+  err_set_ignores_list(args.flags.W);
   if (args.flags.debug) DEBUG = true;
   fs_book_name = (args.flags.F || args.flags.file || fs_book_name).replace(/~/g, process.env.HOME || '~');
 
