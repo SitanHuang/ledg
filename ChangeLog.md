@@ -1,7 +1,12 @@
 
 # Changelog
 ## [Unreleased]
+### Added
+- \-W option to suppress certain parsing errors
+
 ### Changed
+- all parsers now admit errors when encountering
+  unexepected tokens
 - print --ledger no longer omits default currency
   - \-\-show-default-currency for regular print
 - removed lib/gui support (due to incompatible api in

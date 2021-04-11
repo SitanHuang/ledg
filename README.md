@@ -77,6 +77,14 @@ FLAGS
                 Default: false
                 Skips all entries with bookClose:"true" or bookClose:true
 
+        -Wflag1,flag2,flag3
+                Sets ignore flags
+                Flags:
+                        invalid-price-declaration,
+                        unknown-book-directive,
+                        unknown-budget-directive,
+                        all
+
 FILTER
         [ modifiers ] [ account filter, ...]
         a set of arguments that filters entries
@@ -310,10 +318,14 @@ COMMANDS
                   Expense.Other.Transportation        300
                   Expense.Essential.Groceries        200
 
-        print [<account filters>] [<filters>] [--ledger]
+        print [<account filters>] [<filters>] [--ledger] [--show-default-currency]
                 prints selected entries in ledg format
                 used in conjunction with -F-
                 ex: ledg print lia..amazon | ledg -F- accounts exp..personalcare
+
+                --show-default-currency
+                        Default: true if --ledger
+                        print default currency symbol
 
                 --ledger
                         prints ledger & hledger compatible journal
@@ -321,7 +333,7 @@ COMMANDS
         git [...]
                 executes git [...] at the parent directory of FILE
 
-        eval \[js\] \[js\]
+        eval [js] [js]
                 executes js code within cmd_eval context
 
         stats
@@ -334,3 +346,4 @@ COMMANDS
         export gnucash-accounts > accounts.csv
                 csv can be directly imported to gnucash
 ```
+
