@@ -3648,6 +3648,7 @@ function fs_serialize_entry_ledger(entry) {
  */
 var fs_book_name = 'book'; // ex: book.2019.ledg, book.ledg, book.budget.ledg
 const ARG_FLAG_SHORTHANDS = {
+  'i': 'confirm',
   'sbc': 'skip-book-close',
   'sp': 'sum-parent',
   'hz': 'hide-zero',
@@ -5802,6 +5803,9 @@ async function cmd_help() {
 \t\tDefault: false
 \t\tSkips all entries with bookClose:"true" or bookClose:true
 
+\t-i, --confirm
+\t\tAsks for confirmation before adding/modifying entry
+
 \t-Wflag1,flag2,flag3
 \t\tSets ignore flags
 \t\tFlags:
@@ -6181,6 +6185,14 @@ async function cmd_add(args, modifyMode=false) {
   // handle imbalance
   if (transfers.filter(x => x[1] == data_acc_imb).length) {
     process.stdout.write(`Entry is imbalanced, continue? `);
+    let ans = args.flags.y ? 'y' : (await readline_prompt()).toLowerCase();
+    if (args.flags.y) console.log('y');
+    if (ans != 'y' && ans != 'yes') {
+      console.log('Abort.');
+      return 1;
+    }
+  } else if (args.flags.confirm) {
+    process.stdout.write(`Continue? `);
     let ans = args.flags.y ? 'y' : (await readline_prompt()).toLowerCase();
     if (args.flags.y) console.log('y');
     if (ans != 'y' && ans != 'yes') {

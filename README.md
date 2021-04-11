@@ -77,6 +77,9 @@ FLAGS
                 Default: false
                 Skips all entries with bookClose:"true" or bookClose:true
 
+        -i, --confirm
+                Asks for confirmation before adding/modifying entry
+
         -Wflag1,flag2,flag3
                 Sets ignore flags
                 Flags:
