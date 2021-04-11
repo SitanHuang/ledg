@@ -2,6 +2,7 @@
 # Changelog
 ## [Unreleased]
 ### Added
+- \-i option to prompt confirmation before add/mod
 - \-W option to suppress certain parsing errors
 
 ### Changed
