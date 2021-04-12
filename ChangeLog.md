@@ -18,6 +18,7 @@
 - hide error stacktrace unless with --debug
 
 ### Fixed
+- fix history --invert not applying to avg
 - fix --currency and --dp not working with info flat
 - fix burndown --count crashing
 
