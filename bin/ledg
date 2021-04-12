@@ -3714,7 +3714,7 @@ function argsparser(_args) {
         continue;
       }
       let val = match[3] || (arg.indexOf('=') > 0 ? '' : true);
-      if (!isNaN(Number(val))) val = Number(val);
+      if (val !== '' && val !== true && !isNaN(Number(val))) val = Number(val);
       if (val == 'true') val = true;
       if (val == 'false') val = false;
       args.flags[key] = val;
@@ -5559,6 +5559,8 @@ async function cmd_burndown(args) {
 }
 
 async function cmd_history(args) {
+  args.flags.avg = args.flags.avg !== false;
+
   if (args.flags['skip-book-close'] !== false)
     args.flags['skip-book-close'] = true;
 
@@ -5619,6 +5621,7 @@ async function cmd_history(args) {
 
   delete args.accounts; // so report_traverse don't handle accounts
 
+  let sums = Array(accounts.length).fill(1).map(x => new Money());
   await report_traverse(args, async function (entry) {
     let i = 0;
     let matched = false;
@@ -5629,15 +5632,20 @@ async function cmd_history(args) {
       }
     }
     if (!matched) return; // outside date range
+    let j = 0;
     for (let acc of accounts) {
       let q = acc.q;
 
       for (let t of entry.transfers) {
         if (t[1].match(q)) {
-          acc.val[i] = acc.val[i].plus(t[2].tryConvertArgs(args, entry.time));
-          acc.sum = acc.sum.plus(t[2].tryConvertArgs(args, entry.time));
+          let converted = t[2].tryConvertArgs(args, entry.time);
+          acc.val[i] = acc.val[i].plus(converted);
+          acc.sum = acc.sum.plus(converted);
+          if (!skipTo || entry.time >= skipTo / 1000 | 0)
+            sums[j] = sums[j].plus(converted);
         }
       }
+      j++;
     }
   });
 
@@ -5717,6 +5725,7 @@ async function cmd_history(args) {
       }
       last = current;
     }
+    let i = 0;
     for (let acc of accounts) {
       let v = acc.val[r];
 
@@ -5735,27 +5744,56 @@ async function cmd_history(args) {
 
   if (!args.flags.csv) {
     table.push([]);
-    let avg = [];
     let rowL = table[table.length - 2].length;
-    for (let i = 0;i < rowL;i++) {
-      let j = i - (rowL - accounts.length);
-      if (j < -1) {
-        avg.push('');
-      } else if (j == -1) {
-        avg.push('Avg');
-      } else {
-        let acc = accounts[j];
-        let v = acc.sum.divPrim(dateFunctions.length).tryConvertArgs(args);
+    if (args.flags.avg) {
+      let avg = [];
+      for (let i = 0;i < rowL;i++) {
+        let j = i - (rowL - accounts.length);
+        if (j < -1) {
+          avg.push('');
+        } else if (j == -1) {
+          avg.push('Avg');
+        } else {
+          let acc = accounts[j];
+          let v = acc.sum.divPrim(dateFunctions.length);
 
-        if (acc.q == cmd_report_accounts_compiled.income || acc.q == cmd_report_accounts_compiled.expense ||
-          args.flags.invert) {
-          v = v.timesPrim(-1);
+          if (acc.q == cmd_report_accounts_compiled.income || acc.q == cmd_report_accounts_compiled.expense ||
+            args.flags.invert) {
+            v = v.timesPrim(-1);
+          }
+
+          avg.push(v.colorFormat(isNaN(dp) ? 2 : dp));
         }
-
-        avg.push(v.colorFormat(isNaN(dp) ? 2 : dp));
       }
+      table.push(avg);
     }
-    table.push(avg);
+    if (args.flags.sum) {
+      let asum = [];
+      if (args.flags.sum === true)
+        asum = Array(accounts.length).fill(1).map((x, i) => i);
+      else
+        asum = args.flags.sum.toString().split(/\s*,\s*/).map(x => parseInt(x) - 1).filter(x => x >= 0);
+      let sum = [];
+      for (let i = 0;i < rowL;i++) {
+        let j = i - (rowL - accounts.length);
+        if (j < -1)
+          sum.push('');
+        else if (j == -1)
+          sum.push('Sum');
+        else {
+          if (asum.indexOf(j) >= 0) {
+            let acc = accounts[j];
+            if (acc.q == cmd_report_accounts_compiled.income || acc.q == cmd_report_accounts_compiled.expense ||
+              args.flags.invert) {
+              sums[j] = sums[j].timesPrim(-1);
+            }
+            sum.push(sums[j].colorFormat(isNaN(dp) ? 2 : dp));
+          } else
+            sum.push('');
+        }
+      }
+      table.push(sum);
+    }
 
 
     console.log(`Reporting from ${c.bold(strF)} to ${c.bold(strT)}\n`);
@@ -5941,9 +5979,9 @@ async function cmd_help() {
 \t\t\ttabulate data in csv (exporting for other use)
 
 \thistory [--daily] [--weekly] [--biweekly] [--monthly] [--quarterly]
-\t        [--yearly] [--cumulative] [--cumulative-columns=num list]
+\t        [--yearly] [--cumulative] [--cumulative-columns=num list] [--avg]
 \t        [--skip-book-close=true] [--epoch] [--csv] [--iso] [--invert]
-\t        [ <account filter 1> <account filter 2> ... ] [--skip=]
+\t        [ <account filter 1> <account filter 2> ... ] [--skip=] [--sum=]
 \t\tDefaults: shows accounts specified by --income, --expense, --asset, --liability,
 \t\t          and --equity, and defaults --skip-book-close=true
 \t\tprints multicolumn time by selected interval
@@ -5956,8 +5994,15 @@ async function cmd_help() {
 \t\t--cumulative-columns=1,2,3..., --cml-cols
 \t\t\tshows cumulative data for the given column numbers
 
+\t\t--avg
+\t\t\tDefault: true
+\t\t\tshows average over time interval (from: -> to:)
+
+\t\t--sum=1,2,3..., --sum
+\t\t\tshows sums for columns (--skip -> to:)
+
 \t\t--cumulative, --cml
-\t\t\tshows cumulative data
+\t\t\tshows cumulative data (from: -> to:)
 
 \t\t--skip=yyyy-mm-dd
 \t\t\thides rows up until this date but keep cumulative sum from before
