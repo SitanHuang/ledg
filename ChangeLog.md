@@ -4,6 +4,7 @@
 ### Added
 - \-i option to prompt confirmation before add/mod
 - \-W option to suppress certain parsing errors
+- \-\-sum and --avg options for history command
 
 ### Changed
 - all parsers now emit errors when encountering

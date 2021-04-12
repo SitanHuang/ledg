@@ -191,9 +191,9 @@ COMMANDS
                         tabulate data in csv (exporting for other use)
 
         history [--daily] [--weekly] [--biweekly] [--monthly] [--quarterly]
-                [--yearly] [--cumulative] [--cumulative-columns=num list]
+                [--yearly] [--cumulative] [--cumulative-columns=num list] [--avg]
                 [--skip-book-close=true] [--epoch] [--csv] [--iso] [--invert]
-                [ <account filter 1> <account filter 2> ... ] [--skip=]
+                [ <account filter 1> <account filter 2> ... ] [--skip=] [--sum=]
                 Defaults: shows accounts specified by --income, --expense, --asset, --liability,
                           and --equity, and defaults --skip-book-close=true
                 prints multicolumn time by selected interval
@@ -206,8 +206,15 @@ COMMANDS
                 --cumulative-columns=1,2,3..., --cml-cols
                         shows cumulative data for the given column numbers
 
+                --avg
+                        Default: true
+                        shows average over time interval (from: -> to:)
+
+                --sum=1,2,3..., --sum
+                        shows sums for columns (--skip -> to:)
+
                 --cumulative, --cml
-                        shows cumulative data
+                        shows cumulative data (from: -> to:)
 
                 --skip=yyyy-mm-dd
                         hides rows up until this date but keep cumulative sum from before
@@ -349,4 +356,3 @@ COMMANDS
         export gnucash-accounts > accounts.csv
                 csv can be directly imported to gnucash
 ```
-
