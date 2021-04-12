@@ -86,6 +86,7 @@ FLAGS
                         invalid-price-declaration,
                         unknown-book-directive,
                         unknown-budget-directive,
+                        imbalanced-entries,
                         all
 
 FILTER
