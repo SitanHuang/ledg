@@ -7,6 +7,7 @@ SOURCE_CLI = $(shell find lib/cli/ -type f -name '*.js' -not -path '**/index.js'
 NODE_VERSION := $(shell node --version 2>/dev/null)
 
 check_node:
+	mkdir -p bin
 ifdef NODE_VERSION
 	# TODO:
 else
