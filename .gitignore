@@ -1,6 +1,7 @@
 node_modules/**/*
 *.swp
 ~*
+bin/*
 node_modules
 package-lock.json
 tags
