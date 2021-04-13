@@ -1,5 +1,9 @@
 
 # Changelog
+## [Unreleased]
+### Changed
+- use -X option when invoking less
+
 ## [0.8.1] 2021-04-11
 ### Added
 - \-i option to prompt confirmation before add/mod
