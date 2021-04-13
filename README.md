@@ -10,9 +10,9 @@ The project is under active development. [ChangeLogs](ChangeLog.md)
 MacOS/Linux supported only. Use WSL on Windows.
 
 1. Make sure ``node`` is in your path.
-2. Download ``bin/ledg`` from this repo
-3. ``chmod +x ledg``
-4. Put ``ledg`` in your path
+2. Download repository
+3. ``make && make install``
+4. Put ``~/bin`` in your path
 
 ### Screenshots
 <img
