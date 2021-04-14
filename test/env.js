@@ -13,4 +13,4 @@ describe('Test environment', () => {
   });
 });
 
-require("./accounts/basic");
+require("./commands/accounts");

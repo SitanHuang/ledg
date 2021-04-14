@@ -1,6 +1,9 @@
 
 # Changelog
 ## [Unreleased]
+### Added
+- starting to add test cases (found a s* ton of bugs)
+
 ### Changed
 - use -X option when invoking less
 

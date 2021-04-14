@@ -20,7 +20,7 @@ class TestContext {
   }
 
   get args() {
-    return ["-F" + this.root + "book", "--csv", "-y"];
+    return ["-F" + this.root + "book", "--csv", "-y", "-W"];
   }
 
   fw(name, content) {
@@ -30,6 +30,12 @@ class TestContext {
 
   ledg(...args) {
     this._process = cp.spawnSync(this.ledg_bin, this.args.concat(args), this._modExecOpts({}));
+    assert(this._process.stderr.length == 0, "Exited with stderr: " + this._process.stderr);
+    return this;
+  }
+
+  input(str) {
+    this._input = str;
     return this;
   }
 
@@ -48,6 +54,11 @@ class TestContext {
     return this;
   }
 
+  rm(name) {
+    fs.unlinkSync(this.root + name);
+    return this;
+  }
+
   clean() {
     const files = fs.readdirSync(this.root);
     for (const file of files)
@@ -58,7 +69,8 @@ class TestContext {
   _modExecOpts(opts) {
     return Object.assign(opts, {
       cwd: this.root,
-      env: this.env
+      env: this.env,
+      input: this._input || undefined
     });
   }
 }
