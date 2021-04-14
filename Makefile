@@ -49,4 +49,5 @@ install: bin/ledg SCRIPTS
 	ln -s $(realpath bin/ledg-time.js) ~/bin/ledg-time
 
 test: bin/ledg
-	./node_modules/mocha/bin/mocha
+	mkdir -p ./test/tmp/
+	./node_modules/mocha/bin/mocha --bail
