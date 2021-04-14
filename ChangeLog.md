@@ -1,5 +1,10 @@
 
 # Changelog
+
+## [Unreleased]
+### Fixed
+- empty -W option crashes
+
 ## [0.8.1] 2021-04-11
 ### Added
 - \-i option to prompt confirmation before add/mod
