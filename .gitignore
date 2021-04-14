@@ -8,3 +8,4 @@ tags
 *.kdev4
 .kdev4
 *.json
+test/tmp
