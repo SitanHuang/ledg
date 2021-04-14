@@ -1,5 +1,10 @@
 
 # Changelog
+## [Unreleased]
+
+### Fixed
+- test suite cannot find node
+
 ## [0.8.2] 2021-04-13
 ### Added
 - starting to add test cases (found a s* ton of bugs)
