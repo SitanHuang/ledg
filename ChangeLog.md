@@ -1,6 +1,9 @@
 
 # Changelog
 ## [Unreleased]
+### Added
+- more test cases
+  - history command
 
 ### Fixed
 - test suite cannot find node
