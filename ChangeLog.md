@@ -7,6 +7,9 @@
 ### Fixed
 - empty -W option crashes
 - reading from STDIN doesn't balance entries
+- accounts --sort does not sort name correctly
+- Money.compare() does not sort amounts with currency
+  that cannot be converted to defaultCurrency
 
 ## [0.8.1] 2021-04-11
 ### Added
