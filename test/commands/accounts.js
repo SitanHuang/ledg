@@ -209,9 +209,9 @@ P 0000-01-01 r 1R
   it('Should convert --currency and --max-depth at today\'s rates', () => {
     ctx
     .ledg('accounts', '--currency=$', '--max-depth=1')
+    .skip('"Accounts","Balance"')
     .out(
 `
-sum-parent is enabled with max-depth set
 "Accounts","Balance"
 "a","$4.00"
 "bal","$-4.00"
@@ -246,6 +246,28 @@ sum-parent is enabled with max-depth set
 "a.a","$4.00"
 "a.b","$4.00"
 "bal","$-8.00"
+`
+      )
+  });
+  it('Should filter from: and to:', () => {
+    ctx
+      .ledg('accounts', '--currency=$', 'from:2015-01-01')
+      .skip('"Accounts","Balance"')
+      .out(
+`
+"Accounts","Balance"
+"a.b","$2.00"
+"bal","$-2.00"
+`
+      )
+      .ledg('accounts', '--currency=$', 'from:2010-01-01', 'to: 2015-01-01')
+      .skip('"Accounts","Balance"')
+      .out(
+`
+"Accounts","Balance"
+"a.a","$2.00"
+"a.b","$2.00"
+"bal","$-4.00"
 `
       )
   });
