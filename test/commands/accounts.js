@@ -52,6 +52,12 @@ P 0000-01-01 r 1R
       .ledg('accounts', '-F-')
       .out(`"Accounts","Balance"`);
   });
+  it('Should omit virt when --real', () => {
+    ctx
+      .input(content+"  \ta\t-123.12345 USD\n2020-01-01 #kdkdkdkd\n  \tb\t1\n  \tc\t-1")
+      .ledg('accounts', '-F-', '--real', '--hz')
+      .out(`"Accounts","Balance"\n"b","1.00"\n"c","-1.00"`);
+  });
   it('Should emit error when imbalanced', () => {
     assert.throws(() => {
       ctx
