@@ -6,6 +6,7 @@
 
 ### Fixed
 - empty -W option crashes
+- reading from STDIN doesn't balance entries
 
 ## [0.8.1] 2021-04-11
 ### Added
