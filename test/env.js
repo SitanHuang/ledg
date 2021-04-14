@@ -14,3 +14,4 @@ describe('Test environment', () => {
 });
 
 require("./commands/accounts");
+require("./commands/count");
