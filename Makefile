@@ -50,4 +50,4 @@ install: bin/ledg SCRIPTS
 
 test: bin/ledg
 	mkdir -p ./test/tmp/
-	./node_modules/mocha/bin/mocha
+	./node_modules/mocha/bin/mocha --bail
