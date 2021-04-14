@@ -39,6 +39,13 @@ class TestContext {
     return this;
   }
 
+  skip(start) {
+    let s = this._process.stdout.toString().trim().split(start);
+    if (s.length > 1)
+      this._process.stdout = start + s.slice(1).join(start);
+    return this;
+  }
+
   out(str) {
     assert.strictEqual(this._process.stdout.toString().trim(), str.trim(), "Output does not match");
     return this;

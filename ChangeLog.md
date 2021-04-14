@@ -6,6 +6,7 @@
 
 ### Changed
 - use -X option when invoking less
+- does not invoke less when !process.stdout.isTTY
 
 ### Fixed
 - empty -W option crashes
