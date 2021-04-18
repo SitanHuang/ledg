@@ -6,7 +6,10 @@
   - history command
 
 ### Fixed
+- ledg won't exit on Windows
+  - closes open handles on exit
 - test suite cannot find node
+- cmd_git does not return promise
 
 ## [0.8.2] 2021-04-13
 ### Added
