@@ -16,3 +16,4 @@ describe('Test environment', () => {
 require("./commands/accounts");
 require("./commands/count");
 require("./commands/history");
+require("./commands/budget");

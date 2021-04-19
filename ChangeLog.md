@@ -4,6 +4,7 @@
 ### Added
 - more test cases
   - history command
+  - budget command(basic)
 - \-\-sort=\[asc|desc\] for register command
 
 ### Fixed
