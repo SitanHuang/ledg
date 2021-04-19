@@ -1,10 +1,32 @@
 
 ## ledg
-This is a personal project aimed at creating a ledger-like cli accounting program, and one that I can customize according to my likings and workflow. It supports fancier reports than ledger and hledger in the cli; it is 25% faster than hledger when benchmarked for reading 10000 entries.
+This is a personal project aimed at creating a ledger-like cli accounting program, and one that I can customize according to my likings and workflow. The performance is around the same as ledger and hledger.
 
-The ledg file format is largely incompatible with other ledger-likes. It is though easy to switch back and forth by replacing tabs with spaces, etc. Ledg also supports descriptions in each transfer as opposed to one description per entry, and multiple currencies in one posting/transfer. The program manages the journal for you, and for most of the times one does not need to touch the text files.
+The ledg file format is incompatible with other ledger-likes. It is though easy to switch back and forth by replacing tabs with spaces, etc. There is a built-in print command that can directly be piped into an hledger command. Ledg also supports descriptions in each transfer as opposed to one description per entry, and multiple currencies in one posting/transfer. The program manages the journal for you, and for most of the times one does not need to touch the text files.
 
 The project is under active development. [ChangeLogs](ChangeLog.md)
+
+### Features
+#### ledg only features
+- `edit` command that pulls up filtered
+  entries into a text editor and
+  saves your changes
+- `add` and `modify` command that adds entries in
+  one line
+  - great for automated entries
+- scripting via eval command
+- git integration
+- tracker based budgeting
+  - budget with filters rather than accounts
+- entry properties as JS object properties
+  - faster filtering
+
+#### Common Ledger Features
+- multicurrency and price table
+- auto file splitting based on year
+- envelope based budgeting
+- book closure
+- similar performance as the ledger-cli
 
 ### Installation
 MacOS/Linux supported only. Use WSL on Windows.
