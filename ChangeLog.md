@@ -4,6 +4,8 @@
 ### Added
 - more test cases
   - history command
+- close command
+  - gnucash style close command
 - \-\-sort=\[asc|desc\] for register command
 
 ### Fixed
@@ -12,6 +14,9 @@
   - closes open handles on exit
 - test suite cannot find node
 - cmd_git does not return promise
+- query.js accSum option crash
+- add.js doesn't recognize accounts
+  with numbers
 
 ## [0.8.2] 2021-04-13
 ### Added
