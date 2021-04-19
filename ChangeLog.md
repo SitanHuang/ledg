@@ -4,6 +4,7 @@
 ### Added
 - more test cases
   - history command
+  - budget command(basic)
 - gnucash style close command
   - moves income and expense balances
     into equity account
