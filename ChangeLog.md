@@ -4,8 +4,9 @@
 ### Added
 - more test cases
   - history command
-- close command
-  - gnucash style close command
+- gnucash style close command
+  - moves income and expense balances
+    into equity account
 - \-\-sort=\[asc|desc\] for register command
 
 ### Fixed

@@ -169,6 +169,20 @@ COMMANDS
                 --count
                         Show graph of numbers of entries rather than sum
 
+        close --account=ACC [--income=Income*] [--expense=Expense*]
+              [from:@year-start] [to:@year-end] [-i|--confirm=true]
+                Moves income and expense balances in a given period to the
+                ACC equity account. Create 2 entries with date of to:
+
+                --account=ACC
+                        Specify the target Equity account
+
+                -i|--confirm=true
+                        Whether to confirm the created entries before adding
+
+                --income=, --expense=
+                        Specify the accounts for income and expense
+
         register [--daily] [--weekly] [--biweekly] [--monthly] [--quarterly]
                  [--yearly] [--hide-zero=true, --hz]
                  [--skip-book-close=true] [--csv] [--invert]
