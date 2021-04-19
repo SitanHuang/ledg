@@ -7,6 +7,7 @@
 - \-\-sort=\[asc|desc\] for register command
 
 ### Fixed
+- ledg budget doesn't use stderr
 - ledg won't exit on Windows
   - closes open handles on exit
 - test suite cannot find node
