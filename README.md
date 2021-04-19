@@ -178,6 +178,9 @@ COMMANDS
                 Without a reporting interval, individual transfers are shown
                 instead of grouping together
 
+                --sort=asc|desc
+                        sort entries by amount
+
                 --invert
                         negates all amounts
 

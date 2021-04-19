@@ -4,6 +4,7 @@
 ### Added
 - more test cases
   - history command
+- \-\-sort=\[asc|desc\] for register command
 
 ### Fixed
 - ledg won't exit on Windows
