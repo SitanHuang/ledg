@@ -1,5 +1,25 @@
 
 # Changelog
+## [0.8.3] 2021-04-19
+### Added
+- more test cases
+  - history command
+  - budget command(basic)
+- gnucash style close command
+  - moves income and expense balances
+    into equity account
+- \-\-sort=\[asc|desc\] for register command
+
+### Fixed
+- ledg budget doesn't use stderr
+- ledg won't exit on Windows
+  - closes open handles on exit
+- test suite cannot find node
+- cmd_git does not return promise
+- query.js accSum option crash
+- add.js doesn't recognize accounts
+  with numbers
+
 ## [0.8.2] 2021-04-13
 ### Added
 - starting to add test cases (found a s* ton of bugs)

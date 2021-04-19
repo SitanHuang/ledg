@@ -4,7 +4,7 @@ const assert = require("assert");
 
 class TestContext {
   constructor() {
-    this._env = { HOME: process.cwd() };
+    this._env = { HOME: process.cwd(), PATH: process.env.PATH };
     // project path
     this.cwd = this._env.HOME + '/';
 

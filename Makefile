@@ -41,6 +41,9 @@ fs: ${SOURCE_FS}
 bin/ledg: header core fs cli
 	chmod +x bin/ledg
 
+binary: bin/ledg
+	pkg bin/ledg
+
 install: bin/ledg SCRIPTS
 	mkdir -p ~/bin
 	rm -f ~/bin/ledg
