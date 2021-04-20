@@ -323,7 +323,7 @@ COMMANDS
                 -y
                         defaults most confirmations to yes (unless ledg prompts a list to choose)
 
-        modify <filter> [--date=yyyy-mm-dd] [--add-tag=A,B,C] [-remove-tag=A,B,C]
+        modify <filter> [--date=yyyy-mm-dd] [--add-tag=A,B,C] [--remove-tag=A,B,C]
                [--set-mod=A:123,B:123] [--remove-mod=C,D,E] [-y] [description] [+TAG ...]
                [yyyy-mm-dd] [ <account filter> [account description] <amount> [, ...]]
                 batch modify entries, see more in "add" section
