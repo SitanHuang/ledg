@@ -3,6 +3,9 @@
 ## [Unreleased]
 ### Changes
 - large code style related refactors
+- ledg now attempts to load .ledgrc in
+  1. $HOME directory
+  2. directory of --file
 
 ## [0.8.3] 2021-04-19
 ### Added
