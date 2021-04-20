@@ -7,6 +7,9 @@
   1. $HOME directory
   2. directory of --file
 
+### Fixed
+- edit command cannot read stdin after vim
+
 ## [0.8.3] 2021-04-19
 ### Added
 - more test cases
