@@ -15,14 +15,14 @@
 - ledg won't exit on Windows
   - closes open handles on exit
 - test suite cannot find node
-- cmd_git does not return promise
+- cmd\_git does not return promise
 - query.js accSum option crash
 - add.js doesn't recognize accounts
   with numbers
 
 ## [0.8.2] 2021-04-13
 ### Added
-- starting to add test cases (found a s* ton of bugs)
+- starting to add test cases (found a s\* ton of bugs)
   - accounts command finished testing
 
 ### Changed
