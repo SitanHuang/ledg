@@ -8,22 +8,23 @@ The project is under active development. [ChangeLogs](ChangeLog.md)
 
 ### Features
 #### ledg only features
-- `edit` command that pulls up filtered
-  entries into a text editor and
-  saves your changes
-- `add` and `modify` command that adds entries in
-  one line
-  - great for automated entries
+- batch modifications
+  - `edit` command that pulls up filtered
+    entries into a text editor and
+    saves your changes
+  - `modify` command for batch modifications
+  - `add` command that adds entries in
+    one line
 - scripting via eval command
 - git integration
 - tracker based budgeting
   - budget with filters rather than accounts
 - entry properties as JS object properties
   - faster filtering
+- auto file splitting based on year
 
 #### Common Ledger Features
 - multicurrency and price table
-- auto file splitting based on year
 - envelope based budgeting
 - book closure
 - similar performance as the ledger-cli
