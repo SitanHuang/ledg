@@ -6,7 +6,11 @@
 - ledg now attempts to load .ledgrc in
   1. $HOME directory
   2. directory of --file
+    a. \--file specified by process.argv, OR
+    b. \--file specified by ~/.ledgrc
   3. current directory
+- after fetching .ledgrc, process.argv is reparsed again,
+  overriding options
 
 ### Fixed
 - edit command cannot read stdin after vim

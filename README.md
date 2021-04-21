@@ -59,7 +59,14 @@ SYNOPSIS
         ledg <command> [ <filter> ] [ <flags> ]
 
 FLAGS
-        Presets of flags can be saved at ~/.ledgrc as well as in the directory of book location and the current directory
+        Presets of flags can be saved at .ledgrc files
+        ledg fetches .ledgrc in
+                1. $HOME directory
+                2. directory of --file
+                  a. --file specified by process.argv, OR
+                  b. --file specified by ~/.ledgrc
+                3. current directory
+        after fetching .ledgrc, process.argv is reparsed again, overriding .ledgrc
 
         --file=FILE, -FFILE
                 Default: book
