@@ -1,6 +1,9 @@
 
 # Changelog
 ## [Unreleased]
+### Added
+- \--transpose option for tables
+
 ### Changes
 - large code style related refactors
 - ledg now attempts to load .ledgrc in

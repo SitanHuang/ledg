@@ -80,6 +80,9 @@ FLAGS
         --csv
                 outputs all tables in csv formats(some commands only)
 
+        --transpose
+                force a table transpose
+
         --budget=NAME
                 this can be used in your .ledgrc to point to a default budget
                 ex. --budget="Monthly Budget"
