@@ -6,9 +6,12 @@
 - ledg now attempts to load .ledgrc in
   1. $HOME directory
   2. directory of --file
+  3. current directory
 
 ### Fixed
 - edit command cannot read stdin after vim
+- index.js args local variable is exposed to global scope
+  - many components relied on this exploit
 
 ## [0.8.3] 2021-04-19
 ### Added
