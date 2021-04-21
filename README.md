@@ -240,9 +240,9 @@ COMMANDS
                 --csv
                         tabulate data in csv (exporting for other use)
 
-        history [--daily] [--weekly] [--biweekly] [--monthly] [--quarterly]
+        history [--daily] [--weekly] [--biweekly] [--monthly] [--quarterly] [--invert]
                 [--yearly] [--cumulative] [--cumulative-columns=num list] [--avg]
-                [--skip-book-close=true] [--epoch] [--csv] [--iso] [--invert]
+                [--skip-book-close=true] [--epoch] [--csv] [--iso] [--isofull]
                 [ <account filter 1> <account filter 2> ... ] [--skip=] [--sum=]
                 Defaults: shows accounts specified by --income, --expense, --asset, --liability,
                           and --equity, and defaults --skip-book-close=true
@@ -274,6 +274,9 @@ COMMANDS
 
                 --csv
                         tabulate data in csv (exporting for other use)
+
+                --isofull
+                        show timestamps in ISO date string
 
                 --iso
                         show timestamps in ISO date string
