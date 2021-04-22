@@ -17,6 +17,7 @@
   3. current directory
 - after fetching .ledgrc, process.argv is reparsed again,
   overriding options
+- help command starts in less
 
 ### Fixed
 - \--valuation-date is ignored in burndown
