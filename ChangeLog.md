@@ -18,6 +18,7 @@
 - after fetching .ledgrc, process.argv is reparsed again,
   overriding options
 - help command starts in less
+- modifier:null will filter entries without modifier
 
 ### Fixed
 - \--valuation-date is ignored in burndown

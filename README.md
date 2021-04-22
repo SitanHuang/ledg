@@ -143,6 +143,7 @@ FILTER
                 queries entries with modifiers that matches the regex
                 ex: payee:"amazon|steam"
                     tag:"pc|tablet"
+                setting regex to null will filter entries without such modifier
 
                 shorthands:
                         desc: => description:
