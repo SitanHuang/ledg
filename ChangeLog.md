@@ -1,5 +1,31 @@
 
 # Changelog
+## [0.8.4] 2021-04-22
+### Added
+- \--transpose option for tables
+- \--iso and \--isofull options
+  - original \--iso becomes \--isofull
+- \--valuation-eop option for history and burndown
+
+### Changes
+- large code style related refactors
+- ledg now attempts to load .ledgrc in
+  1. $HOME directory
+  2. directory of --file
+    a. \--file specified by process.argv, OR
+    b. \--file specified by ~/.ledgrc
+  3. current directory
+- after fetching .ledgrc, process.argv is reparsed again,
+  overriding options
+- help command starts in less
+- modifier:null will filter entries without modifier
+
+### Fixed
+- \--valuation-date is ignored in burndown
+- edit command cannot read stdin after vim
+- index.js args local variable is exposed to global scope
+  - many components relied on this exploit
+
 ## [0.8.3] 2021-04-19
 ### Added
 - more test cases

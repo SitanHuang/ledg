@@ -60,7 +60,14 @@ SYNOPSIS
         ledg <command> [ <filter> ] [ <flags> ]
 
 FLAGS
-        Presets of flags can be saved at ~/.ledgrc
+        Presets of flags can be saved at .ledgrc files
+        ledg fetches .ledgrc in
+                1. $HOME directory
+                2. directory of --file
+                  a. --file specified by process.argv, OR
+                  b. --file specified by ~/.ledgrc
+                3. current directory
+        after fetching .ledgrc, process.argv is reparsed again, overriding .ledgrc
 
         --file=FILE, -FFILE
                 Default: book
@@ -73,6 +80,9 @@ FLAGS
 
         --csv
                 outputs all tables in csv formats(some commands only)
+
+        --transpose
+                force a table transpose
 
         --budget=NAME
                 this can be used in your .ledgrc to point to a default budget
@@ -90,6 +100,9 @@ FLAGS
 
         --valuation-date=yyyy-mm-dd
                 specify a date to use for currency conversion
+
+        --valuation-eop
+                in multiperiod reports, use end of period date as valuation date
 
         --income=<account filter>, --expense=<account filter>, --equity=<account filter>
         --asset=<account filter>, --liability=<account filter>
@@ -131,6 +144,7 @@ FILTER
                 queries entries with modifiers that matches the regex
                 ex: payee:"amazon|steam"
                     tag:"pc|tablet"
+                setting regex to null will filter entries without such modifier
 
                 shorthands:
                         desc: => description:
@@ -231,9 +245,9 @@ COMMANDS
                 --csv
                         tabulate data in csv (exporting for other use)
 
-        history [--daily] [--weekly] [--biweekly] [--monthly] [--quarterly]
+        history [--daily] [--weekly] [--biweekly] [--monthly] [--quarterly] [--invert]
                 [--yearly] [--cumulative] [--cumulative-columns=num list] [--avg]
-                [--skip-book-close=true] [--epoch] [--csv] [--iso] [--invert]
+                [--skip-book-close=true] [--epoch] [--csv] [--iso] [--isofull]
                 [ <account filter 1> <account filter 2> ... ] [--skip=] [--sum=]
                 Defaults: shows accounts specified by --income, --expense, --asset, --liability,
                           and --equity, and defaults --skip-book-close=true
@@ -265,6 +279,9 @@ COMMANDS
 
                 --csv
                         tabulate data in csv (exporting for other use)
+
+                --isofull
+                        show timestamps in ISO date string
 
                 --iso
                         show timestamps in ISO date string
