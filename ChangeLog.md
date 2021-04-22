@@ -1,6 +1,6 @@
 
 # Changelog
-## [Unreleased]
+## [0.8.4] 2021-04-22
 ### Added
 - \--transpose option for tables
 - \--iso and \--isofull options
