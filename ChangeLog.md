@@ -5,7 +5,7 @@
 - \--transpose option for tables
 - \--iso and \--isofull options
   - original \--iso becomes \--isofull
-- \--valuation-eop option
+- \--valuation-eop option for history and burndown
 
 ### Changes
 - large code style related refactors
@@ -19,6 +19,7 @@
   overriding options
 
 ### Fixed
+- \--valuation-date is ignored in burndown
 - edit command cannot read stdin after vim
 - index.js args local variable is exposed to global scope
   - many components relied on this exploit
