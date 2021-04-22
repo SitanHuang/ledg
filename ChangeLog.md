@@ -3,6 +3,9 @@
 ## [Unreleased]
 ### Added
 - \--transpose option for tables
+- \--iso and \--isofull options
+  - original \--iso becomes \--isofull
+- \--valuation-eop option
 
 ### Changes
 - large code style related refactors
