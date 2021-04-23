@@ -1,5 +1,21 @@
 
 # Changelog
+### Roadmap for v0.9.0
+### Must
+- hledger style internal MultiPeriodCompoundReport
+  - incomestatement
+  - balancesheet
+  - cashflow
+
+### Maybe
+- html export options
+- export price table for `ledg print --ledger`
+
+## [Unreleased]
+### Changes
+- burndown no longer clears screen and tries to
+  maximize content to screen height better
+
 ## [0.8.4] 2021-04-22
 ### Added
 - \--transpose option for tables
