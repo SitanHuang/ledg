@@ -18,6 +18,7 @@
 
 ### Fixed
 - query.js doesn't handle multiple account filters
+- query.js sums transfers with duplicated account filters
 
 ## [0.8.4] 2021-04-22
 ### Added
