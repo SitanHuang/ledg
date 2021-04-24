@@ -1,12 +1,6 @@
 
 # Changelog
-### Roadmap for v0.9.1
-### Must
-- \--percent for multiperiod reports
-- html export options
-- export price table for `ledg print --ledger`
-
-## [Unreleased]
+## [0.9.0] 2021-04-23
 ### Added
 - hledger style reports
   - incomestatement
