@@ -1,19 +1,20 @@
 
 # Changelog
-### Roadmap for v0.9.0
+### Roadmap for v0.9.1
 ### Must
-- hledger style internal MultiPeriodCompoundReport
-  - incomestatement
-  - balancesheet
-  - cashflow
-
-### Maybe
+- \--percent for multiperiod reports
 - html export options
 - export price table for `ledg print --ledger`
 
 ## [Unreleased]
 ### Added
-- query.js accSumMatchTransfer option
+- hledger style reports
+  - incomestatement
+  - balancesheet
+  - cashflow
+- query.js
+  - accSumMatchTransfer option
+  - invert option
 
 ### Changes
 - burndown no longer clears screen and tries to
