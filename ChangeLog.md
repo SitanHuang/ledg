@@ -4,6 +4,11 @@
 ### Added
 - balancesheetequity
 
+### Fixed
+- multiperiod report
+  - \--depth hides rows
+  - \--sum-parent and \--depth don't play well together
+
 ## [0.9.0] 2021-04-23
 ### Added
 - hledger style reports
