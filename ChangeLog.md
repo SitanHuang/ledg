@@ -1,5 +1,23 @@
 
 # Changelog
+## [0.9.0] 2021-04-23
+### Added
+- hledger style reports
+  - incomestatement
+  - balancesheet
+  - cashflow
+- query.js
+  - accSumMatchTransfer option
+  - invert option
+
+### Changes
+- burndown no longer clears screen and tries to
+  maximize content to screen height better
+
+### Fixed
+- query.js doesn't handle multiple account filters
+- query.js sums transfers with duplicated account filters
+
 ## [0.8.4] 2021-04-22
 ### Added
 - \--transpose option for tables
