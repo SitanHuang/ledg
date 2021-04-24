@@ -12,6 +12,9 @@
 - export price table for `ledg print --ledger`
 
 ## [Unreleased]
+### Added
+- query.js accSumMatchTransfer option
+
 ### Changes
 - burndown no longer clears screen and tries to
   maximize content to screen height better
