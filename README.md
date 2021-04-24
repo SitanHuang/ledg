@@ -291,7 +291,8 @@ COMMANDS
                 -y
                         defaults confirmations to yes
 
-        balancesheet
+        balancesheet,
+        balancesheetequity,
         cashflow,
         incomestatement [ <filter> ] [--daily] [--weekly] [--biweekly] [--monthly]
                         [--quarterly] [--skip] [from:] [to:] [--hide-zero] [--tree]
