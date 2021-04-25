@@ -1,11 +1,15 @@
 
 ## ledg
-This is a personal project aimed at creating a ledger-like cli accounting program,
-and one that I can customize according to my likings and workflow.
+This is a personal project aimed at creating a ledger-like cli accounting program
+that I can customize according to my likings and workflow.
 The performance is about 30% faster than hledger and comparable to ledger.
 [Benchmark](benchmark.txt)
 
-The ledg file format is incompatible with other ledger-likes. It is though easy to switch back and forth by replacing tabs with spaces, etc. There is a built-in print command that can directly be piped into an hledger command. Ledg also supports descriptions in each transfer as opposed to one description per entry, and multiple currencies in one posting/transfer. The program manages the journal for you, and for most of the times one does not need to touch the text files.
+The ledg file format is incompatible with other ledger-likes.
+It is though easy to switch back and forth by replacing tabs with spaces, etc
+There is a built-in print command that can directly be piped into an hledger command.
+The program manages the journal for you, and for most of the times one only needs
+the `modify`, `edit` and `add` commands.
 
 The project is under active development. [ChangeLogs](ChangeLog.md)
 
@@ -18,12 +22,9 @@ The project is under active development. [ChangeLogs](ChangeLog.md)
   - `modify` command for batch modifications
   - `add` command that adds entries in
     one line
-- scripting via eval command
 - git integration
 - tracker based budgeting
-  - budget with filters rather than accounts
-- entry properties as JS object properties
-  - faster filtering
+- transaction tags as JS object properties
 - auto file splitting based on year
 
 #### Common Ledger Features
@@ -35,10 +36,10 @@ The project is under active development. [ChangeLogs](ChangeLog.md)
 ### Installation
 MacOS/Linux supported only. Use WSL on Windows.
 
-1. Make sure ``node`` is in your path.
+1. Make sure `node` is in your path.
 2. Download repository
-3. ``make && make install``
-4. Put ``~/bin`` in your path
+3. `make && make install`
+4. Put `~/bin` in your path
 
 ### Screenshots
 <img
