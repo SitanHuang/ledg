@@ -1,6 +1,6 @@
 
 # Changelog
-## [Unreleased]
+## [0.9.1] 2021-04-25
 ### Added
 - balancesheetequity
 - \--percent option for multiperiod reports
