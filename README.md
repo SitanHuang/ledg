@@ -81,8 +81,10 @@ FLAGS
         --light-theme, --lt
                 put this in your .ledgrc if your terminal has light background
 
-        --csv
-                outputs all tables in csv formats(some commands only)
+        --csv,
+        --html,
+        --format=csv|html
+                outputs all tables in different formats(some commands only)
 
         --transpose
                 force a table transpose

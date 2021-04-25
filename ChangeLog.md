@@ -5,6 +5,11 @@
 - balancesheetequity
 - \--percent option for multiperiod reports
 - \--prices and --prices-only options for print command
+- html export format
+
+### Changed
+- \--csv and \--html options now are shorthands for
+  \--format=csv|html
 
 ### Fixed
 - 32bit end of time problem
