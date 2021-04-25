@@ -1,6 +1,9 @@
 
 ## ledg
-This is a personal project aimed at creating a ledger-like cli accounting program, and one that I can customize according to my likings and workflow. The performance is around the same as ledger and hledger.
+This is a personal project aimed at creating a ledger-like cli accounting program,
+and one that I can customize according to my likings and workflow.
+The performance is about 30% faster than hledger and comparable to ledger.
+[Benchmark](benchmark.txt)
 
 The ledg file format is incompatible with other ledger-likes. It is though easy to switch back and forth by replacing tabs with spaces, etc. There is a built-in print command that can directly be piped into an hledger command. Ledg also supports descriptions in each transfer as opposed to one description per entry, and multiple currencies in one posting/transfer. The program manages the journal for you, and for most of the times one does not need to touch the text files.
 
@@ -78,8 +81,10 @@ FLAGS
         --light-theme, --lt
                 put this in your .ledgrc if your terminal has light background
 
-        --csv
-                outputs all tables in csv formats(some commands only)
+        --csv,
+        --html,
+        --format=csv|html
+                outputs all tables in different formats(some commands only)
 
         --transpose
                 force a table transpose
@@ -291,14 +296,15 @@ COMMANDS
                 -y
                         defaults confirmations to yes
 
-        balancesheet
+        balancesheet,
+        balancesheetequity,
         cashflow,
         incomestatement [ <filter> ] [--daily] [--weekly] [--biweekly] [--monthly]
                         [--quarterly] [--skip] [from:] [to:] [--hide-zero] [--tree]
                         [--skip-book-close=true] [--iso=true] [--isofull] [--sort]
                         [--sum-parent] [--avg] [ <currency flags> ] [--dp=2]
                         [--csv] [--asset=] [--income=] [--expense=] [--liability=]
-                        [--equity=]
+                        [--equity=] [--percent|-%]
                 displays multiperiod compound reports
 
                 In reports that bring up a historical balance, --skip is replaced
@@ -326,6 +332,10 @@ COMMANDS
                 --iso
                         Default: true
                         show timestamps in shortened ISO date string
+
+                --percent, -%
+                        Displays cells in subreports as a percentage of their
+                        column total
 
         accounts [tree] [--sum-parent] [--hide-zero, --hz] [--max-depth=NUM, --dep, --depth]
                 [--sum] [ <filter> ] [--sort]
@@ -430,6 +440,9 @@ COMMANDS
                 --show-default-currency
                         Default: true if --ledger
                         print default currency symbol
+
+                --prices, --prices-only
+                        prints price declarations
 
                 --ledger
                         prints ledger & hledger compatible journal

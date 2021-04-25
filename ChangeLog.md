@@ -1,5 +1,24 @@
 
 # Changelog
+## [0.9.1] 2021-04-25
+### Added
+- balancesheetequity
+- \--percent option for multiperiod reports
+- \--prices and --prices-only options for print command
+- html export format
+
+### Changed
+- \--csv and \--html options now are shorthands for
+  \--format=csv|html
+- register command uses \* account filter unless specified
+
+### Fixed
+- 32bit end of time problem
+  - replaced bitwise operators with Math functions
+- multiperiod report
+  - \--depth hides rows
+  - \--sum-parent and \--depth don't play well together
+
 ## [0.9.0] 2021-04-23
 ### Added
 - hledger style reports
