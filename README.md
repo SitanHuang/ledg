@@ -436,6 +436,9 @@ COMMANDS
                         Default: true if --ledger
                         print default currency symbol
 
+                --prices, --prices-only
+                        prints price declarations
+
                 --ledger
                         prints ledger & hledger compatible journal
 

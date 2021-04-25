@@ -4,6 +4,7 @@
 ### Added
 - balancesheetequity
 - \--percent option for multiperiod reports
+- \--prices and --prices-only options for print command
 
 ### Fixed
 - multiperiod report
