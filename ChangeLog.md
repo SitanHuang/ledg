@@ -10,6 +10,7 @@
 ### Changed
 - \--csv and \--html options now are shorthands for
   \--format=csv|html
+- register command uses \* account filter unless specified
 
 ### Fixed
 - 32bit end of time problem
