@@ -3,6 +3,7 @@
 ## [Unreleased]
 ### Added
 - balancesheetequity
+- \--percent option for multiperiod reports
 
 ### Fixed
 - multiperiod report

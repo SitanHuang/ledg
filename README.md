@@ -299,7 +299,7 @@ COMMANDS
                         [--skip-book-close=true] [--iso=true] [--isofull] [--sort]
                         [--sum-parent] [--avg] [ <currency flags> ] [--dp=2]
                         [--csv] [--asset=] [--income=] [--expense=] [--liability=]
-                        [--equity=]
+                        [--equity=] [--percent|-%]
                 displays multiperiod compound reports
 
                 In reports that bring up a historical balance, --skip is replaced
@@ -327,6 +327,10 @@ COMMANDS
                 --iso
                         Default: true
                         show timestamps in shortened ISO date string
+
+                --percent, -%
+                        Displays cells in subreports as a percentage of their
+                        column total
 
         accounts [tree] [--sum-parent] [--hide-zero, --hz] [--max-depth=NUM, --dep, --depth]
                 [--sum] [ <filter> ] [--sort]
