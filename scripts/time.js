@@ -96,7 +96,7 @@ switch (cmd) {
       return;
     }
     let now = new Date();
-    let d = (now - from) / 1000 | 0;
+    let d = Math.floor((now - from) / 1000);
     let day = Math.floor(d / 86400);
     d -= day * 86400;
     let hour = Math.floor(d / 3600) % 24;

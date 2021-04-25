@@ -7,6 +7,8 @@
 - \--prices and --prices-only options for print command
 
 ### Fixed
+- 32bit end of time problem
+  - replaced bitwise operators with Math functions
 - multiperiod report
   - \--depth hides rows
   - \--sum-parent and \--depth don't play well together
