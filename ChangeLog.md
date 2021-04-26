@@ -6,6 +6,9 @@
 - test cases
   - history \--valuation-eop
 
+### Fixed
+- close command does not use previous year in description
+
 ## [0.9.1] 2021-04-25
 ### Added
 - balancesheetequity
