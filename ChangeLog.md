@@ -3,6 +3,8 @@
 ## [Unreleased]
 ### Added
 - \--pad-spaces option for print --ledger
+- test cases
+  - history \--valuation-eop
 
 ## [0.9.1] 2021-04-25
 ### Added
