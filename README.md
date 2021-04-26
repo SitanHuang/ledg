@@ -448,6 +448,11 @@ COMMANDS
                 --ledger
                         prints ledger & hledger compatible journal
 
+                --pad-spaces=NUM
+                        Default: 35
+                        with --ledger set, pad NUM spaces between account names
+                        and posting amounts
+
         git [...]
                 executes git [...] at the parent directory of FILE
 

@@ -1,5 +1,9 @@
 
 # Changelog
+## [Unreleased]
+### Added
+- \--pad-spaces option for print --ledger
+
 ## [0.9.1] 2021-04-25
 ### Added
 - balancesheetequity
