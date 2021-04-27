@@ -3,7 +3,7 @@
 This is a personal project aimed at creating a ledger-like cli accounting program
 that I can customize according to my likings and workflow.
 For multicurrency journals, the performance is about 3 times faster than hledger
-and 2 times slower than ledger.
+and 3 times slower than ledger.
 [Benchmark](benchmark.md)
 
 The ledg file format is incompatible with other ledger-likes.
@@ -27,12 +27,14 @@ The project is under active development. [ChangeLogs](ChangeLog.md)
 - tracker based budgeting
 - transaction tags as JS object properties
 - auto file splitting based on year
+- very fast: only 2.7 times slower than ledger-cli
+  despite using a high leve language
 
 #### Common Ledger Features
 - multicurrency and price table
 - envelope based budgeting
 - book closure
-- similar performance as the ledger-cli
+- pending and virtual entries
 
 ### Installation
 MacOS/Linux supported only. Use WSL on Windows.
