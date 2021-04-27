@@ -47,57 +47,96 @@ P 2021-03-01 r $3
     );
   });
 
-  it('Should group based on time period', () => {
+  describe('multiperiod', () => {
+    it('Should group with --hz=false', () => {
+      ctx
+        .ledg('register', '--monthly', "--hz=false",
+              'from:2020-12-01', 'to:2021-03-01', '--dp=0', "a.b")
+        .skip(`"20`)
+        .out(
+          '"2020-12-01","","0","0"\n' +
+          '"2021-01-01","a.b","r+2","r2"\n' +
+          '"2021-02-01","a.b","r+1","r3"'
+        )
+    });
+    it('Should group with --currency and --depth', () => {
+      ctx
+        .ledg('register', '--monthly', "--hz=false", "--currency=$", "--depth=1",
+              'from:2020-12-01', 'to:2021-03-01', '--dp=0', "a.")
+        .skip(`"20`)
+        .out(
+          '"2020-12-01","","0","0"\n' +
+          '"2021-01-01","a","+4","4"\n' +
+          '"2021-02-01","a","+4","8"'
+        )
+        .ledg('register', '--monthly', "--hz=false", "--currency=$", "--depth=3",
+              'from:2020-12-01', 'to:2021-03-01', '--dp=0', "a.")
+        .skip(`"20`)
+        .out(
+          '"2020-12-01","","0","0"\n' +
+          '"2021-01-01","a.b","+2","2"\n' +
+          '"2021-01-01","a.c","+2","4"\n' +
+          '"2021-02-01","a.b","+2","6"\n' +
+          '"2021-02-01","a.c","+2","8"'
+        )
+    });
+    it('Should group with --currency and --valuation-date', () => {
+      ctx
+        .ledg('register', '--monthly', "--currency=$", "--depth=1",
+              '--valuation-date=2021-03-01',
+              'from:2020-12-01', 'to:2021-03-01', '--dp=0', "a.b")
+        .skip(`"20`)
+        .out(
+          '"2021-01-01","a","+6","6"\n' +
+          '"2021-02-01","a","+3","9"'
+        )
+    });
+
+  });
+
+
+  it('Should default to * filter', () => {
     ctx
-      .ledg('register', '--monthly',
-            'from:2020-12-01', 'to:2021-03-01', '--dp=0', "a.b")
+      .ledg('register',
+            'to:2021-01-02', '--dp=0')
       .skip(`"20`)
       .out(
-        '"2021-01-01","a.b","r+2","r2"\n' +
-        '"2021-02-01","a.b","r+1","r3"\n'
+        '"2021-01-01","afssssf1","asdf","a.b","r+1","r1"\n' +
+        '"2021-01-01","afssssf1","","a.c","r+1","r2"\n' +
+        '"2021-01-01","afssssf1","","bal","r-2","0"'
       )
   });
-  it('Should group with --hz=false', () => {
+
+  it('Should fold with --depth', () => {
     ctx
-      .ledg('register', '--monthly', "--hz=false",
-            'from:2020-12-01', 'to:2021-03-01', '--dp=0', "a.b")
+      .ledg('register',
+            'to:2021-01-02', '--dp=0', '--max-depth=1')
       .skip(`"20`)
       .out(
-        '"2020-12-01","","0","0"\n' +
-        '"2021-01-01","a.b","r+2","r2"\n' +
-        '"2021-02-01","a.b","r+1","r3"'
+        '"2021-01-01","afssssf1","asdf","a","r+1","r1"\n' +
+        '"2021-01-01","afssssf1","","a","r+1","r2"\n' +
+        '"2021-01-01","afssssf1","","bal","r-2","0"'
       )
   });
-  it('Should group with --currency and --depth', () => {
+
+  it('Should convert --currency', () => {
     ctx
-      .ledg('register', '--monthly', "--hz=false", "--currency=$", "--depth=1",
-            'from:2020-12-01', 'to:2021-03-01', '--dp=0', "a.")
+      .ledg('register', "--currency=$", '+A2',
+            'to:2021-01-02', '--dp=0', "a.")
       .skip(`"20`)
       .out(
-        '"2020-12-01","","0","0"\n' +
-        '"2021-01-01","a","+4","4"\n' +
-        '"2021-02-01","a","+4","8"'
-      )
-      .ledg('register', '--monthly', "--hz=false", "--currency=$", "--depth=3",
-            'from:2020-12-01', 'to:2021-03-01', '--dp=0', "a.")
-      .skip(`"20`)
-      .out(
-        '"2020-12-01","","0","0"\n' +
-        '"2021-01-01","a.b","+2","2"\n' +
-        '"2021-01-01","a.c","+2","4"\n' +
-        '"2021-02-01","a.b","+2","6"\n' +
-        '"2021-02-01","a.c","+2","8"'
+        '"2021-01-01","afssssf1","asdf","a.b","+1","1"\n' +
+        '"2021-01-01","afssssf1","","a.c","+1","2"'
       )
   });
-  it('Should group with --currency and --valuation-date', () => {
+  it('Should convert --currency at --valuation-date', () => {
     ctx
-      .ledg('register', '--monthly', "--currency=$", "--depth=1",
-            '--valuation-date=2021-03-01',
-            'from:2020-12-01', 'to:2021-03-01', '--dp=0', "a.b")
+      .ledg('register', "--currency=$", '+A2', '--valuation-date=2021-03-01',
+            'to:2021-01-02', '--dp=0', "a.")
       .skip(`"20`)
       .out(
-        '"2021-01-01","a","+6","6"\n' +
-        '"2021-02-01","a","+3","9"'
+        '"2021-01-01","afssssf1","asdf","a.b","+3","3"\n' +
+        '"2021-01-01","afssssf1","","a.c","+3","6"'
       )
   });
 
