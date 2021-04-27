@@ -5,6 +5,7 @@
 - \--pad-spaces option for print --ledger
 - test cases
   - history \--valuation-eop
+  - register command
 
 ### Fixed
 - close command does not use previous year in description
