@@ -14,14 +14,14 @@ describe('ledg accounts', () => {
       }
     }
     `);
-    ctx.fw('book.2011.ledg', 
+    ctx.fw('book.2011.ledg',
 `
 2011-01-01 asdf #afssssfa
   add rmb\ta.a\t1r
   \tbal\t
 `
     );
-    ctx.fw('book.2021.ledg', 
+    ctx.fw('book.2021.ledg',
 `
 2021-01-01 asdf #afssssfa
   add rmb\ta.b\t1r
@@ -31,7 +31,7 @@ describe('ledg accounts', () => {
     ctx.fw('prices',
 `
 P 2010-01-01 R $1
-P 2020-01-01 R $2 
+P 2020-01-01 R $2
 P 3000-01-01 R $4
 P 0000-01-01 r 1R
 ; comment
@@ -39,9 +39,9 @@ P 0000-01-01 r 1R
     );
   });
 
-  const content = 
+  const content =
 `
-2020-01-01 foo #aaaaaaaa
+2020-01-01 ! foo #aaaaaaaa
   ;virt:true
   \ta.aa\t123USD
   \ta.aa\t0.12345USD
@@ -60,6 +60,14 @@ P 0000-01-01 r 1R
       .ledg('accounts', '-F-', 'virt:true', '--hz')
       .out(`"Accounts","Balance"\n"a","USD-123.12345"\n"a.aa","USD123.12345"`);
   });
+  it('Should sum pending:true and --cleared', () => {
+    ctx
+      .input(content+"  \ta\t-123.12345 USD\n2020-01-01 #kdkdkdkd\n  \tb\t1\n  \tc\t-1")
+      .ledg('accounts', '-F-', '--cleared', '--hz')
+      .out(`"Accounts","Balance"\n"b","1.00"\n"c","-1.00"`)
+      .ledg('accounts', '-F-', 'pending:true', '--hz')
+      .out(`"Accounts","Balance"\n"a","USD-123.12345"\n"a.aa","USD123.12345"`);
+  });
   it('Should emit error when imbalanced', () => {
     assert.throws(() => {
       ctx
@@ -68,7 +76,7 @@ P 0000-01-01 r 1R
     }, { message: /imbalance.+-123\.12345/i });
   });
   it('Should balance last posting', () => {
-    let o = 
+    let o =
 `
 "Accounts","Balance"
 "a.aa","USD123.12345"
