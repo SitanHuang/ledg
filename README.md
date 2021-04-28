@@ -378,15 +378,18 @@ COMMANDS
                         default: tags
                         This can be used on any fields such as description or payee
 
-        add [--date=yyyy-mm-dd] [-y] [description] [yyyy-mm-dd] [!] [--default-pending]
-                < <account filter>[account description] <amount> [, ...] > [+TAG ...]
-                push entry to book
+        add [--date=yyyy-mm-dd] [-y] [description] [yyyy-mm-dd] [+TAG ...]
+            [--default-pending] [*] [!]
+            < <account filter>[account description] <amount> [, ...] >
                 Note: The last account transfer set can leave empty amount, and ledg will calculate it.
                   ex: "ledg add cash withdrawal from bank ast..cash 100 ast..BoA.chking"
                       will leave Asset.Current.BankOfAmerica.Checking with -100 balance
 
                 !
                         sets entry status to pending
+
+                *
+                        sets entry status to cleared
 
                 <account filter>
                         (see FILTER section)
