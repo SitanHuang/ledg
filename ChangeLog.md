@@ -15,6 +15,7 @@
 
 ### Fixed
 - close command does not use previous year in description
+- ~/.ledgrc is read twice if cwd=~
 
 ## [0.9.1] 2021-04-25
 ### Added

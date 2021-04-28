@@ -6,3 +6,9 @@ complete -c ledg -f
 
 complete -c ledg -n "not __fish_seen_subcommand_from $ledg_commands" \
     -a "$ledg_commands"
+
+complete -c ledg -n "__fish_seen_subcommand_from accounts" \
+    -a "add rename "
+
+complete -c ledg -n "__fish_seen_subcommand_from export" \
+    -a "gnucash-transactions gnucash-accounts"
