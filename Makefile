@@ -44,7 +44,11 @@ bin/ledg: header core fs cli
 binary: bin/ledg
 	pkg bin/ledg
 
-install: bin/ledg SCRIPTS
+fish_autocomplete:
+	mkdir -p ~/.config/fish/completions/
+	cp autocomplete/ledg.autocomplete.fish ~/.config/fish/completions/ledg.fish
+
+install: bin/ledg SCRIPTS fish_autocomplete
 	mkdir -p ~/bin
 	rm -f ~/bin/ledg
 	rm -f ~/bin/ledg-*
