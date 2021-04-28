@@ -13,33 +13,36 @@ set -l ledg_options "--file= -F --light-theme --lt --csv --html --format= --tran
        "--remove-mod= --do-not-adjust --simple --ledger --show-default-currency"\
        "--prices-only --pad-spaces="
 
+set -l ledg_modifiers "desc: description: uuid: f: from: t: to: bc: bookClose:"\
+       "pending: virt:"
+
 
 # disable file completions
 complete -c ledg -f
 
 # options
 complete -c ledg -n "__fish_seen_subcommand_from $ledg_commands" \
-    -a "$ledg_options"
+    -a "$ledg_options $ledg_modifiers"
 
 # root subcommands
 complete -c ledg -n "not __fish_seen_subcommand_from $ledg_commands" \
-    -a "$ledg_commands $ledg_options"
+    -a "$ledg_commands $ledg_options $ledg_modifiers"
 
 # ======= level 2 subcommands =======
 complete -c ledg -n "__fish_seen_subcommand_from accounts" \
-    -a "add rename $ledg_options"
+    -a "add rename $ledg_options $ledg_modifiers"
 
 complete -c ledg -n "__fish_seen_subcommand_from info" \
-    -a "flat $ledg_options"
+    -a "flat $ledg_options $ledg_modifiers"
 
 complete -c ledg -n "__fish_seen_subcommand_from edit" \
-    -a "new $ledg_options"
+    -a "new $ledg_options $ledg_modifiers"
 
 complete -c ledg -n "__fish_seen_subcommand_from budget" \
-    -a "edit list $ledg_options"
+    -a "edit list $ledg_options $ledg_modifiers"
 
 complete -c ledg -n "__fish_seen_subcommand_from export" \
-    -a "gnucash-transactions gnucash-accounts $ledg_options"
+    -a "gnucash-transactions gnucash-accounts $ledg_options $ledg_modifiers"
 
 complete -c ledg -n "__fish_seen_subcommand_from git" \
-    -a "checkout add commit push pull merge cherry-pick $ledg_options"
+    -a "checkout add commit push pull merge cherry-pick $ledg_options $ledg_modifiers"
