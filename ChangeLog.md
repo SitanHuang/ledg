@@ -7,6 +7,7 @@
   - history \--valuation-eop
   - register command
 - pending entries (by adding ! in front of description)
+- \--default-pending option
 - aliases
 
 ### Fixed
