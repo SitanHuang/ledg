@@ -1,5 +1,23 @@
 
 # Changelog
+## [0.9.2] 2021-04-28
+### Added
+- \--pad-spaces option for print --ledger
+- test cases
+  - history \--valuation-eop
+  - register command
+- pending entries (by adding ! in front of description)
+- \--default-pending option
+- aliases
+- fish shell auto completion
+
+### Changed
+- account tree becomes account --tree
+
+### Fixed
+- close command does not use previous year in description
+- ~/.ledgrc is read twice if cwd=~
+
 ## [0.9.1] 2021-04-25
 ### Added
 - balancesheetequity

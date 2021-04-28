@@ -15,7 +15,7 @@ describe('ledg history', () => {
     `);
     ctx.fw('book.2021.ledg',
 `
-2021-01-01 asdf #afssssf2
+2021-01-01 asdf #afssssf1
   ;tags:"A2"
   \ta.b\t1r
   \tbal\t-1r
@@ -92,6 +92,38 @@ P 0000-01-01 r 1R
       .out(
         '"Year","Month","Day","A.b","Bal$","Bn$"\n' +
         '"2021","January","≥ 1","3","-3","1"'
+      );
+  });
+  it('Should --valuation-eop', () => {
+    ctx
+      .ledg('history', '--monthly', 'from:2021-01-01', 'to:2023-01-01', '--currency=$', '--valuation-eop', 'uuid:afssssf1', 'a.b', '--cumulative', '--dp=0')
+      .skip(`"Year"`)
+      .out(
+        '"Year","Month","Day","A.b"\n' +
+        '"2021","January","1","1"\n' +
+        '"2021","February","1","1"\n' +
+        '"2021","March","1","1"\n' +
+        '"2021","April","1","1"\n' +
+        '"2021","May","1","1"\n' +
+        '"2021","June","1","1"\n' +
+        '"2021","July","1","1"\n' +
+        '"2021","August","1","1"\n' +
+        '"2021","September","1","1"\n' +
+        '"2021","October","1","1"\n' +
+        '"2021","November","1","1"\n' +
+        '"2021","December","1","2"\n' +
+        '"2022","January","1","4"\n' +
+        '"2022","February","1","4"\n' +
+        '"2022","March","1","4"\n' +
+        '"2022","April","1","4"\n' +
+        '"2022","May","1","4"\n' +
+        '"2022","June","1","4"\n' +
+        '"2022","July","1","4"\n' +
+        '"2022","August","1","4"\n' +
+        '"2022","September","1","4"\n' +
+        '"2022","October","1","4"\n' +
+        '"2022","November","1","4"\n' +
+        '"2022","December","≥ 1","4"'
       );
   });
   it('Should --skip', () => {

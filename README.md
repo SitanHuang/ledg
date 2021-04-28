@@ -134,6 +134,10 @@ FLAGS
                         imbalanced-entries,
                         all
 
+        --alias-NAME=ALIAS
+                Example: --alias-is="incomestatement --sort --tree"
+                replaces name with the alias and reparse argv
+
 FILTER
         [ modifiers ] [ account filter, ...]
         a set of arguments that filters entries
@@ -341,7 +345,7 @@ COMMANDS
                         Displays cells in subreports as a percentage of their
                         column total
 
-        accounts [tree] [--sum-parent] [--hide-zero, --hz] [--max-depth=NUM, --dep, --depth]
+        accounts [--tree] [--sum-parent] [--hide-zero, --hz] [--max-depth=NUM, --dep, --depth]
                 [--sum] [ <filter> ] [--sort]
                 sums balances in selected accounts
                 Due to the need to sum entries from the beginning of a book, from: modifier is
@@ -358,7 +362,7 @@ COMMANDS
                         max child account depth to show
                 --sum
                         sums listed accounts, best used with --max-depth=1
-                tree
+                --tree
                         displays account balances in tree view
 
         info [ <filter> ] [flat]
@@ -374,12 +378,18 @@ COMMANDS
                         default: tags
                         This can be used on any fields such as description or payee
 
-        add [--date=yyyy-mm-dd] [-y] [description] [yyyy-mm-dd] < <account filter>
-                  [account description] <amount> [, ...]> [+TAG ...]
-                push entry to book
+        add [--date=yyyy-mm-dd] [-y] [description] [yyyy-mm-dd] [+TAG ...]
+            [--default-pending] [*] [!]
+            < <account filter>[account description] <amount> [, ...] >
                 Note: The last account transfer set can leave empty amount, and ledg will calculate it.
                   ex: "ledg add cash withdrawal from bank ast..cash 100 ast..BoA.chking"
                       will leave Asset.Current.BankOfAmerica.Checking with -100 balance
+
+                !
+                        sets entry status to pending
+
+                *
+                        sets entry status to cleared
 
                 <account filter>
                         (see FILTER section)
@@ -387,6 +397,11 @@ COMMANDS
                 --date=yyyy-mm-dd, -Dyyyy-mm-dd, [yyyy-mm-dd]
                         Default: current date
                         specifies the date of entry
+
+                --default-pending
+                        if set, defaults to pending status; could be overridden
+                        with pending:false
+
                 -y
                         defaults most confirmations to yes (unless ledg prompts a list to choose)
 
@@ -450,6 +465,11 @@ COMMANDS
 
                 --ledger
                         prints ledger & hledger compatible journal
+
+                --pad-spaces=NUM
+                        Default: 35
+                        with --ledger set, pad NUM spaces between account names
+                        and posting amounts
 
         git [...]
                 executes git [...] at the parent directory of FILE

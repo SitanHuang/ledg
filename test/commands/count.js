@@ -11,7 +11,7 @@ describe('ledg count', () => {
       }
     }
     `);
-    ctx.fw('book.2011.ledg', 
+    ctx.fw('book.2011.ledg',
 `
 2011-01-01 asdf #afssssf1
   add rmb\ta.a\t1r
@@ -25,9 +25,9 @@ describe('ledg count', () => {
   \tbal\t
 `
     );
-    ctx.fw('book.2021.ledg', 
+    ctx.fw('book.2021.ledg',
 `
-2021-01-01 asdf #afssssf3
+2021-01-01 ! asdf #afssssf3
   ;tags:"A2"
   add rmb\ta.b\t1r
   \tbal\t
@@ -56,6 +56,13 @@ describe('ledg count', () => {
       .out('3')
       .ledg('count', 'virt:true')
       .out('2');
+  });
+  it('Should count --cleared and pending:true', () => {
+    ctx
+      .ledg('count', '--cleared')
+      .out('4')
+      .ledg('count', 'pending:true')
+      .out('1');
   });
   it('Should count tags', () => {
     ctx
