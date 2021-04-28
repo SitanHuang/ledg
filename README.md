@@ -345,7 +345,7 @@ COMMANDS
                         Displays cells in subreports as a percentage of their
                         column total
 
-        accounts [tree] [--sum-parent] [--hide-zero, --hz] [--max-depth=NUM, --dep, --depth]
+        accounts [--tree] [--sum-parent] [--hide-zero, --hz] [--max-depth=NUM, --dep, --depth]
                 [--sum] [ <filter> ] [--sort]
                 sums balances in selected accounts
                 Due to the need to sum entries from the beginning of a book, from: modifier is
@@ -362,7 +362,7 @@ COMMANDS
                         max child account depth to show
                 --sum
                         sums listed accounts, best used with --max-depth=1
-                tree
+                --tree
                         displays account balances in tree view
 
         info [ <filter> ] [flat]

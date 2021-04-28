@@ -192,7 +192,7 @@ P 0000-01-01 r 1R
 
   it('Should produce tree view with --hz --sum-parent', () => {
     ctx
-      .ledg('accounts', 'tree', '-F-', '--hz', '--dp=0')
+      .ledg('accounts', '--tree', '-F-', '--hz', '--dp=0')
       .out(
 `
 "Accounts","Balance"
@@ -206,7 +206,7 @@ P 0000-01-01 r 1R
 "└z","USD-1"
 `
       )
-      .ledg('accounts', 'tree', '-F-', '--hz', '--sum-parent', '--dp=0')
+      .ledg('accounts', '--tree', '-F-', '--hz', '--sum-parent', '--dp=0')
       .out(
 `
 "Accounts","Balance"

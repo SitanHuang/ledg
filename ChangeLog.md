@@ -10,6 +10,9 @@
 - \--default-pending option
 - aliases
 
+### Changed
+- account tree becomes account --tree
+
 ### Fixed
 - close command does not use previous year in description
 
