@@ -134,6 +134,10 @@ FLAGS
                         imbalanced-entries,
                         all
 
+        --alias-NAME=ALIAS
+                Example: --alias-is="incomestatement --sort --tree"
+                replaces name with the alias and reparse argv
+
 FILTER
         [ modifiers ] [ account filter, ...]
         a set of arguments that filters entries

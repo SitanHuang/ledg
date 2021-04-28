@@ -7,6 +7,7 @@
   - history \--valuation-eop
   - register command
 - pending entries (by adding ! in front of description)
+- aliases
 
 ### Fixed
 - close command does not use previous year in description
