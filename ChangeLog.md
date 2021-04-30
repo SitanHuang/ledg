@@ -20,8 +20,20 @@
 |:---|---:|---:|---:|---:|
 | `ledgOld -Ftest --currency=m` | 526.7 ± 14.2 | 505.8 | 546.3 | 1.18 ± 0.03 |
 | `ledg -Ftest --currency=m` | 444.6 ± 5.2 | 436.9 | 452.3 | 1.00 |
-
-
+```
+native_init: 41.92ms
+500400.7411313054
+native_add: 27.347ms
+BigFloat32_init: 1.081s
+500400.74111967965
+BigFloat32_add: 290.657ms
+BigJS_init: 935.006ms
+500400.7411312983
+BigJS_add: 245.981ms
+Custom_init: 672.081ms
+500400.7411312983
+Custom_add: 66.148ms
+```
 ## [0.9.2] 2021-04-28
 ### Added
 - \--pad-spaces option for print --ledger
