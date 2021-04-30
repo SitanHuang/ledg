@@ -1,4 +1,22 @@
 ## Multicurrency
+### V0.9.3 native bigint implementation
+| Command | Mean [ms] | Min [ms] | Max [ms] | Relative |
+|:---|---:|---:|---:|---:|
+| `ledg -Ftest tree --sort` | 447.8 ± 11.1 | 431.3 | 466.2 | 2.47 ± 0.09 |
+| `ledger -f test.dat bal` | 180.9 ± 4.7 | 176.2 | 191.0 | 1.00 |
+| `hledger -ftest.dat bal` | 1812.8 ± 35.0 | 1750.5 | 1871.1 | 10.02 ± 0.32 |
+
+| Command | Mean [ms] | Min [ms] | Max [ms] | Relative |
+|:---|---:|---:|---:|---:|
+| `ledg -Ftest incomestatement f:2021-01-01 to:2022-01-01 --monthly` | 564.5 ± 20.6 | 544.2 | 600.3 | 1.00 |
+| `hledger -ftest.dat incomestatement -b 2021-01-01 -e 2022-01-01 --monthly` | 1934.0 ± 38.9 | 1889.9 | 1991.9 | 3.43 ± 0.14 |
+
+| Command | Mean [ms] | Min [ms] | Max [ms] | Relative |
+|:---|---:|---:|---:|---:|
+| `ledg -Ftest balancesheet f:2021-01-01 to:2022-01-01 --monthly` | 433.9 ± 8.3 | 419.9 | 449.7 | 1.00 |
+| `hledger -ftest.dat balancesheet -b 2021-01-01 -e 2022-01-01 --monthly` | 1731.0 ± 35.5 | 1681.9 | 1791.2 | 3.99 ± 0.11 |
+
+### Old Big.js implementation
 8000 entries with 4000 multicurrency entries and 4000 single currency entries.
 
 
