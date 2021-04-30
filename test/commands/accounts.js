@@ -90,6 +90,24 @@ P 0000-01-01 r 1R
       .ledg('accounts', '-F-')
       .out(o)
   });
+  it('Should format bigfloat', () => {
+    let o =
+`
+"Accounts","Balance"
+"a.aa","USD123123123123123123.9874563587"
+"b","-123123123123123123.9874563587"
+`;
+    ctx
+      .input(
+`
+2021-01-01
+  \ta.aa\t123123123123123123.9874563587
+  \tb\t-123123123123123123.9874563587
+`
+      )
+      .ledg('accounts', '-F-')
+      .out(o)
+  });
 
   it('Should create Imbalance with -Wimbalanced-entries', () => {
     ctx
