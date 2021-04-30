@@ -1,5 +1,27 @@
 
 # Changelog
+## [Unreleased]
+### Changed
+- complete rewrite of Big.js using native bigint for
+  float calculation
+  - results in 14%-24% performance increase
+
+| Command | Mean [s] | Min [s] | Max [s] | Relative |
+|:---|---:|---:|---:|---:|
+| `ledgOld -Ftest inc --daily --dp=10 --currency=h` | 1.235 ± 0.021 | 1.209 | 1.266 | 1.24 ± 0.02 |
+| `ledg -Ftest inc --daily --dp=10 --currency=h` | 0.994 ± 0.010 | 0.979 | 1.006 | 1.00 |
+
+| Command | Mean [ms] | Min [ms] | Max [ms] | Relative |
+|:---|---:|---:|---:|---:|
+| `ledgOld -Ftest` | 506.7 ± 7.8 | 494.5 | 519.2 | 1.13 ± 0.02 |
+| `ledg -Ftest` | 446.6 ± 4.9 | 440.8 | 456.2 | 1.00 |
+
+| Command | Mean [ms] | Min [ms] | Max [ms] | Relative |
+|:---|---:|---:|---:|---:|
+| `ledgOld -Ftest --currency=m` | 526.7 ± 14.2 | 505.8 | 546.3 | 1.18 ± 0.03 |
+| `ledg -Ftest --currency=m` | 444.6 ± 5.2 | 436.9 | 452.3 | 1.00 |
+
+
 ## [0.9.2] 2021-04-28
 ### Added
 - \--pad-spaces option for print --ledger
