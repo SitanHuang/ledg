@@ -1,5 +1,10 @@
 
 # Changelog
+## [Unreleased]
+### Changed
+- complete rewrite of accounting.js to allow proper
+  display formats for bigfloat
+
 ## [0.9.3] 2021-04-30
 ### Changed
 - complete rewrite of Big.js using native bigint for
