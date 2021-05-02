@@ -4,6 +4,7 @@
 ### Changed
 - complete rewrite of accounting.js to allow proper
   display formats for bigfloat
+- stats command no longer prints modifiers and flags
 
 ## [0.9.3] 2021-04-30
 ### Changed
