@@ -7,8 +7,10 @@
 - stats command no longer prints modifiers and flags
 
 ### Fixed
-- crash in multicurrency reports with --sum-parent=false
-  --tree and --avg combination
+- crash in multicurrency reports with:
+  - \--sum-parent=false --tree and --avg combination
+  - \--avg and account filter
+
 
 ## [0.9.3] 2021-04-30
 ### Changed
