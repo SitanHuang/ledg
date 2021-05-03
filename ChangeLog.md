@@ -6,6 +6,10 @@
   display formats for bigfloat
 - stats command no longer prints modifiers and flags
 
+### Fixed
+- crash in multicurrency reports with --sum-parent=false
+  --tree and --avg combination
+
 ## [0.9.3] 2021-04-30
 ### Changed
 - complete rewrite of Big.js using native bigint for
