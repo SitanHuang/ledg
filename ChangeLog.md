@@ -1,4 +1,3 @@
-
 # Changelog
 ## [Unreleased]
 ### Added
@@ -14,7 +13,6 @@
 - crash in multicurrency reports with:
   - \--sum-parent=false --tree and --avg combination
   - \--avg and account filter
-
 
 ## [0.9.3] 2021-04-30
 ### Changed
