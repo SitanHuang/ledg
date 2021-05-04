@@ -18,3 +18,4 @@ require("./commands/count");
 require("./commands/history");
 require("./commands/budget");
 require("./commands/register");
+require("./commands/incomestatement");

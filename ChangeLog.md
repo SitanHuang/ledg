@@ -1,6 +1,10 @@
 
 # Changelog
 ## [Unreleased]
+### Added
+- test cases
+  - incomestatement
+
 ### Changed
 - complete rewrite of accounting.js to allow proper
   display formats for bigfloat
