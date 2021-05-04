@@ -17,13 +17,13 @@ describe('ledg incomestatement', () => {
 `
 2021-01-01 asdf #afssssf3
   ;tags:"A2"
-  \tincome.a\t-1$
+  \tincome.z\t-1$
   \texpense.a\t1$
 2021-02-01 asdf #afssssf3
   ;bookClose:true
   ;tags:"A2"
-  \tincome.a\t-0.5$
-  \tincome.a.a\t-0.0011111$
+  \tincome.z\t-0.5$
+  \tincome.z.a\t-0.0011111$
   \tincome.b\t-1$
   \texpense.a\t1.4011111$
   \tasset.cash\t0.1$
@@ -57,7 +57,7 @@ P 0000-01-01 r 1R
       .skip('"Income","",""\n')
       .out(
         '"Income","",""\n' +
-        '"income.a","+1","0"\n' +
+        '"income.z","+1","0"\n' +
         '"","+1","0"\n' +
         '"Expenses","",""\n' +
         '"expense.a","1","0"\n' +
@@ -69,9 +69,9 @@ P 0000-01-01 r 1R
       .skip('"Income","",""\n')
       .out(
         '"Income","",""\n' +
-        '"income.a","+1.00","+0.50"\n' +
-        '"income.a.a","0","+0.0011111"\n' +
         '"income.b","0","+1.00"\n' +
+        '"income.z","+1.00","+0.50"\n' +
+        '"income.z.a","0","+0.0011111"\n' +
         '"","+1.00","+1.5011111"\n' +
         '"Expenses","",""\n' +
         '"expense.a","1.00","1.4011111"\n' +
@@ -83,9 +83,9 @@ P 0000-01-01 r 1R
       .skip('"Income","",""\n')
       .out(
         '"Income","",""\n' +
-        '"income.a","+1","+1"\n' +
-        '"income.a.a","0","+0"\n' +
         '"income.b","0","+1"\n' +
+        '"income.z","+1","+1"\n' +
+        '"income.z.a","0","+0"\n' +
         '"","+1","+2"\n' +
         '"Expenses","",""\n' +
         '"expense.a","1","1"\n' +
@@ -102,8 +102,8 @@ P 0000-01-01 r 1R
       .skip('"Income","",""\n')
       .out(
         '"Income","",""\n' +
-        '"income.a","+1","+1"\n' +
         '"income.b","0","+1"\n' +
+        '"income.z","+1","+1"\n' +
         '"","+1","+2"\n' +
         '"Expenses","",""\n' +
         '"expense.a","1","1"\n' +
@@ -123,6 +123,53 @@ P 0000-01-01 r 1R
         '"","1","1"\n' +
         '"Net","0","+0"'
       );
+  });
+  it('Should --sort', () => {
+    ctx
+      .ledg('incomestatement', 'from:2021-01-01', 'to:2021-03-01',
+            '--monthly', '--skip-book-close=false', '--dp=0',
+            '--max-depth=2', '--sort')
+      .skip('"Income","",""\n')
+      .out(
+        '"Income","",""\n' +
+        '"income.z","+1","+1"\n' +
+        '"income.b","0","+1"\n' +
+        '"","+1","+2"\n' +
+        '"Expenses","",""\n' +
+        '"expense.a","1","1"\n' +
+        '"","1","1"\n' +
+        '"Net","0","+0"'
+      )
+  });
+  it('Should --sort and --avg', () => {
+    ctx
+      .ledg('incomestatement', 'from:2021-01-01', 'to:2021-03-01',
+            '--monthly', '--skip-book-close=false', '--dp=0',
+            '--max-depth=2', '--sort', '--avg')
+      .skip('"Income",""')
+      .out(
+        '"Income","","",""\n' +
+        '"income.z","+1","+1","+1"\n' +
+        '"income.b","0","+1","+1"\n' +
+        '"","+1","+2","+1"\n' +
+        '"Expenses","","",""\n' +
+        '"expense.a","1","1","1"\n' +
+        '"","1","1","1"\n' +
+        '"Net","0","+0","+0"'
+      )
+  });
+
+  describe('tree', () => {
+    it('Should --sum-parent');
+    
+    it('Should --avg');
+    it('Should --avg and --sum-parent');
+
+    it('Should --sort');
+    it('Should --sort and --sum-parent');
+
+    it('Should --sort and --avg');
+    it('Should --sort, --avg and --sum-parent');
   });
 
   after(() => {
