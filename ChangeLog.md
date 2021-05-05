@@ -8,6 +8,7 @@
 - complete rewrite of accounting.js to allow proper
   display formats for bigfloat
 - stats command no longer prints modifiers and flags
+- \--csv no longer trims spaces in cells
 
 ### Fixed
 - crash in multicurrency reports with:
