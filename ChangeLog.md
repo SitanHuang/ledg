@@ -3,6 +3,7 @@
 ### Added
 - test cases
   - incomestatement
+  - balancesheet
 
 ### Changed
 - complete rewrite of accounting.js to allow proper
