@@ -16,6 +16,7 @@
   - \--sum-parent=false --tree and --avg combination
   - \--avg and account filter
   - does not sort name without --tree
+- info command uuid does not align for pending entries
 
 ## [0.9.3] 2021-04-30
 ### Changed
