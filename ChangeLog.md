@@ -4,6 +4,9 @@
 - removed unused library asciichart
 - parseBooks stopped using asynciterator
   - 20% performance boost
+- money.js use primitive comparison in
+  removeEmpty()
+  - 9% performance boost
 
 ## [0.9.4] 2021-05-05
 ### Added
