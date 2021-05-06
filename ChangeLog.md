@@ -1,5 +1,23 @@
-
 # Changelog
+## [0.9.4] 2021-05-05
+### Added
+- test cases
+  - incomestatement
+  - balancesheet
+
+### Changed
+- complete rewrite of accounting.js to allow proper
+  display formats for bigfloat
+- stats command no longer prints modifiers and flags
+- \--csv no longer trims spaces in cells
+
+### Fixed
+- crash in multicurrency reports with:
+  - \--sum-parent=false --tree and --avg combination
+  - \--avg and account filter
+  - does not sort name without --tree
+- info command uuid does not align for pending entries
+
 ## [0.9.3] 2021-04-30
 ### Changed
 - complete rewrite of Big.js using native bigint for

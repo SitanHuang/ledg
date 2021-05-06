@@ -29,6 +29,9 @@ The project is under active development. [ChangeLogs](ChangeLog.md)
 - auto file splitting based on year
 - very fast: only 2.7 times slower than ledger-cli
   despite using a high leve language
+- no limitation on decimal places (change DP config in source code)
+  as ledg uses a custom bigfloat implementation
+- specify precision with cli option
 
 #### Common Ledger Features
 - multicurrency and price table

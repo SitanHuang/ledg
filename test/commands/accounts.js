@@ -90,6 +90,24 @@ P 0000-01-01 r 1R
       .ledg('accounts', '-F-')
       .out(o)
   });
+  it('Should format bigfloat', () => {
+    let o =
+`
+"a.aa","9,123,123,123,123,123,123.9874563587"
+"b","-9,123,123,123,123,123,123.9874563587"
+`;
+    ctx
+      .input(
+`
+2021-01-01
+  \ta.aa\t9123123123123123123.9874563587
+  \tb
+`
+      )
+      .ledg('accounts', '-F-')
+      .skip('"a.aa"')
+      .out(o)
+  });
 
   it('Should create Imbalance with -Wimbalanced-entries', () => {
     ctx
@@ -120,6 +138,22 @@ P 0000-01-01 r 1R
 "Accounts","Balance"
 "b.a","USD-123.1"
 "Sum","USD-123.1"
+`
+      )
+      .ledg('accounts', '-F-', '--dp=5', '--sum', 'b.$')
+      .out(
+`
+"Accounts","Balance"
+"b.a","USD-123.12345"
+"Sum","USD-123.12345"
+`
+      )
+      .ledg('accounts', '-F-', '--dp=8', '--sum', 'b.$')
+      .out(
+`
+"Accounts","Balance"
+"b.a","USD-123.12345"
+"Sum","USD-123.12345"
 `
       )
   });
