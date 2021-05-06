@@ -2,8 +2,8 @@
 ## ledg
 This is a personal project aimed at creating a ledger-like cli accounting program
 that I can customize according to my likings and workflow.
-For multicurrency journals, the performance is about 3.5 - 4 times faster(v0.9.3) than hledger
-and 3 times slower than ledger.
+For multicurrency journals, the performance is about 5.5 - 6 times faster than hledger
+and 1.6 times slower than ledger.
 [Benchmark](benchmark.md)
 
 The ledg file format is incompatible with other ledger-likes.

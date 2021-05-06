@@ -1,4 +1,21 @@
 ## Multicurrency
+### 2021-05-06 optimizations
+| Command | Mean [ms] | Min [ms] | Max [ms] | Relative |
+|:---|---:|---:|---:|---:|
+| `ledg -Ftest tree --sort` | 311.8 ± 4.8 | 305.2 | 321.0 | 1.63 ± 0.04 |
+| `ledger -f test.dat bal` | 191.4 ± 3.4 | 186.2 | 200.0 | 1.00 |
+| `hledger -ftest.dat bal` | 1883.8 ± 10.6 | 1870.4 | 1900.7 | 9.84 ± 0.18 |
+
+| Command | Mean [ms] | Min [ms] | Max [ms] | Relative |
+|:---|---:|---:|---:|---:|
+| `ledg -Ftest incomestatement f:2021-01-01 to:2022-01-01 --monthly` | 334.0 ± 3.1 | 328.5 | 337.7 | 1.00 |
+| `hledger -ftest.dat incomestatement -b 2021-01-01 -e 2022-01-01 --monthly` | 2033.5 ± 12.6 | 2010.2 | 2050.9 | 6.09 ± 0.07 |
+
+| Command | Mean [ms] | Min [ms] | Max [ms] | Relative |
+|:---|---:|---:|---:|---:|
+| `ledg -Ftest balancesheet f:2021-01-01 to:2022-01-01 --monthly` | 324.4 ± 4.4 | 317.6 | 333.9 | 1.00 |
+| `hledger -ftest.dat balancesheet -b 2021-01-01 -e 2022-01-01 --monthly` | 1797.2 ± 11.7 | 1780.7 | 1821.7 | 5.54 ± 0.08 |
+
 ### V0.9.3 native bigint implementation
 | Command | Mean [ms] | Min [ms] | Max [ms] | Relative |
 |:---|---:|---:|---:|---:|
