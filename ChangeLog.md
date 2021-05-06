@@ -1,4 +1,8 @@
 # Changelog
+## [Unreleased]
+### Changed
+- removed unused library asciichart
+
 ## [0.9.4] 2021-05-05
 ### Added
 - test cases
