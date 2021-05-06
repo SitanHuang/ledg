@@ -1,5 +1,5 @@
 # Changelog
-## [Unreleased]
+## [0.9.4] 2021-05-05
 ### Added
 - test cases
   - incomestatement
