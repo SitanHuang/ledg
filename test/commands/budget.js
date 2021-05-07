@@ -20,7 +20,7 @@ describe('ledg budget', () => {
 `);
   });
 
-  it('Should not fail', () => {
+  it('should not fail', () => {
     ctx
       .ledg('budget', '--budget=Test')
       .status(0);

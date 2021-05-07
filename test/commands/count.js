@@ -40,31 +40,31 @@ describe('ledg count', () => {
     );
   });
 
-  it('Should show zero when none', () => {
+  it('should show zero when none', () => {
     ctx
       .ledg('count', '-F-')
       .out('0');
   });
-  it('Should count all', () => {
+  it('should count all', () => {
     ctx
       .ledg('count')
       .out('5');
   });
-  it('Should count --real and virt:true', () => {
+  it('should count --real and virt:true', () => {
     ctx
       .ledg('count', '--real')
       .out('3')
       .ledg('count', 'virt:true')
       .out('2');
   });
-  it('Should count --cleared and pending:true', () => {
+  it('should count --cleared and pending:true', () => {
     ctx
       .ledg('count', '--cleared')
       .out('4')
       .ledg('count', 'pending:true')
       .out('1');
   });
-  it('Should count tags', () => {
+  it('should count tags', () => {
     ctx
       .ledg('count', '+A1', '--real')
       .out('0')
@@ -77,12 +77,12 @@ describe('ledg count', () => {
       .ledg('count', '+A1', 'A2')
       .out('1');
   });
-  it('Should count with desc:', () => {
+  it('should count with desc:', () => {
     ctx
       .ledg('count', 'desc:bar')
       .out('1')
   });
-  it('Should count with from: and to:', () => {
+  it('should count with from: and to:', () => {
     ctx
       .ledg('count', 'from:2021-01-01')
       .out('2')

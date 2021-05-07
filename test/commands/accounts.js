@@ -47,12 +47,12 @@ P 0000-01-01 r 1R
   \ta.aa\t0.12345USD
 `;
 
-  it('Should output headers', () => {
+  it('should output headers', () => {
     ctx
       .ledg('accounts', '-F-')
       .out(`"Accounts","Balance"`);
   });
-  it('Should sum virt:true and --real', () => {
+  it('should sum virt:true and --real', () => {
     ctx
       .input(content+"  \ta\t-123.12345 USD\n2020-01-01 #kdkdkdkd\n  \tb\t1\n  \tc\t-1")
       .ledg('accounts', '-F-', '--real', '--hz')
@@ -60,7 +60,7 @@ P 0000-01-01 r 1R
       .ledg('accounts', '-F-', 'virt:true', '--hz')
       .out(`"Accounts","Balance"\n"a","USD-123.12345"\n"a.aa","USD123.12345"`);
   });
-  it('Should sum pending:true and --cleared', () => {
+  it('should sum pending:true and --cleared', () => {
     ctx
       .input(content+"  \ta\t-123.12345 USD\n2020-01-01 #kdkdkdkd\n  \tb\t1\n  \tc\t-1")
       .ledg('accounts', '-F-', '--cleared', '--hz')
@@ -68,14 +68,14 @@ P 0000-01-01 r 1R
       .ledg('accounts', '-F-', 'pending:true', '--hz')
       .out(`"Accounts","Balance"\n"a","USD-123.12345"\n"a.aa","USD123.12345"`);
   });
-  it('Should emit error when imbalanced', () => {
+  it('should emit error when imbalanced', () => {
     assert.throws(() => {
       ctx
         .input(content)
         .ledg('accounts', '-F-');
     }, { message: /imbalance.+-123\.12345/i });
   });
-  it('Should balance last posting', () => {
+  it('should balance last posting', () => {
     let o =
 `
 "Accounts","Balance"
@@ -90,7 +90,7 @@ P 0000-01-01 r 1R
       .ledg('accounts', '-F-')
       .out(o)
   });
-  it('Should format bigfloat', () => {
+  it('should format bigfloat', () => {
     let o =
 `
 "a.aa","9,123,123,123,123,123,123.9874563587"
@@ -109,7 +109,7 @@ P 0000-01-01 r 1R
       .out(o)
   });
 
-  it('Should create Imbalance with -Wimbalanced-entries', () => {
+  it('should create Imbalance with -Wimbalanced-entries', () => {
     ctx
       .input(content)
       .ledg('accounts', '-F-', '--dp=4', '-Wimbalanced-entries')
@@ -122,7 +122,7 @@ P 0000-01-01 r 1R
       )
   });
 
-  it('Should filter account with --sum and --dp', () => {
+  it('should filter account with --sum and --dp', () => {
     ctx
       .input(content + '\n  \tb.a')
       .ledg('accounts', '-F-', '--dp=2', '--sum', 'b$')
@@ -158,7 +158,7 @@ P 0000-01-01 r 1R
       )
   });
 
-  it('Should --sort amounts then account name', () => {
+  it('should --sort amounts then account name', () => {
     ctx
       .input(content + '\n  \tz\tUSD-1\n  \tde\tUSD1\n  \tda')
       .ledg('accounts', '-F-', '--sum', '--dp=0', '--sort')
@@ -174,7 +174,7 @@ P 0000-01-01 r 1R
       )
   });
 
-  it('Should sort based on account name', () => {
+  it('should sort based on account name', () => {
     ctx
       .input(content + '\n  \tz\tUSD-1\n  \tde\tUSD1\n  \tda')
       .ledg('accounts', '-F-', '--sum', '--dp=0')
@@ -190,7 +190,7 @@ P 0000-01-01 r 1R
       )
   });
 
-  it('Should --sum-parent --hz with multicurrency', () => {
+  it('should --sum-parent --hz with multicurrency', () => {
     ctx
       .input(content + '\n  \ta._\t0\n  \tz\tUSD-1\n  \td.a.e\tUSD1\n  \ta.a1\tRMB1\n  \ta.b\t-1RMB\n  \td.a')
       .ledg('accounts', '-F-', '--sp', '--dp=0','--hz=false')
@@ -224,7 +224,7 @@ P 0000-01-01 r 1R
       )
   });
 
-  it('Should produce tree view with --hz --sum-parent', () => {
+  it('should produce tree view with --hz --sum-parent', () => {
     ctx
       .ledg('accounts', '--tree', '-F-', '--hz', '--dp=0')
       .out(
@@ -256,7 +256,7 @@ P 0000-01-01 r 1R
       )
   });
 
-  it('Should convert --currency and --max-depth at today\'s rates', () => {
+  it('should convert --currency and --max-depth at today\'s rates', () => {
     ctx
     .ledg('accounts', '--currency=$', '--max-depth=1')
     .skip('"Accounts","Balance"')
@@ -278,7 +278,7 @@ P 0000-01-01 r 1R
       )
   });
 
-  it('Should convert --currency and --max-depth at valuation date', () => {
+  it('should convert --currency and --max-depth at valuation date', () => {
     ctx
       .ledg('accounts', '--currency=$', '--valuation-date=2010-01-01')
       .out(
@@ -299,7 +299,7 @@ P 0000-01-01 r 1R
 `
       )
   });
-  it('Should filter from: and to:', () => {
+  it('should filter from: and to:', () => {
     ctx
       .ledg('accounts', '--currency=$', 'from:2015-01-01')
       .skip('"Accounts","Balance"')

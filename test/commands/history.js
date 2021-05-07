@@ -52,7 +52,7 @@ P 0000-01-01 r 1R
     );
   });
 
-  it('Should --skip-book-close', () => {
+  it('should --skip-book-close', () => {
     ctx
       .ledg('history', '--yearly', 'from:2021-01-01', 'to:2022-01-01', 'a.b', 'bal$', 'bn$', '--dp=0')
       .skip(`"Year"`)
@@ -67,7 +67,7 @@ P 0000-01-01 r 1R
         '"2021","January","≥ 1","r2","r-2","2"'
       );
   });
-  it('Should filter UUID', () => {
+  it('should filter UUID', () => {
     ctx
       .ledg('history', '--yearly', 'from:2021-01-01', 'to:2022-01-01', 'a.b', 'afssssf4', '--dp=0', '--currency=R')
       .skip(`"Year"`)
@@ -76,7 +76,7 @@ P 0000-01-01 r 1R
         '"2021","January","≥ 1","R1"'
       );
   });
-  it('Should filter --real', () => {
+  it('should filter --real', () => {
     ctx
       .ledg('history', '--yearly', 'from:2021-01-01', 'to:2022-01-01', 'a.b', '--real', '--dp=0', '--currency=R')
       .skip(`"Year"`)
@@ -85,7 +85,7 @@ P 0000-01-01 r 1R
         '"2021","January","≥ 1","R1"'
       );
   });
-  it('Should convert currency at rate of original entry', () => {
+  it('should convert currency at rate of original entry', () => {
     ctx
       .ledg('history', '--yearly', 'from:2021-01-01', 'to:2022-01-01', '--currency=$', 'a.b', 'bal$', 'bn$', '--dp=0')
       .skip(`"Year"`)
@@ -94,7 +94,7 @@ P 0000-01-01 r 1R
         '"2021","January","≥ 1","3","-3","1"'
       );
   });
-  it('Should --valuation-eop', () => {
+  it('should --valuation-eop', () => {
     ctx
       .ledg('history', '--monthly', 'from:2021-01-01', 'to:2023-01-01', '--currency=$', '--valuation-eop', 'uuid:afssssf1', 'a.b', '--cumulative', '--dp=0')
       .skip(`"Year"`)
@@ -126,7 +126,7 @@ P 0000-01-01 r 1R
         '"2022","December","≥ 1","4"'
       );
   });
-  it('Should --skip', () => {
+  it('should --skip', () => {
     ctx
       .ledg('history', '--monthly', 'from:2021-01-01', 'to:2022-01-01', '--currency=$', 'a.b', 'bal$', 'bn$', '--dp=0', '--skip=2021-12-01')
       .skip(`"Year"`)
@@ -135,7 +135,7 @@ P 0000-01-01 r 1R
         '"2021","December","≥ 1","2","-2","0"'
       );
   });
-  it('Should --skip and --cumulative', () => {
+  it('should --skip and --cumulative', () => {
     ctx
       .ledg('history', '--monthly', 'from:2021-01-01', 'to:2022-01-01', '--currency=$', 'a.b', 'bal$', 'bn$', '--dp=0', '--skip=2021-12-01', '--cumulative')
       .skip(`"Year"`)
@@ -144,7 +144,7 @@ P 0000-01-01 r 1R
         '"2021","December","≥ 1","3","-3","1"'
       );
   });
-  it('Should --skip and --cumulative-columns', () => {
+  it('should --skip and --cumulative-columns', () => {
     ctx
       .ledg('history', '--monthly', 'from:2021-01-01', 'to:2022-01-01', '--currency=$', 'a.b', 'bal$', 'bn$', '--dp=0', '--skip=2021-12-01', '--cumulative-columns=1,2')
       .skip(`"Year"`)
@@ -153,7 +153,7 @@ P 0000-01-01 r 1R
         '"2021","December","≥ 1","3","-3","0"'
       );
   });
-  it('Should --invert', () => {
+  it('should --invert', () => {
     ctx
       .ledg('history', '--monthly', 'from:2021-01-01', 'to:2022-01-01', '--currency=$', 'a.b', 'bal$', 'bn$', '--dp=0', '--skip=2021-12-01', '--cumulative', '--invert')
       .skip(`"Year"`)
