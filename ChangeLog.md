@@ -1,5 +1,8 @@
 # Changelog
 ## [Unreleased]
+### Added
+- \--no-config option
+
 ### Changed
 - removed unused library asciichart
 - parseBooks stopped using asynciterator
