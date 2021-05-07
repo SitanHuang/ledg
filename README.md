@@ -96,6 +96,9 @@ FLAGS
         --format=csv|html
                 outputs all tables in different formats(some commands only)
 
+        --right
+                place currency right of the amount
+
         --transpose
                 force a table transpose
 

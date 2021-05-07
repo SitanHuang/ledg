@@ -2,6 +2,7 @@
 ## [Unreleased]
 ### Added
 - \--no-config option
+- \--right option
 
 ### Changed
 - removed unused library asciichart
