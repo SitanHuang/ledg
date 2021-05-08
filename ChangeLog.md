@@ -34,6 +34,8 @@
   - \--avg and account filter
   - does not sort name without --tree
 - info command uuid does not align for pending entries
+- parser does not handle metadata or transfers without
+  an entry declaration
 
 ## [0.9.3] 2021-04-30
 ### Changed
