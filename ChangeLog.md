@@ -12,6 +12,10 @@
   removeEmpty()
   - 9% performance boost
 
+### Fixed
+- fix still persisting issue with info command uuid
+  does not align for pending entries
+
 ## [0.9.4] 2021-05-05
 ### Added
 - test cases
