@@ -20,6 +20,8 @@
 ### Fixed
 - fix still persisting issue with info command uuid
   does not align for pending entries
+- parser does not throw error when metadata or
+  transfer is present before an entry declaration
 
 ## [0.9.4] 2021-05-05
 ### Added
