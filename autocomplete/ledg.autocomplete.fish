@@ -11,7 +11,8 @@ set -l ledg_options "--file= -F --light-theme --lt --csv --html --format= --tran
        "-% --percent --max-depth= --depth= --dep= --sum-parent --sp --tree --field="\
        "--date= -y --default-pending --add-tag= --remove-tag= --set-mod= --prices"\
        "--remove-mod= --do-not-adjust --simple --ledger --show-default-currency"\
-       "--prices-only --pad-spaces= --right --no-config"
+       "--prices-only --pad-spaces= --right --no-config --drop --drop-cols"\
+       "--drop-columns"
 
 set -l ledg_modifiers "desc: description: uuid: f: from: t: to: bc: bookClose:"\
        "pending: virt:"

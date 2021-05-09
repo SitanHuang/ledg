@@ -102,6 +102,11 @@ FLAGS
         --transpose
                 force a table transpose
 
+        --drop,
+        --drop-cols,
+        --drop-columns=A,B,C,D
+                drops columns in tabular outputs
+
         --budget=NAME
                 this can be used in your .ledgrc to point to a default budget
                 ex. --budget="Monthly Budget"
