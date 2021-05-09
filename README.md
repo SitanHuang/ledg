@@ -63,6 +63,21 @@ MacOS/Linux supported only. Use WSL on Windows.
   alt='Screenshot'
   width='600'
 />
+<img
+  src='assets/4.png'
+  alt='Screenshot'
+  width='600'
+/>
+<img
+  src='assets/5.png'
+  alt='Screenshot'
+  width='600'
+/>
+<img
+  src='assets/6.png'
+  alt='Screenshot'
+  width='600'
+/>
 
 ### Manual
 ```
