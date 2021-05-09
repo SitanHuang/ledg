@@ -34,12 +34,19 @@ The project is under active development. [ChangeLogs](ChangeLog.md)
 - specify precision with cli option
 
 #### Common Ledger Features
+- hledger style reports
+  - incomestatement
+  - cashflow
+  - balancesheet
 - multicurrency and price table
 - envelope based budgeting
 - book closure
 - pending and virtual entries
 
-### Installation
+
+### Getting Started
+
+#### Installation
 MacOS/Linux supported only. Use WSL on Windows.
 
 1. Make sure `node` is in your path.
@@ -47,36 +54,71 @@ MacOS/Linux supported only. Use WSL on Windows.
 3. `make && make install`
 4. Put `~/bin` in your path
 
+#### Create a sample journal
+`ledg add "Opening Balances" Equity.OpeningBalances 10$ Assets.Cash`
+
+Then
+
+`ledg add .ca -10$ Expense.Uber`
+
+Notice the `.ca` fuzzy matches to Assets.Cash
+
+This will create book.2021.ledg as well as book.config.ledg in your current directory.
+
+Run `ledg` to see balances.
+
+#### Journal Format
+
+```
+; add ! for pending entries
+; UUID is auto assigned by ledg
+YYYY-MM-DD [!] Description [#auto generated UUID]
+(2spaces);Property:(inline JSON)
+(2spaces)Transfer Description(TAB)Account.Sub1.Sub2(TAB)(Amnt)
+(2spaces)(TAB)Account.Sub1.Sub2
+```
+
+The entry is basically a JSON object with properties and values that could be used in filters.
+
+#### Example Commands
+
+```
+ledg git init
+ledg budget edit
+# clears all pending entries
+ledg modify pending:true --remove-mod=pending
+# pulls up system editor to edit cash transactions
+ledg edit ..cash from:@year-start
+# hledger style incomestatement report
+ledg incomestatement --html > Report.html
+ledg budget
+ledg git commit
+```
+
 ### Screenshots
 <img
   src='assets/1.png'
   alt='Screenshot'
-  width='600'
 />
 <img
   src='assets/2.png'
   alt='Screenshot'
-  width='600'
 />
 <img
   src='assets/3.png'
   alt='Screenshot'
-  width='600'
 />
 <img
   src='assets/4.png'
   alt='Screenshot'
-  width='600'
 />
 <img
   src='assets/5.png'
   alt='Screenshot'
-  width='600'
 />
 <img
   src='assets/6.png'
   alt='Screenshot'
-  width='600'
 />
 
 ### Manual
