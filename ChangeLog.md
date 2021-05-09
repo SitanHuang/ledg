@@ -9,12 +9,12 @@
 ### Changed
 - removed unused library asciichart
 - parseBooks stopped using asynciterator
-  - 20% performance boost
+  - up to 20% performance boost
 - money.js use primitive comparison in
   removeEmpty()
-  - 9% performance boost
+  - up to 9% performance boost
 - Big.js parsing optimizations
-  - 2-5% performance boost
+  - up to 2-5% performance boost
 
 ### Fixed
 - fix still persisting issue with info command uuid
