@@ -11,6 +11,8 @@
 - money.js use primitive comparison in
   removeEmpty()
   - 9% performance boost
+- Big.js parsing optimizations
+  - 2-5% performance boost
 
 ### Fixed
 - fix still persisting issue with info command uuid
