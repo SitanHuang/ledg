@@ -6,6 +6,7 @@
 - \--drop-columns option
 - info flat and register commands now underlines
   virtual transfers and adds ! to pending entries
+- bump\_version.rb for auto version bumping
 
 ### Changed
 - removed unused library asciichart
