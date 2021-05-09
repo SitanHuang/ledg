@@ -3,6 +3,8 @@
 ### Added
 - \--no-config option
 - \--right option
+- info flat and register commands now underlines
+  virtual transfers and adds ! to pending entries
 
 ### Changed
 - removed unused library asciichart
