@@ -48,7 +48,7 @@ P 2021-03-01 r $3
   });
 
   describe('multiperiod', () => {
-    it('Should group with --hz=false', () => {
+    it('should group with --hz=false', () => {
       ctx
         .ledg('register', '--monthly', "--hz=false",
               'from:2020-12-01', 'to:2021-03-01', '--dp=0', "a.b")
@@ -59,7 +59,7 @@ P 2021-03-01 r $3
           '"2021-02-01","a.b","r+1","r3"'
         )
     });
-    it('Should group with --currency and --depth', () => {
+    it('should group with --currency and --depth', () => {
       ctx
         .ledg('register', '--monthly', "--hz=false", "--currency=$", "--depth=1",
               'from:2020-12-01', 'to:2021-03-01', '--dp=0', "a.")
@@ -80,7 +80,7 @@ P 2021-03-01 r $3
           '"2021-02-01","a.c","+2","8"'
         )
     });
-    it('Should group with --currency and --valuation-date', () => {
+    it('should group with --currency and --valuation-date', () => {
       ctx
         .ledg('register', '--monthly', "--currency=$", "--depth=1",
               '--valuation-date=2021-03-01',
@@ -95,7 +95,7 @@ P 2021-03-01 r $3
   });
 
 
-  it('Should default to * filter', () => {
+  it('should default to * filter', () => {
     ctx
       .ledg('register',
             'to:2021-01-02', '--dp=0')
@@ -107,7 +107,7 @@ P 2021-03-01 r $3
       )
   });
 
-  it('Should fold with --depth', () => {
+  it('should fold with --depth', () => {
     ctx
       .ledg('register',
             'to:2021-01-02', '--dp=0', '--max-depth=1')
@@ -119,7 +119,7 @@ P 2021-03-01 r $3
       )
   });
 
-  it('Should convert --currency', () => {
+  it('should convert --currency', () => {
     ctx
       .ledg('register', "--currency=$", '+A2',
             'to:2021-01-02', '--dp=0', "a.")
@@ -129,7 +129,7 @@ P 2021-03-01 r $3
         '"2021-01-01","afssssf1","","a.c","+1","2"'
       )
   });
-  it('Should convert --currency at --valuation-date', () => {
+  it('should convert --currency at --valuation-date', () => {
     ctx
       .ledg('register', "--currency=$", '+A2', '--valuation-date=2021-03-01',
             'to:2021-01-02', '--dp=0', "a.")

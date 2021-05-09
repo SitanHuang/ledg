@@ -33,7 +33,7 @@ P 2021-02-01 R $3
     );
   });
 
-  it('Should bring up historical balance', () => {
+  it('should bring up historical balance', () => {
     ctx
       .ledg('balancesheet', 'f:2022-01-01', 't:2022-02-01')
       .skip('"Assets","')
@@ -47,7 +47,7 @@ P 2021-02-01 R $3
         '"  Net","0"'
       )
   });
-  it('Should --currency at date of entry', () => {
+  it('should --currency at date of entry', () => {
     ctx
       .ledg('balancesheet', 'f:2022-01-01', 't:2022-02-01', '--currency=$')
       .skip('"Assets","')
@@ -61,7 +61,7 @@ P 2021-02-01 R $3
         '"  Net","0"'
       )
   });
-  it('Should --valuation-date', () => {
+  it('should --valuation-date', () => {
     ctx
       .ledg('balancesheet', 'f:2022-01-01', 't:2022-02-01', '--currency=$',
             '--valuation-date=2021-01-02')
@@ -76,7 +76,7 @@ P 2021-02-01 R $3
         '"  Net","0"'
       )
   });
-  it('Should --valuation-eop', () => {
+  it('should --valuation-eop', () => {
     ctx
       .ledg('balancesheet', 'f:2021-01-01', 't:2021-03-01', '--currency=$',
             '--valuation-eop')
@@ -91,7 +91,7 @@ P 2021-02-01 R $3
         '"  Net","0","0"'
       )
   });
-  it('Should --sbc=false and --valuation-eop', () => {
+  it('should --sbc=false and --valuation-eop', () => {
     ctx
       .ledg('balancesheet', 'f:2021-01-01', 't:2021-03-01', '--currency=$',
             '--valuation-eop', '--sbc=false', 'afssssf2')

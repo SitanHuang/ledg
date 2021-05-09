@@ -46,7 +46,7 @@ P 0000-01-01 r 1R
     );
   });
 
-  it('Should convert currency at date of entry', () => {
+  it('should convert currency at date of entry', () => {
     ctx
       .ledg('incomestatement', 'from:2021-01-01', 'to:2021-03-01',
             '--monthly', '--sbc', '--currency=r', '--dp=10')
@@ -61,7 +61,7 @@ P 0000-01-01 r 1R
         '"  Net","0","0"'
       )
   });
-  it('Should convert currency at --valuation-date', () => {
+  it('should convert currency at --valuation-date', () => {
     ctx
       .ledg('incomestatement', 'from:2021-01-01', 'to:2021-03-01',
             '--monthly', '--sbc', '--currency=r', '--dp=1',
@@ -78,7 +78,7 @@ P 0000-01-01 r 1R
       )
   });
 
-  it('Should skip book close and --dp', () => {
+  it('should skip book close and --dp', () => {
     ctx
       .ledg('incomestatement', 'from:2021-01-01', 'to:2021-03-01',
             '--monthly', '--dp=0')
@@ -122,7 +122,7 @@ P 0000-01-01 r 1R
       );
   });
 
-  it('Should --max-depth', () => {
+  it('should --max-depth', () => {
     ctx
       .ledg('incomestatement', 'from:2021-01-01', 'to:2021-03-01',
             '--monthly', '--skip-book-close=false', '--dp=0',
@@ -152,7 +152,7 @@ P 0000-01-01 r 1R
         '"  Net","0","+0"'
       );
   });
-  it('Should --sum-parent and --max-depth', () => {
+  it('should --sum-parent and --max-depth', () => {
    ctx
      .ledg('incomestatement', 'from:2021-01-01', 'to:2021-03-01',
             '--monthly', '--skip-book-close=false', '--dp=0',
@@ -184,7 +184,7 @@ P 0000-01-01 r 1R
         '"  Net","0","+0"'
       );
   });
-  it('Should --sort', () => {
+  it('should --sort', () => {
     ctx
       .ledg('incomestatement', 'from:2021-01-01', 'to:2021-03-01',
             '--monthly', '--skip-book-close=false', '--dp=0',
@@ -201,7 +201,7 @@ P 0000-01-01 r 1R
         '"  Net","0","+0"'
       )
   });
-  it('Should --sort and --hide-zero', () => {
+  it('should --sort and --hide-zero', () => {
     ctx
       .ledg('incomestatement', 'from:2021-12-01', 'to:2022-02-01',
             '--hide-zero=false',
@@ -246,7 +246,7 @@ P 0000-01-01 r 1R
         '"  Net","0","0"'
       )
   });
-  it('Should --sort and --avg', () => {
+  it('should --sort and --avg', () => {
     ctx
       .ledg('incomestatement', 'from:2021-01-01', 'to:2021-03-01',
             '--monthly', '--skip-book-close=false', '--dp=0',
@@ -263,7 +263,7 @@ P 0000-01-01 r 1R
         '"  Net","0","+0","+0"'
       )
   });
-  it('Should apply account filter', () => {
+  it('should apply account filter', () => {
     ctx
       .ledg('incomestatement', 'from:2021-01-01', 'to:2021-03-01',
             '--monthly', '--skip-book-close=false', '--dp=0',
@@ -281,7 +281,7 @@ P 0000-01-01 r 1R
   });
 
   describe('tree', () => {
-    it('Should not fail', () => {
+    it('should not fail', () => {
       ctx
       .ledg('incomestatement', 'from:2021-01-01', 'to:2021-03-01',
             '--monthly', '--tree', '--sbc=false')
@@ -301,7 +301,7 @@ P 0000-01-01 r 1R
       )
     });
 
-    it('Should --sum-parent', () => {
+    it('should --sum-parent', () => {
       ctx
       .ledg('incomestatement', 'from:2021-01-01', 'to:2021-03-01',
             '--monthly', '--tree', '--sbc=false', '--sp')
@@ -321,7 +321,7 @@ P 0000-01-01 r 1R
       )
     });
 
-    it('Should --sort', () => {
+    it('should --sort', () => {
       ctx
         .ledg('incomestatement', 'from:2021-01-01', 'to:2021-03-01',
               '--monthly', '--tree', '--sbc=false', '--sort')
@@ -357,7 +357,7 @@ P 0000-01-01 r 1R
           '"  Net","0","0"'
         )
     });
-    it('Should --sort and --sum-parent', () => {
+    it('should --sort and --sum-parent', () => {
       ctx
         .ledg('incomestatement', 'from:2021-12-01', 'to:2022-02-01', '--sp',
               '--monthly', '--tree', '--sbc=false', '--sort', '--dp=0')
@@ -377,7 +377,7 @@ P 0000-01-01 r 1R
           '"  Net","0","0"'
         )
     });
-    it('Should -%', () => {
+    it('should -%', () => {
       ctx
         .ledg('incomestatement', 'from:2021-12-01', 'to:2022-02-01', '--sp',
               '--monthly', '--tree', '--sbc=false', '--sort', '--dp=2', '-%')

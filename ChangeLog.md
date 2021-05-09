@@ -1,4 +1,28 @@
 # Changelog
+## [0.9.5] 2021-05-09
+### Added
+- \--no-config option
+- \--right option
+- \--drop-columns option
+- info flat and register commands now underlines
+  virtual transfers and adds ! to pending entries
+
+### Changed
+- removed unused library asciichart
+- parseBooks stopped using asynciterator
+  - up to 20% performance boost
+- money.js use primitive comparison in
+  removeEmpty()
+  - up to 9% performance boost
+- Big.js parsing optimizations
+  - up to 2-5% performance boost
+
+### Fixed
+- fix still persisting issue with info command uuid
+  does not align for pending entries
+- parser does not throw error when metadata or
+  transfer is present before an entry declaration
+
 ## [0.9.4] 2021-05-05
 ### Added
 - test cases
@@ -17,6 +41,8 @@
   - \--avg and account filter
   - does not sort name without --tree
 - info command uuid does not align for pending entries
+- parser does not handle metadata or transfers without
+  an entry declaration
 
 ## [0.9.3] 2021-04-30
 ### Changed
