@@ -27,8 +27,8 @@ The project is under active development. [ChangeLogs](ChangeLog.md)
 - tracker based budgeting
 - transaction tags as JS object properties
 - auto file splitting based on year
-- very fast: only 2.7 times slower than ledger-cli
-  despite using a high leve language
+- very fast: only 1.3 - 1.7 times slower than ledger-cli
+  despite using a high level language
 - no limitation on decimal places (change DP config in source code)
   as ledg uses a custom bigfloat implementation
 - specify precision with cli option
