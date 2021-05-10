@@ -1,5 +1,20 @@
 
 ## ledg
+
+- [About](#about)
+- [Features](#features)
+  * [ledg only features](#ledg-only-features)
+  * [Common Ledger Features](#common-ledger-features)
+- [Getting Started](#getting-started)
+  * [Installation](#installation)
+  * [Create a sample journal](#create-a-sample-journal)
+  * [Journal Format](#journal-format)
+  * [Example Commands](#example-commands)
+- [Screenshots](#screenshots)
+- [Manual](#manual)
+
+
+### About
 This is a personal project aimed at creating a ledger-like cli accounting program
 that I can customize according to my likings and workflow.
 For multicurrency journals, the performance is about 5.5 - 6 times faster than hledger
@@ -16,6 +31,7 @@ The project is under active development. [ChangeLogs](ChangeLog.md)
 
 ### Features
 #### ledg only features
+- dependency free
 - batch modifications
   - `edit` command that pulls up filtered
     entries into a text editor and
