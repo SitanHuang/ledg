@@ -15,7 +15,7 @@ function ledg(args, inherit) {
 }
 
 function ledgEval(sc) {
-  return ledg(['eval', 'sc']);
+  return ledg(['eval', sc]);
 }
 
 function isSetup() {
@@ -81,6 +81,10 @@ switch (cmd) {
   case 'i':
   case 'clock-in':
   case 'in':
+    if (!isSetup()) {
+      console.log('Please run "ledg-time setup" first.');
+      return 1;
+    }
     fs.writeFileSync(fs_get_book_directory + '.clock-in.ledg-time', new Date().getTime().toString());
     break;
   case 'o':

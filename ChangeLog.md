@@ -1,4 +1,8 @@
 # Changelog
+## [Unreleased]
+### Fixed
+- ledg-time does not communicate with ledg at all
+
 ## [0.9.5] 2021-05-09
 ### Added
 - \--no-config option
