@@ -187,6 +187,9 @@ FLAGS
         --valuation-eop
                 in multiperiod reports, use end of period date as valuation date
 
+        --show-default-currency
+                do not hide default currency symbol
+
         --income=<account filter>, --expense=<account filter>, --equity=<account filter>
         --asset=<account filter>, --liability=<account filter>
                 Default: Income*, Expense*, Asset*, Liability*, Equity*

@@ -3,6 +3,9 @@
 ### Added
 - \--csv-no-quotes option
 
+### Changed
+- \--show-default-currency now applies to all cmds
+
 ### Fixed
 - ledg-time does not communicate with ledg at all
 
