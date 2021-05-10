@@ -60,6 +60,7 @@ def try_exec cmd
   out = `#{cmd}`
   unless $?.exitstatus == 0
     print out
+    exit 1
   end
 end
 
