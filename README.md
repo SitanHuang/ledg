@@ -153,6 +153,9 @@ FLAGS
         --format=csv|html
                 outputs all tables in different formats(some commands only)
 
+        --csv-no-quotes
+                with --csv enabled, output no longer uses quotes around columns
+
         --right
                 place currency right of the amount
 

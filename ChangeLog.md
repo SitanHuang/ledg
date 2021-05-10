@@ -1,5 +1,8 @@
 # Changelog
 ## [Unreleased]
+### Added
+- \--csv-no-quotes option
+
 ### Fixed
 - ledg-time does not communicate with ledg at all
 
