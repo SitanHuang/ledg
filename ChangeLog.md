@@ -5,6 +5,8 @@
 
 ### Changed
 - \--show-default-currency now applies to all cmds
+- history command uses period end date with --iso,
+  \--isofull or --epoch
 
 ### Fixed
 - ledg-time does not communicate with ledg at all
