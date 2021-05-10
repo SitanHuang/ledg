@@ -57,8 +57,10 @@ end
 puts 'OK'
 
 def try_exec cmd
-  puts cmd
-  exit 1 unless system cmd
+  out = `#{cmd}`
+  unless $?.exitstatus == 0
+    print out
+  end
 end
 
 try_exec "git add -A"
