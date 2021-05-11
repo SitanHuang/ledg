@@ -159,6 +159,11 @@ FLAGS
                 ex: --include-prices=Downloads/USD.db,Downloads/CNY.db
                 load listed price files
 
+        --balance-to-currency=CUR
+                when reading journals, modifying or adding entries, try to
+                convert imbalance or the balance of the last empty transfer
+                in CUR
+
         --file=FILE, -FFILE
                 Default: book
                 if FILE="-", then ledg reads entries from stdin
