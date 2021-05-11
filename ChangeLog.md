@@ -10,6 +10,7 @@
 - \--show-default-currency now applies to all cmds
 - history command uses period end date with --iso,
   \--isofull or --epoch
+- \--avg now no longer requires currency squashing
 
 ### Fixed
 - ledg-time does not communicate with ledg at all
