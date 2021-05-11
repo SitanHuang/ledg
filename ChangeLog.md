@@ -1,26 +1,9 @@
 # Changelog
-## [0.10.0] 2021-05-11
-### Added
-- \--csv-no-quotes option
-- \--include-prices option to explictly load price files
-- \--balance-to-currency option
-- \--eop is now a shorthand for \--valuation-eop
 
-### Changed
-- \--show-default-currency now applies to all cmds
-- history command uses period end date with --iso,
-  \--isofull or --epoch
-- \--avg now no longer requires currency squashing
-
-### Fixed
-- ledg-time does not communicate with ledg at all
-- \--valuation-eop causes multiperiod reports to
-  ignore --currency
-- debug message does not count prices read correctly
-- Money.removeEmpty does not work
+## [Unreleased]
 
 ## Past Releases
-* [[0.9.5] 2021-05-09](#095-2021-05-09)
+* [[0.10.0] 2021-05-11](#0100-2021-05-11)
 * [[0.9.4] 2021-05-05](#094-2021-05-05)
 * [[0.9.3] 2021-04-30](#093-2021-04-30)
 * [[0.9.2] 2021-04-28](#092-2021-04-28)
@@ -43,6 +26,25 @@
 * [[0.2.0] 2021-03-16](#020---2021-03-16)
 * [[0.1.0] 2021-03-15](#010---2021-03-15)
 
+## [0.10.0] 2021-05-11
+### Added
+- \--csv-no-quotes option
+- \--include-prices option to explictly load price files
+- \--balance-to-currency option
+- \--eop is now a shorthand for \--valuation-eop
+
+### Changed
+- \--show-default-currency now applies to all cmds
+- history command uses period end date with --iso,
+  \--isofull or --epoch
+- \--avg now no longer requires currency squashing
+
+### Fixed
+- ledg-time does not communicate with ledg at all
+- \--valuation-eop causes multiperiod reports to
+  ignore --currency
+- debug message does not count prices read correctly
+- Money.removeEmpty does not work
 
 ## [0.9.5] 2021-05-09
 ### Added
