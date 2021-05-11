@@ -1,5 +1,5 @@
 # Changelog
-## [Unreleased]
+## [0.10.0] 2021-05-11
 ### Added
 - \--csv-no-quotes option
 - \--include-prices option to explictly load price files
