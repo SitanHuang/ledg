@@ -155,6 +155,10 @@ FLAGS
         --no-config
                 do not load .ledgrc files
 
+        --include-prices=A,B,C
+                ex: --include-prices=Downloads/USD.db,Downloads/CNY.db
+                load listed price files
+
         --file=FILE, -FFILE
                 Default: book
                 if FILE="-", then ledg reads entries from stdin

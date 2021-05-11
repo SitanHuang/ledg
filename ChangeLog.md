@@ -2,6 +2,7 @@
 ## [Unreleased]
 ### Added
 - \--csv-no-quotes option
+- \--include-prices option to explictly load price files
 
 ### Changed
 - \--show-default-currency now applies to all cmds
