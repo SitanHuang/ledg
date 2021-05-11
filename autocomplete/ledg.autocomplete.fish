@@ -3,7 +3,7 @@ set -l ledg_commands edit accounts burndown close register history balancesheet\
        delete budget print git eval stats count export
 
 set -l ledg_options "--file= -F --light-theme --lt --csv --html --format= --transpose"\
-       "--budget= --currency= --valuation-date= -valuation-eop --income= --expense="\
+       "--budget= --currency= --valuation-date= --valuation-eop --income= --expense="\
        "--equity= --asset= -i --confirm --alias- --real --q1 --q2 --q3 --abs"\
        "--count --cumulative --cml --account= --sort --invert --hide-zero --hz"\
        "--skip --cumulative-columns= --epoch --avg --isofull --iso --daily --weekly"\
