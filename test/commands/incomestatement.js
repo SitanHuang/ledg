@@ -246,6 +246,27 @@ P 0000-01-01 r 1R
         '"  Net","0","0"'
       )
   });
+  it('should --avg multicurrency', () => {
+    ctx
+      .input(
+`
+2021-01-01 #abcb24la
+  \tincome\t-2usd,-4rmb
+  \tequity\t
+`
+      )
+      .ledg('incomestatement', 'from:2021-01-01', 'to:2021-03-01',
+            '--monthly', '--dp=0', '--avg', '-F-')
+      .skip('"Income",""')
+      .out(
+        '"Income","","",""\n' +
+        '"income","usd+2, rmb+4","0","usd+1, rmb+2"\n' +
+        '"","usd+2, rmb+4","0","usd+1, rmb+2"\n' +
+        '"Expenses","","",""\n' +
+        '"","0","0","0"\n' +
+        '"  Net","usd+2, rmb+4","0","usd+1, rmb+2"\n'
+      )
+  });
   it('should --sort and --avg', () => {
     ctx
       .ledg('incomestatement', 'from:2021-01-01', 'to:2021-03-01',

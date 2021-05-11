@@ -155,6 +155,15 @@ FLAGS
         --no-config
                 do not load .ledgrc files
 
+        --include-prices=A,B,C
+                ex: --include-prices=Downloads/USD.db,Downloads/CNY.db
+                load listed price files
+
+        --balance-to-currency=CUR
+                when reading journals, modifying or adding entries, try to
+                convert imbalance or the balance of the last empty transfer
+                in CUR
+
         --file=FILE, -FFILE
                 Default: book
                 if FILE="-", then ledg reads entries from stdin
@@ -168,6 +177,9 @@ FLAGS
         --html,
         --format=csv|html
                 outputs all tables in different formats(some commands only)
+
+        --csv-no-quotes
+                with --csv enabled, output no longer uses quotes around columns
 
         --right
                 place currency right of the amount
@@ -197,8 +209,11 @@ FLAGS
         --valuation-date=yyyy-mm-dd
                 specify a date to use for currency conversion
 
-        --valuation-eop
+        --valuation-eop, --eop
                 in multiperiod reports, use end of period date as valuation date
+
+        --show-default-currency
+                do not hide default currency symbol
 
         --income=<account filter>, --expense=<account filter>, --equity=<account filter>
         --asset=<account filter>, --liability=<account filter>

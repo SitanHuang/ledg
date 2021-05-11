@@ -1,4 +1,49 @@
 # Changelog
+## [0.10.0] 2021-05-11
+### Added
+- \--csv-no-quotes option
+- \--include-prices option to explictly load price files
+- \--balance-to-currency option
+- \--eop is now a shorthand for \--valuation-eop
+
+### Changed
+- \--show-default-currency now applies to all cmds
+- history command uses period end date with --iso,
+  \--isofull or --epoch
+- \--avg now no longer requires currency squashing
+
+### Fixed
+- ledg-time does not communicate with ledg at all
+- \--valuation-eop causes multiperiod reports to
+  ignore --currency
+- debug message does not count prices read correctly
+- Money.removeEmpty does not work
+
+## Past Releases
+* [[0.9.5] 2021-05-09](#095-2021-05-09)
+* [[0.9.4] 2021-05-05](#094-2021-05-05)
+* [[0.9.3] 2021-04-30](#093-2021-04-30)
+* [[0.9.2] 2021-04-28](#092-2021-04-28)
+* [[0.9.1] 2021-04-25](#091-2021-04-25)
+* [[0.9.0] 2021-04-23](#090-2021-04-23)
+* [[0.8.4] 2021-04-22](#084-2021-04-22)
+* [[0.8.3] 2021-04-19](#083-2021-04-19)
+* [[0.8.2] 2021-04-13](#082-2021-04-13)
+* [[0.8.1] 2021-04-11](#081-2021-04-11)
+* [[0.8.0] 2021-04-09](#080-2021-04-09)
+* [[0.8.0-beta] 2021-04-07](#080-beta-2021-04-07)
+* [[0.7.2] 2021-04-04](#072-2021-04-04)
+* [[0.7.1] 2021-03-30](#071-2021-03-30)
+* [[0.7.0] 2021-03-30](#070-2021-03-30)
+* [[0.6.1] 2021-03-28](#061-2021-03-28)
+* [[0.6.0] 2021-03-22](#060-2021-03-22)
+* [[0.5.0] 2021-03-20](#050-2021-03-20)
+* [[0.4.0] 2021-03-18](#040---2021-03-18)
+* [[0.3.0] 2021-03-16](#030---2021-03-16)
+* [[0.2.0] 2021-03-16](#020---2021-03-16)
+* [[0.1.0] 2021-03-15](#010---2021-03-15)
+
+
 ## [0.9.5] 2021-05-09
 ### Added
 - \--no-config option

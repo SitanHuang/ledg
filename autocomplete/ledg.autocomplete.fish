@@ -3,7 +3,7 @@ set -l ledg_commands edit accounts burndown close register history balancesheet\
        delete budget print git eval stats count export
 
 set -l ledg_options "--file= -F --light-theme --lt --csv --html --format= --transpose"\
-       "--budget= --currency= --valuation-date= -valuation-eop --income= --expense="\
+       "--budget= --currency= --valuation-date= --valuation-eop --income= --expense="\
        "--equity= --asset= -i --confirm --alias- --real --q1 --q2 --q3 --abs"\
        "--count --cumulative --cml --account= --sort --invert --hide-zero --hz"\
        "--skip --cumulative-columns= --epoch --avg --isofull --iso --daily --weekly"\
@@ -11,8 +11,9 @@ set -l ledg_options "--file= -F --light-theme --lt --csv --html --format= --tran
        "-% --percent --max-depth= --depth= --dep= --sum-parent --sp --tree --field="\
        "--date= -y --default-pending --add-tag= --remove-tag= --set-mod= --prices"\
        "--remove-mod= --do-not-adjust --simple --ledger --show-default-currency"\
-       "--prices-only --pad-spaces= --right --no-config --drop --drop-cols"\
-       "--drop-columns"
+       "--prices-only --pad-spaces= --right --no-config --drop= --drop-cols="\
+       "--drop-columns= --csv-no-quotes --include-prices= --balance-to-currency="\
+       "--debug"
 
 set -l ledg_modifiers "desc: description: uuid: f: from: t: to: bc: bookClose:"\
        "pending: virt:"
