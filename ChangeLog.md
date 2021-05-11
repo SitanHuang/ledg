@@ -4,6 +4,7 @@
 - \--csv-no-quotes option
 - \--include-prices option to explictly load price files
 - \--balance-to-currency option
+- \--eop is now a shorthand for \--valuation-eop
 
 ### Changed
 - \--show-default-currency now applies to all cmds

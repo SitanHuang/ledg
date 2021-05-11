@@ -209,7 +209,7 @@ FLAGS
         --valuation-date=yyyy-mm-dd
                 specify a date to use for currency conversion
 
-        --valuation-eop
+        --valuation-eop, --eop
                 in multiperiod reports, use end of period date as valuation date
 
         --show-default-currency
