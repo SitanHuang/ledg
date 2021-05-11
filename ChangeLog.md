@@ -12,6 +12,7 @@
 - ledg-time does not communicate with ledg at all
 - \--valuation-eop causes multiperiod reports to
   ignore --currency
+- debug message does not count prices read correctly
 
 ## Past Releases
 * [[0.9.5] 2021-05-09](#095-2021-05-09)
