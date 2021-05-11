@@ -17,6 +17,7 @@
 - \--valuation-eop causes multiperiod reports to
   ignore --currency
 - debug message does not count prices read correctly
+- Money.removeEmpty does not work
 
 ## Past Releases
 * [[0.9.5] 2021-05-09](#095-2021-05-09)
