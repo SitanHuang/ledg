@@ -3,6 +3,7 @@
 ## [Unreleased]
 ### Changed
 - add command now ignores all currency flags
+- register command now uses period end date
 
 ### Fixed
 - close command should not convert currency
