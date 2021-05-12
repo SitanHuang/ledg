@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- close command should not convert currency
 
 ## Past Releases
 * [[0.10.0] 2021-05-11](#0100-2021-05-11)
