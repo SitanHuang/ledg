@@ -1,6 +1,9 @@
 # Changelog
 
 ## [Unreleased]
+### Changed
+- add command now ignores all currency flags
+
 ### Fixed
 - close command should not convert currency
 
