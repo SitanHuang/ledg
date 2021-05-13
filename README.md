@@ -260,6 +260,9 @@ TIMECLOCK
             P 0000-01-01 d 24h
             P 0000-01-01 h  0$
 
+        --tc-expose
+          info command prints generated entries rather than timeclock directives
+
 FILTER
         [ modifiers ] [ account filter, ...]
         a set of arguments that filters entries
