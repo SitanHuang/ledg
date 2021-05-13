@@ -6,6 +6,7 @@
 - uninstall target in Makefile
 - \--do-not-write-books, and --do-not-write-config options
 - \--sort option in print command (no longer defaults to sort)
+- \--rewrite option in print command
 
 ### Changed
 - add command now ignores all currency flags

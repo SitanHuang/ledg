@@ -564,6 +564,12 @@ COMMANDS
                         Default: false
                         sort entries based on date or clockIn:
 
+                --rewrite
+                        Rewrites journal files
+
+                        this is useful when combined with --sort to rewrite
+                        your journals in correct date order
+
                 --show-default-currency
                         Default: true if --ledger
                         print default currency symbol
