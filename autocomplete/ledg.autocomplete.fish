@@ -13,7 +13,7 @@ set -l ledg_options "--file= -F --light-theme --lt --csv --html --format= --tran
        "--remove-mod= --do-not-adjust --simple --ledger --show-default-currency"\
        "--prices-only --pad-spaces= --right --no-config --drop= --drop-cols="\
        "--drop-columns= --csv-no-quotes --include-prices= --balance-to-currency="\
-       "--debug --do-not-write-books --do-not-write-config --rewrite"
+       "--debug --do-not-write-books --do-not-write-config --rewrite --tc-prices=false"
 
 set -l ledg_modifiers "desc: description: uuid: f: from: t: to: bc: bookClose:"\
        "pending: virt:"
