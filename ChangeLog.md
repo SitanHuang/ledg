@@ -3,6 +3,7 @@
 ## [Unreleased]
 ### Added
 - register command now supports --valuation-eop
+- uninstall target in Makefile
 
 ### Changed
 - add command now ignores all currency flags

@@ -24,6 +24,14 @@ SCRIPTS:
 clean:
 	rm -f bin/ledg*
 
+uninstall:
+	rm -f ~/.config/fish/completions/ledg.fish
+	rm -f ~/bin/ledg
+	rm -f ~/bin/ledg-*
+	find ~/.config/fish/ -type d -empty -delete
+	rmdir --ignore-fail-on-non-empty ~/bin
+
+
 header:
 	echo "#!/usr/bin/env node" > bin/ledg
 
