@@ -234,6 +234,8 @@ FLAGS
                         unknown-book-directive,
                         unknown-budget-directive,
                         imbalanced-entries,
+                        timeclock-double-checkin,
+                        timeclock-checkout-without-checkin,
                         all
 
         --alias-NAME=ALIAS
