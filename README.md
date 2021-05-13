@@ -554,9 +554,15 @@ COMMANDS
                   Expense.Essential.Groceries        200
 
         print [<account filters>] [<filters>] [--ledger] [--show-default-currency]
+              [--prices|--prices-only] [--pad-spaces=35] [--sort]
                 prints selected entries in ledg format
-                used in conjunction with -F-
+
+                can be used in conjunction with -F-
                 ex: ledg print lia..amazon | ledg -F- accounts exp..personalcare
+
+                --sort
+                        Default: false
+                        sort entries based on date or clockIn:
 
                 --show-default-currency
                         Default: true if --ledger
