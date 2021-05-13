@@ -1,4 +1,23 @@
 ## Multicurrency
+### 2021-05-13 Timeclock only
+47040 individual directives of check-ins and check-outs
+
+| Command | Mean [ms] | Min [ms] | Max [ms] | Relative |
+|:---|---:|---:|---:|---:|
+| `ledg --eop --currency=h -Ftest --tree --no-config --sp` | 466.4 ± 12.5 | 449.1 | 488.9 | 4.15 ± 0.12 |
+| `ledger -f test.dat bal` | 112.3 ± 1.0 | 110.3 | 114.6 | 1.00 |
+| `hledger -ftimeclock:test.dat bal` | 2081.7 ± 13.4 | 2068.4 | 2109.1 | 18.54 ± 0.21 |
+
+| Command | Mean [ms] | Min [ms] | Max [ms] | Relative |
+|:---|---:|---:|---:|---:|
+| `ledg  -Ftest incomestatement f:2021-01-01 to:2022-01-01 --monthly --no-config --hz=false --currency=h --eop` | 615.0 ± 8.7 | 601.8 | 630.4 | 1.00 |
+| `hledger -ftimeclock:test.dat incomestatement -b 2021-01-01 -e 2022-01-01 --monthly` | 2151.4 ± 11.7 | 2137.9 | 2178.2 | 3.50 ± 0.05 |
+
+| Command | Mean [ms] | Min [ms] | Max [ms] | Relative |
+|:---|---:|---:|---:|---:|
+| `ledg  -Ftest balancesheet f:2021-01-01 to:2022-01-01 --monthly --no-config --hz=false --currency=h --eop` | 426.2 ± 3.8 | 420.7 | 432.0 | 1.00 |
+| `hledger -ftimeclock:test.dat balancesheet -b 2021-01-01 -e 2022-01-01 --monthly` | 2058.9 ± 11.5 | 2039.1 | 2079.0 | 4.83 ± 0.05 |
+
 ### 2021-05-06 optimizations
 | Command | Mean [ms] | Min [ms] | Max [ms] | Relative |
 |:---|---:|---:|---:|---:|
