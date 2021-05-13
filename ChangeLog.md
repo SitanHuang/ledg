@@ -7,12 +7,19 @@
 - \--do-not-write-books, and --do-not-write-config options
 - \--sort option in print command (no longer defaults to sort)
 - \--rewrite option in print command
+- timeclock format support in regular journal files
 
 ### Changed
 - add command now ignores all currency flags
 - register command now uses period end date
+- internal journal interator now walks tree in
+  original order rather than the reverse
+- multicurrency amounts are now sorted based on
+  currency name
 
 ### Fixed
+- in prompts that show entry title string, pending sign
+  is now shown
 - close command should not convert currency
 - reg command should not hide dates when --sort
 - add command has no extra space after prompt

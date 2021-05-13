@@ -16,9 +16,9 @@ else
 endif
 
 SCRIPTS:
-	cd scripts; \
-		echo *.js | tr ' ' '\n' | xargs -n1 -I{} cp "{}" "../bin/ledg-{}"
-	chmod +x bin/ledg-*
+	#cd scripts; \
+	#	echo *.js | tr ' ' '\n' | xargs -n1 -I{} cp "{}" "../bin/ledg-{}" \
+	#chmod +x bin/ledg-* \
 
 
 clean:
@@ -61,7 +61,7 @@ install: bin/ledg SCRIPTS fish_autocomplete
 	rm -f ~/bin/ledg
 	rm -f ~/bin/ledg-*
 	ln -s $(realpath bin/ledg) ~/bin/ledg
-	ln -s $(realpath bin/ledg-time.js) ~/bin/ledg-time
+	# ln -s $(realpath bin/ledg-time.js) ~/bin/ledg-time
 
 test: bin/ledg
 	mkdir -p ./test/tmp/
