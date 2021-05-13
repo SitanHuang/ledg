@@ -35,6 +35,11 @@ describe('ledg register', () => {
   \ta.b\t1r
   \ta.c\t1r
   \tbal\t-2r
+2021-04-01 asdf #afssssf4
+  ;tags:"A2"
+  \ta.b\t1r
+  \ta.c\t1r
+  \tbal\t-2r
 `
     );
     ctx.fw('prices',
@@ -42,6 +47,9 @@ describe('ledg register', () => {
 P 2021-01-01 r $1
 P 2021-02-01 r $2
 P 2021-03-01 r $3
+P 2021-04-01 r $1
+P 2021-04-02 r $2
+P 2021-05-01 r $10
 ; comment
 `
     );
@@ -80,15 +88,14 @@ P 2021-03-01 r $3
           '"2021-03-01","a.c","+2","8"'
         )
     });
-    it('should group with --currency and --valuation-date', () => {
+    it('should group with --currency and --valuation-eop', () => {
       ctx
         .ledg('register', '--monthly', "--currency=$", "--depth=1",
-              '--valuation-date=2021-03-01',
-              'from:2020-12-01', 'to:2021-03-01', '--dp=0', "a.b")
+              '--valuation-eop',
+              'from:2021-04-01', 'to:2021-05-01', '--dp=0', "a.b")
         .skip(`"20`)
         .out(
-          '"2021-02-01","a","+6","6"\n' +
-          '"2021-03-01","a","+3","9"'
+          '"2021-05-01","a","+2","2"'
         )
     });
 

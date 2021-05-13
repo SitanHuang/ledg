@@ -1,6 +1,9 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- register command now supports --valuation-eop
+
 ### Changed
 - add command now ignores all currency flags
 - register command now uses period end date
