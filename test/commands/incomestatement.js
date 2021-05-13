@@ -260,11 +260,11 @@ P 0000-01-01 r 1R
       .skip('"Income",""')
       .out(
         '"Income","","",""\n' +
-        '"income","usd+2, rmb+4","0","usd+1, rmb+2"\n' +
-        '"","usd+2, rmb+4","0","usd+1, rmb+2"\n' +
+        '"income","rmb+4, usd+2","0","rmb+2, usd+1"\n' +
+        '"","rmb+4, usd+2","0","rmb+2, usd+1"\n' +
         '"Expenses","","",""\n' +
         '"","0","0","0"\n' +
-        '"  Net","usd+2, rmb+4","0","usd+1, rmb+2"\n'
+        '"  Net","rmb+4, usd+2","0","rmb+2, usd+1"\n'
       )
   });
   it('should --sort and --avg', () => {
