@@ -18,6 +18,8 @@
   currency name
 
 ### Fixed
+- in prompts that show entry title string, pending sign
+  is now shown
 - close command should not convert currency
 - reg command should not hide dates when --sort
 - add command has no extra space after prompt
