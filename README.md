@@ -577,11 +577,15 @@ COMMANDS
                   Expense.Essential.Groceries        200
 
         print [<account filters>] [<filters>] [--ledger] [--show-default-currency]
-              [--prices|--prices-only] [--pad-spaces=35] [--sort]
+              [--prices|--prices-only] [--pad-spaces=35] [--sort] [--timeclock]
                 prints selected entries in ledg format
 
                 can be used in conjunction with -F-
                 ex: ledg print lia..amazon | ledg -F- accounts exp..personalcare
+
+                --timeclock
+                        when combined with --ledger, allow timeclock formats to
+                        replace generated ledger formats
 
                 --sort
                         Default: false

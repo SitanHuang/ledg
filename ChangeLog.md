@@ -8,6 +8,8 @@
 - \--sort option in print command (no longer defaults to sort)
 - \--rewrite option in print command
 - timeclock format support in regular journal files
+  - \--timeclock option for print command
+  - \--tc-expose and --tc-prices options
 
 ### Changed
 - add command now ignores all currency flags
