@@ -14,6 +14,8 @@
 - register command now uses period end date
 - internal journal interator now walks tree in
   original order rather than the reverse
+- multicurrency amounts are now sorted based on
+  currency name
 
 ### Fixed
 - close command should not convert currency
