@@ -15,6 +15,7 @@
 ### Fixed
 - close command should not convert currency
 - reg command should not hide dates when --sort
+- add command has no extra space after prompt
 
 ## Past Releases
 * [[0.10.0] 2021-05-11](#0100-2021-05-11)
