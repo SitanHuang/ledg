@@ -319,6 +319,10 @@ VIRTUAL ENTRIES
         Entries are virtual with virt:true modifier.
         Pass --real flag ignores these virtual entries.
 
+**PENDING ENTRIES**
+        Entries are pending with pending:true modifier.
+        Pass --cleared flag ignores these pending entries.
+
 COMMANDS
         Commands can be shortened as long as they are not ambiguous
         Example: ledg accounts -> ledg acc
