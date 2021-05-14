@@ -2,22 +2,22 @@
 
 ## [Unreleased]
 ### Added
-- register command now supports --valuation-eop
-- uninstall target in Makefile
-- \--do-not-write-books, and --do-not-write-config options
-- \--sort option in print command (no longer defaults to sort)
-- \--rewrite option in print command
 - timeclock format support in regular journal files
   - \--timeclock option for print command
   - \--tc-expose and --tc-prices options
+- \--rewrite option in print command
+- \--sort option in print command (no longer defaults to sort)
+- \--do-not-write-books, and --do-not-write-config options
+- register command now supports --valuation-eop
+- uninstall target in Makefile
 
 ### Changed
-- add command now ignores all currency flags
-- register command now uses period end date
 - internal journal interator now walks tree in
   original order rather than the reverse
 - multicurrency amounts are now sorted based on
   currency name
+- register command now uses period end date
+- add command now ignores all currency flags
 
 ### Fixed
 - in prompts that show entry title string, pending sign
