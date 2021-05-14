@@ -66,7 +66,8 @@ The project is under active development. [ChangeLogs](ChangeLog.md)
 MacOS/Linux supported only. Use WSL on Windows.
 
 1. Make sure `node` is in your path.
-2. Download repository
+2. Download and extract the source code from [Releases](https://github.com/SitanHuang/ledg/releases)
+   OR download from the [develop](https://github.com/SitanHuang/ledg/archive/refs/heads/develop.zip) branch
 3. `make && make install`
 4. Put `~/bin` in your path
 
