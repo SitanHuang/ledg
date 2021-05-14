@@ -251,6 +251,7 @@ TIMECLOCK
           o YYYY-MM-DD( |T)HH:MM[:SS] [Account.A.B] [#8chruuid]
           ; clock out (cleared)
           O YYYY-MM-DD( |T)HH:MM[:SS] [Account.A.B] [#8chruuid]
+          (2 spaces);attribute:(inline JSON)
 
         --tc-prices, --tc-prices=false
           Default: true
