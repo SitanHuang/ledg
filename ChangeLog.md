@@ -5,6 +5,9 @@
 - timeclock format support in regular journal files
   - \--timeclock option for print command
   - \--tc-expose and --tc-prices options
+- csv import via the import command
+  - ability to make custom parsers
+  - directly add entries to journal
 - \--rewrite option in print command
 - \--sort option in print command (no longer defaults to sort)
 - \--do-not-write-books, and --do-not-write-config options

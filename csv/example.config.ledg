@@ -1,0 +1,13 @@
+{
+  "data": {
+    "accounts": {
+      "Expense.Unknown": 1,
+      "Asset.Bank.Foolbar": 1,
+      "Expense.Clothes": 1,
+      "Expense.Insurance": 1
+    },
+    "defaultCurrency": "$",
+    "priceFiles": []
+  },
+  "data_acc_imb": "Imbalance"
+}
