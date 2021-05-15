@@ -23,6 +23,8 @@
 - add command now ignores all currency flags
 
 ### Fixed
+- add command does not set Money.date to entry date
+- Big.js eq method does not work for values other than 0
 - in prompts that show entry title string, pending sign
   is now shown
 - close command should not convert currency
