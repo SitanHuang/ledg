@@ -2,7 +2,7 @@
 // to execute: ledg import --parser=example.parser.js --source=example.csv
 
 // ======  optional settings =====
-delimeter = "|"
+delimeter = ","
 
 dateformat = "D/M/YY"
 // or many formats such as ["YYYY-MM-DD", "M/D/YY"]
@@ -25,7 +25,7 @@ process(() => {
     skip(Infinity)
     return
   }
-  
+
   add(
     date(col(1)),
     description(col(3)),
