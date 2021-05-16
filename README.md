@@ -32,6 +32,7 @@ The project is under active development. [ChangeLogs](ChangeLog.md)
 ### Features
 #### ledg only features
 - dependency free
+- timeclock timeline chart
 - built in CSV importers (similar to hledger)
 - batch modifications
   - `edit` command that pulls up filtered
@@ -51,6 +52,7 @@ The project is under active development. [ChangeLogs](ChangeLog.md)
 - specify precision with cli option
 
 #### Common Ledger Features
+- timeclock support
 - hledger style reports
   - incomestatement
   - cashflow
@@ -336,6 +338,13 @@ COMMANDS
 
         accounts add <full account name>
                 create new account and write to FILE.config.ledg
+
+        timeline [--max-depth=]
+                shows blocks of time checked in and out throughout each day
+                colors are based on account names
+
+                --max-depth=A
+                        truncates account names to level A
 
         burndown [--q1="[<filters>] <account filters>", --q2=...] [--abs=false] [--count]
                  [--cumulative]

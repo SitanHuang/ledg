@@ -2,7 +2,7 @@ all: check_node clean bin/ledg SCRIPTS
 
 SOURCE_CORE = $(shell find lib/core/ -type f -name '*.js')
 SOURCE_FS = $(shell find lib/fs/ -type f -name '*.js')
-SOURCE_CLI = $(shell find lib/cli/ -type f -name '*.js' -not -path '**/index.js' -not -path '**/commands.js')
+SOURCE_CLI = $(shell find lib/cli/ -type f -name '*.js' -not -path '**/index.js' -not -path '**/commands.js' -not -path 'lib/cli/charts/chart.js')
 
 NODE_VERSION := $(shell node --version 2>/dev/null)
 
@@ -39,6 +39,7 @@ core: ${SOURCE_CORE}
 	cat $^ >> bin/ledg
 
 cli: ${SOURCE_CLI}
+	cat lib/cli/charts/chart.js >> bin/ledg
 	cat $^ >> bin/ledg
 	cat lib/cli/commands.js >> bin/ledg
 	cat lib/cli/index.js >> bin/ledg

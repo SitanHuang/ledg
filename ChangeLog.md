@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+### Added
+- timeline command to produce timelines of blocks of
+  time checked in and out throughout each day
+
 ### Changed
 - clockout entries with more than 2 transfers are
   also serialized in journals and printed in cmds with
