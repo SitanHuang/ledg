@@ -16,13 +16,21 @@ else
 endif
 
 SCRIPTS:
-	cd scripts; \
-		echo *.js | tr ' ' '\n' | xargs -n1 -I{} cp "{}" "../bin/ledg-{}"
-	chmod +x bin/ledg-*
+	#cd scripts; \
+	#	echo *.js | tr ' ' '\n' | xargs -n1 -I{} cp "{}" "../bin/ledg-{}" \
+	#chmod +x bin/ledg-* \
 
 
 clean:
 	rm -f bin/ledg*
+
+uninstall:
+	rm -f ~/.config/fish/completions/ledg.fish
+	rm -f ~/bin/ledg
+	rm -f ~/bin/ledg-*
+	find ~/.config/fish/ -type d -empty -delete
+	rmdir --ignore-fail-on-non-empty ~/bin
+
 
 header:
 	echo "#!/usr/bin/env node" > bin/ledg
@@ -53,7 +61,7 @@ install: bin/ledg SCRIPTS fish_autocomplete
 	rm -f ~/bin/ledg
 	rm -f ~/bin/ledg-*
 	ln -s $(realpath bin/ledg) ~/bin/ledg
-	ln -s $(realpath bin/ledg-time.js) ~/bin/ledg-time
+	# ln -s $(realpath bin/ledg-time.js) ~/bin/ledg-time
 
 test: bin/ledg
 	mkdir -p ./test/tmp/

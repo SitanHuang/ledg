@@ -235,11 +235,35 @@ FLAGS
                         unknown-book-directive,
                         unknown-budget-directive,
                         imbalanced-entries,
+                        timeclock-double-checkin,
+                        timeclock-checkout-without-checkin,
                         all
 
         --alias-NAME=ALIAS
                 Example: --alias-is="incomestatement --sort --tree"
                 replaces name with the alias and reparse argv
+
+TIMECLOCK
+        format:
+          ; clock in
+          i YYYY-MM-DD( |T)HH:MM[:SS] [Account.A.B] [#8chruuid]
+          ; clock out (pending)
+          o YYYY-MM-DD( |T)HH:MM[:SS] [Account.A.B] [#8chruuid]
+          ; clock out (cleared)
+          O YYYY-MM-DD( |T)HH:MM[:SS] [Account.A.B] [#8chruuid]
+          (2 spaces);attribute:(inline JSON)
+
+        --tc-prices, --tc-prices=false
+          Default: true
+
+          loads the following price declarations to pricedb
+            P 0000-01-01 m 60s
+            P 0000-01-01 h 60m
+            P 0000-01-01 d 24h
+            P 0000-01-01 h  0$
+
+        --tc-expose
+          info command prints generated entries rather than timeclock directives
 
 FILTER
         [ modifiers ] [ account filter, ...]
@@ -294,6 +318,10 @@ FILTER
 VIRTUAL ENTRIES
         Entries are virtual with virt:true modifier.
         Pass --real flag ignores these virtual entries.
+
+**PENDING ENTRIES**
+        Entries are pending with pending:true modifier.
+        Pass --cleared flag ignores these pending entries.
 
 COMMANDS
         Commands can be shortened as long as they are not ambiguous
@@ -555,9 +583,25 @@ COMMANDS
                   Expense.Essential.Groceries        200
 
         print [<account filters>] [<filters>] [--ledger] [--show-default-currency]
+              [--prices|--prices-only] [--pad-spaces=35] [--sort] [--timeclock]
                 prints selected entries in ledg format
-                used in conjunction with -F-
+
+                can be used in conjunction with -F-
                 ex: ledg print lia..amazon | ledg -F- accounts exp..personalcare
+
+                --timeclock
+                        when combined with --ledger, allow timeclock formats to
+                        replace generated ledger formats
+
+                --sort
+                        Default: false
+                        sort entries based on date or clockIn:
+
+                --rewrite
+                        Rewrites journal files
+
+                        this is useful when combined with --sort to rewrite
+                        your journals in correct date order
 
                 --show-default-currency
                         Default: true if --ledger
@@ -589,4 +633,60 @@ COMMANDS
         export gnucash-transactions > transactions.csv
         export gnucash-accounts > accounts.csv
                 csv can be directly imported to gnucash
+
+        import --source=A.csv,B.csv,C.csv --parser=X.js
+                read CSV files using parser and add entries to journal
+
+                Parser example:
+                  // this is a custom csv parser file
+                  // to execute: ledg import --parser=example.parser.js --source=example.csv
+                  
+                  // ======  optional settings =====
+                  delimeter = "|"
+                  
+                  dateformat = "D/M/YY"
+                  // or many formats such as ["YYYY-MM-DD", "M/D/YY"]
+                  
+                  default_account = "Expense.Unknown"
+                  
+                  // if error, stop
+                  bail = true
+                  
+                  skip(3)
+                  
+                  process(() => {
+                    // or trim(colNumber)
+                    trim()
+                  
+                    // arguments to call \`ledg add ...\`
+                    if (row.length != 3)
+                      return
+                    if (!col(1).length) {
+                      skip(Infinity)
+                      return
+                    }
+                    
+                    add(
+                      date(col(1)),
+                      description(col(3)),
+                      cleared(), // or pending()
+                      modifier("tags", "IMPORTED"),
+                      transfer(
+                        // categorize accounts
+                        account(
+                          col(3),
+                          {
+                            // regex => acc
+                            "hats": "Expense.Clothes",
+                            "insurance": "Expense.Insurance"
+                          }
+                        ),
+                        amount(col(2))
+                      ),
+                      transfer(
+                        account("Asset.Bank.Foolbar"),
+                        invert(amount(col(2)))
+                      )
+                    )
+                  })
 ```

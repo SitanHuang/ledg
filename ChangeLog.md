@@ -1,26 +1,42 @@
 # Changelog
-## [0.10.0] 2021-05-11
+
+## [0.11.0] 2021-05-15
 ### Added
-- \--csv-no-quotes option
-- \--include-prices option to explictly load price files
-- \--balance-to-currency option
-- \--eop is now a shorthand for \--valuation-eop
+- timeclock format support in regular journal files
+  - \--timeclock option for print command
+  - \--tc-expose and --tc-prices options
+- csv import via the import command
+  - ability to make custom parsers
+  - directly add entries to journal
+- data.precisionTolerance in config for allowing a certain
+  error tolerance in currency conversion
+- \--rewrite option in print command
+- \--sort option in print command (no longer defaults to sort)
+- \--do-not-write-books, and --do-not-write-config options
+- register command now supports --valuation-eop
+- uninstall target in Makefile
 
 ### Changed
-- \--show-default-currency now applies to all cmds
-- history command uses period end date with --iso,
-  \--isofull or --epoch
-- \--avg now no longer requires currency squashing
+- internal journal interator now walks tree in
+  original order rather than the reverse
+- Big.toNumber is now multitudes faster
+- multicurrency amounts are now sorted based on
+  currency name
+- register command now uses period end date
+- add command now ignores all currency flags
 
 ### Fixed
-- ledg-time does not communicate with ledg at all
-- \--valuation-eop causes multiperiod reports to
-  ignore --currency
-- debug message does not count prices read correctly
-- Money.removeEmpty does not work
+- add command does not set Money.date to entry date
+- Big.js eq method does not work for values other than 0
+- in prompts that show entry title string, pending sign
+  is now shown
+- close command should not convert currency
+- reg command should not hide dates when --sort
+- add command has no extra space after prompt
+- missing --cleared documentation and autocomplete
 
 ## Past Releases
-* [[0.9.5] 2021-05-09](#095-2021-05-09)
+* [[0.10.0] 2021-05-11](#0100-2021-05-11)
 * [[0.9.4] 2021-05-05](#094-2021-05-05)
 * [[0.9.3] 2021-04-30](#093-2021-04-30)
 * [[0.9.2] 2021-04-28](#092-2021-04-28)
@@ -43,6 +59,25 @@
 * [[0.2.0] 2021-03-16](#020---2021-03-16)
 * [[0.1.0] 2021-03-15](#010---2021-03-15)
 
+## [0.10.0] 2021-05-11
+### Added
+- \--csv-no-quotes option
+- \--include-prices option to explictly load price files
+- \--balance-to-currency option
+- \--eop is now a shorthand for \--valuation-eop
+
+### Changed
+- \--show-default-currency now applies to all cmds
+- history command uses period end date with --iso,
+  \--isofull or --epoch
+- \--avg now no longer requires currency squashing
+
+### Fixed
+- ledg-time does not communicate with ledg at all
+- \--valuation-eop causes multiperiod reports to
+  ignore --currency
+- debug message does not count prices read correctly
+- Money.removeEmpty does not work
 
 ## [0.9.5] 2021-05-09
 ### Added

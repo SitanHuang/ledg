@@ -13,10 +13,11 @@ set -l ledg_options "--file= -F --light-theme --lt --csv --html --format= --tran
        "--remove-mod= --do-not-adjust --simple --ledger --show-default-currency"\
        "--prices-only --pad-spaces= --right --no-config --drop= --drop-cols="\
        "--drop-columns= --csv-no-quotes --include-prices= --balance-to-currency="\
-       "--debug"
+       "--debug --do-not-write-books --do-not-write-config --rewrite --tc-prices=false"\
+       "--tc-expose --timeclock --cleared --eop --source= --parser="
 
 set -l ledg_modifiers "desc: description: uuid: f: from: t: to: bc: bookClose:"\
-       "pending: virt:"
+       "pending: virt: clockIn: clockOut:"
 
 
 # disable file completions
