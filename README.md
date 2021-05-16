@@ -32,6 +32,7 @@ The project is under active development. [ChangeLogs](ChangeLog.md)
 ### Features
 #### ledg only features
 - dependency free
+- built in CSV importers (similar to hledger)
 - batch modifications
   - `edit` command that pulls up filtered
     entries into a text editor and
@@ -640,24 +641,24 @@ COMMANDS
                 Parser example:
                   // this is a custom csv parser file
                   // to execute: ledg import --parser=example.parser.js --source=example.csv
-                  
+
                   // ======  optional settings =====
                   delimeter = "|"
-                  
+
                   dateformat = "D/M/YY"
                   // or many formats such as ["YYYY-MM-DD", "M/D/YY"]
-                  
+
                   default_account = "Expense.Unknown"
-                  
+
                   // if error, stop
                   bail = true
-                  
+
                   skip(3)
-                  
+
                   process(() => {
                     // or trim(colNumber)
                     trim()
-                  
+
                     // arguments to call \`ledg add ...\`
                     if (row.length != 3)
                       return
@@ -665,7 +666,7 @@ COMMANDS
                       skip(Infinity)
                       return
                     }
-                    
+
                     add(
                       date(col(1)),
                       description(col(3)),
