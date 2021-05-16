@@ -8,6 +8,8 @@
 - csv import via the import command
   - ability to make custom parsers
   - directly add entries to journal
+- data.precisionTolerance in config for allowing a certain
+  error tolerance in currency conversion
 - \--rewrite option in print command
 - \--sort option in print command (no longer defaults to sort)
 - \--do-not-write-books, and --do-not-write-config options
