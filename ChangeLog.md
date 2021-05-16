@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+### Changed
+- clockout entries with more than 2 transfers are
+  also serialized in journals and printed in cmds with
+  timeclock format
 
 ## Past Releases
 * [[0.11.0] 2021-05-15](#0110-2021-05-15)
