@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.11.0] 2021-05-15
 ### Added
 - timeclock format support in regular journal files
   - \--timeclock option for print command
