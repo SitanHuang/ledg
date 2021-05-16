@@ -19,6 +19,7 @@
 ### Changed
 - internal journal interator now walks tree in
   original order rather than the reverse
+- Big.toNumber is now multitudes faster
 - multicurrency amounts are now sorted based on
   currency name
 - register command now uses period end date
