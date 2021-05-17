@@ -350,6 +350,14 @@ COMMANDS
                 --max-depth=A
                         truncates account names to level A
 
+                --minhour=A
+                        Example: --minhour=14 # 2 pm
+                        instead of auto detecting the min hour, set manually
+
+                --maxhour=A
+                        Example: --maxhour=14 # 2 pm
+                        instead of auto detecting the max hour, set manually
+
         burndown [--q1="[<filters>] <account filters>", --q2=...] [--abs=false] [--count]
                  [--cumulative]
                 Creates multi-dataset bar graphs
