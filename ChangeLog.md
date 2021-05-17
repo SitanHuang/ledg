@@ -10,6 +10,10 @@
   also serialized in journals and printed in cmds with
   timeclock format
 
+### Fixed
+- print_max_width_from_entries counts amount string
+  length before conversion rather than after
+
 ## Past Releases
 * [[0.11.0] 2021-05-15](#0110-2021-05-15)
 * [[0.10.0] 2021-05-11](#0100-2021-05-11)
