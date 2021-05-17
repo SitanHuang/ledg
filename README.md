@@ -343,7 +343,8 @@ COMMANDS
         accounts add <full account name>
                 create new account and write to FILE.config.ledg
 
-        timeline [--max-depth=]
+        timeline [--max-depth=] [--minhour] [--maxhour] [--simple]
+                 [ <filter> ]
                 shows blocks of time checked in and out throughout each day
                 colors are based on account names
 
@@ -357,6 +358,9 @@ COMMANDS
                 --maxhour=A
                         Example: --maxhour=14 # 2 pm
                         instead of auto detecting the max hour, set manually
+
+                --simple
+                        produces a table of the timeline rather than a graph
 
         burndown [--q1="[<filters>] <account filters>", --q2=...] [--abs=false] [--count]
                  [--cumulative]
