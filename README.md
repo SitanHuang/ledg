@@ -121,6 +121,10 @@ ledg git commit
   alt='Screenshot'
 />
 <img
+  src='assets/timeline.png'
+  alt='Screenshot'
+/>
+<img
   src='assets/2.png'
   alt='Screenshot'
 />
