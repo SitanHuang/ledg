@@ -280,8 +280,8 @@ FILTER
         [ modifiers ] [ account filter, ...]
         a set of arguments that filters entries
 
-        --period="<smart date>", -Psmartdate
-                using wanasit's chrono library to parse date interval
+        --period="smartdate1 [(->?|\.\.\.*| to ) smartdate2]", -Psmartdate
+                using sugarjs library to parse date interval
                 if only one date is given, only from: will be set
                 Examples:
                   - Today, Tomorrow, Yesterday, Last Friday, etc
@@ -292,11 +292,11 @@ FILTER
                   - Sat Aug 17 2013 18:40:39 GMT+0900 (JST)
                   - 2014-11-30T08:15:30-05:30
 
-        from:yyyy-mm-dd
+        from:yyyy-mm-dd|smartdate
                 limit entries starting from this date(inclusive)
                 overrides the start date specified by --period
 
-        to:yyyy-mm-dd
+        to:yyyy-mm-dd|smartdate
                 limit entries before this date(exclusive)
                 overrides the end date specified by --period
 
@@ -427,7 +427,7 @@ COMMANDS
                         Default: true
                         hide rows that are zeroes when used with reporting interval
 
-                --skip=yyyy-mm-dd
+                --skip=yyyy-mm-dd|smartdate
                         hides rows up until this date but keep cumulative sum from before
 
                 --csv
