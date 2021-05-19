@@ -33,7 +33,6 @@ The project is under active development. [ChangeLogs](ChangeLog.md)
 #### ledg only features
 - dependency free
 - timeclock timeline chart
-- built in CSV importers (similar to hledger)
 - batch modifications
   - `edit` command that pulls up filtered
     entries into a text editor and
@@ -53,12 +52,14 @@ The project is under active development. [ChangeLogs](ChangeLog.md)
 
 #### Common Ledger Features
 - timeclock support
+- built in CSV importers (similar to hledger)
 - hledger style reports
   - incomestatement
   - cashflow
   - balancesheet
 - multicurrency and price table
-- envelope based budgeting
+- envelope based budgeting (virtual accounts)
+- smart dates
 - book closure
 - pending and virtual entries
 
@@ -71,6 +72,9 @@ MacOS/Linux supported only. Use WSL on Windows.
 1. Make sure `node` is in your path.
 2. Download and extract the source code from [Releases](https://github.com/SitanHuang/ledg/releases)
    OR download from the [develop](https://github.com/SitanHuang/ledg/archive/refs/heads/develop.zip) branch
+   - Note: make install creates a symlink to bin/ledg, which is a js file with
+     node shebang and it takes 70ms for node to parse the file; if you want faster
+     load times, download a binary from the releases to reduce it all the way to 35ms
 3. `make && make install`
 4. Put `~/bin` in your path
 
@@ -276,7 +280,7 @@ FILTER
         [ modifiers ] [ account filter, ...]
         a set of arguments that filters entries
 
-        --period="<smart date>"
+        --period="<smart date>", -Psmartdate
                 using wanasit's chrono library to parse date interval
                 if only one date is given, only from: will be set
                 Examples:
