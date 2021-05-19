@@ -4,7 +4,7 @@
 ### Added
 - timeline command to produce timelines of blocks of
   time checked in and out throughout each day
-- using chrono.js to process smart dates
+- using sugar.js to process smart dates
 
 ### Changed
 - `make binary` now compresses binary to 50% of the
