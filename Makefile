@@ -51,7 +51,7 @@ bin/ledg: header core fs cli
 	chmod +x bin/ledg
 
 binary: bin/ledg
-	pkg bin/ledg
+	pkg --compress Brotli bin/ledg
 
 fish_autocomplete:
 	mkdir -p ~/.config/fish/completions/

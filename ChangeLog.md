@@ -7,6 +7,8 @@
 - using chrono.js to process smart dates
 
 ### Changed
+- `make binary` now compresses binary to 50% of the
+  original size, making load times even faster
 - clockout entries with more than 2 transfers are
   also serialized in journals and printed in cmds with
   timeclock format
