@@ -284,13 +284,42 @@ FILTER
                 using sugarjs library to parse date interval
                 if only one date is given, only from: will be set
                 Examples:
-                  - Today, Tomorrow, Yesterday, Last Friday, etc
-                  - 17 August 2013 - 19 August 2013
-                  - This Friday from 13:00 - 16.00
-                  - 5 days ago
-                  - 2 weeks from now
-                  - Sat Aug 17 2013 18:40:39 GMT+0900 (JST)
-                  - 2014-11-30T08:15:30-05:30
+                  - today
+                  - next week
+                  - last year
+                  - the 15th
+                  - next Tuesday
+                  - 3pm Wednesday
+                  - in 30 minutes
+                  - in half a year
+                  - five years ago
+                  - yesterday at 4pm
+                  - half an hour ago
+                  - an hour from now
+                  - 6:30pm in three days
+                  - the 4th of July
+                  - next week Thursday
+                  - the end of February
+                  - two weeks from today
+                  - the end of next week
+                  - next Saturday at 10am
+                  - the first day of 2013
+                  - four days after Monday
+                  - March 15th of last year
+                  - two days after tomorrow
+                  - the last day of February
+                  - Sunday, January 15th 2012
+                  - the beginning of this month
+                  - the 2nd Tuesday of November
+                  - 5-2002
+                  - 8/25/1978
+                  - 8-25-1978
+                  - 8.25.1978
+                  - 2012-12-31
+                  - 2016-Mar-18
+                  - 22 August
+                  - April 2012
+                  - 1 Dec. 2016
 
         from:yyyy-mm-dd|smartdate
                 limit entries starting from this date(inclusive)
