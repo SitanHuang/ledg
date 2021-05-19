@@ -4,6 +4,7 @@
 ### Added
 - timeline command to produce timelines of blocks of
   time checked in and out throughout each day
+- using chrono.js to process smart dates
 
 ### Changed
 - clockout entries with more than 2 transfers are

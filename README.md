@@ -276,11 +276,25 @@ FILTER
         [ modifiers ] [ account filter, ...]
         a set of arguments that filters entries
 
+        --period="<smart date>"
+                using wanasit's chrono library to parse date interval
+                if only one date is given, only from: will be set
+                Examples:
+                  - Today, Tomorrow, Yesterday, Last Friday, etc
+                  - 17 August 2013 - 19 August 2013
+                  - This Friday from 13:00 - 16.00
+                  - 5 days ago
+                  - 2 weeks from now
+                  - Sat Aug 17 2013 18:40:39 GMT+0900 (JST)
+                  - 2014-11-30T08:15:30-05:30
+
         from:yyyy-mm-dd
                 limit entries starting from this date(inclusive)
+                overrides the start date specified by --period
 
         to:yyyy-mm-dd
                 limit entries before this date(exclusive)
+                overrides the end date specified by --period
 
         @min, @max, @year-start, @year-end, @tomorrow, @today, @month-start, @month-end
         @last-year-today, @last-year

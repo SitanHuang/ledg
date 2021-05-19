@@ -310,7 +310,7 @@ P 0000-01-01 r 1R
 "bal","$-2.00"
 `
       )
-      .ledg('accounts', '--currency=$', 'from:2010-01-01', 'to: 2015-01-01')
+      .ledg('accounts', '--currency=$', 'from:2010-01-01', 'to:2025-01-01')
       .skip('"Accounts","Balance"')
       .out(
 `
