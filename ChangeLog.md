@@ -18,6 +18,8 @@
   length before conversion rather than after
 - division by zero if history command is run with
   from: > to:
+- budget progress bar and usePerc does not work with
+  multicurrency
 
 ## Past Releases
 * [[0.11.0] 2021-05-15](#0110-2021-05-15)
