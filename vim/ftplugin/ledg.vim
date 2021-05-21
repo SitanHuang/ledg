@@ -12,6 +12,7 @@ setlocal nosmartindent
 setlocal noexpandtab
 setlocal shiftwidth=2
 setlocal indentexpr=
+setlocal colorcolumn=
 
 autocmd BufWritePre *.ledg :%s/\s\+$//e
 

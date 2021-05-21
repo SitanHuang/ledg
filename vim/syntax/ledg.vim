@@ -20,14 +20,12 @@ syn region ledgTimelogAccount start="\s" end="$" keepend
 
 
 syn match ledgWrongSyntax1 "\v^\t.*$"
-syn match ledgWrongSyntax2 "\v^\s{3,}.*$"
-
 
 syn match ledgDate "\v^\d{4}\-\d{2}\-\d{2}" skipwhite
                    \ nextgroup=ledgEntry
 
 syn region ledgEntry start="\v\s+" end="\v^([0-9a-zA-Z])@=" keepend contained fold
-                   \ contains=ledgPending,ledgUUID,ledgComment,ledgMeta,ledgTransfer,ledgComment
+                   \ contains=ledgPending,ledgUUID,ledgComment,ledgMeta,ledgTransfer,ledgComment,ledgWrongSyntax1
                    \ nextgroup=ledgDate,ledgTimelog,ledgTimelogPending
 syn match ledgPending "!" contained
 syn match ledgUUID "\v\#[a-zA-Z0-9]{8}\s*$" contained
@@ -70,5 +68,4 @@ hi def link ledgTransferAmount Number
 hi def link ledgString String
 
 hi def link ledgWrongSyntax1 Error
-hi def link ledgWrongSyntax2 Error
 hi def link ledgTimelogPending Error
