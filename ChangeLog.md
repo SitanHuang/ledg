@@ -4,8 +4,15 @@
 ### Added
 - timeline command to produce timelines of blocks of
   time checked in and out throughout each day
+  - \--simple for table only
 - using sugar.js to process smart dates
-- vim plugin installable via `make install`
+  - \--period=smartdate
+  - from:, to:, --skip
+  - budget file from: to:
+- vim plugin
+  - installable via `make install`
+  - syntax highlighting
+  - snippets
 
 ### Changed
 - `make binary` now compresses binary to 50% of the
