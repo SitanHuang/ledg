@@ -13,6 +13,9 @@
   - installable via `make install`
   - syntax highlighting
   - snippets
+- added error suppression flags
+  - uuid-reassigned-warning
+  - timeclock-uuid-reassigned-warning
 
 ### Changed
 - `make binary` now compresses binary to 50% of the

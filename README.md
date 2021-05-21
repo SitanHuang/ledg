@@ -248,7 +248,13 @@ FLAGS
                         imbalanced-entries,
                         timeclock-double-checkin,
                         timeclock-checkout-without-checkin,
-                        all
+                        all,
+
+                Warning: the following only suppress the warning msg and does
+                not prevent UUID reassignment; if you don't want ledg to write
+                to file, use --do-not-write-books
+                        timeclock-uuid-reassigned-warning,
+                        uuid-reassigned-warning
 
         --alias-NAME=ALIAS
                 Example: --alias-is="incomestatement --sort --tree"
