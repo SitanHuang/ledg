@@ -29,6 +29,8 @@ uninstall:
 	rm -f ~/bin/ledg
 	rm -f ~/bin/ledg-*
 	rm -f ~/.vim/syntax/ledg.vim
+	rm -f ~/.vim/syntax/ledg_price.vim
+	rm -f ~/.vim/syntax/ledg_budget.vim
 	rm -f ~/.vim/ftplugin/ledg.vim
 	rm -f ~/.vim/ftdetect/ledg.vim
 	find ~/.config/fish/ -type d -empty -delete
@@ -63,6 +65,8 @@ fish_autocomplete:
 vim_scripts:
 	mkdir -p ~/.vim/syntax ~/.vim/ftplugin ~/.vim/ftdetect/
 	rm -f ~/.vim/syntax/ledg.vim
+	rm -f ~/.vim/syntax/ledg_price.vim
+	rm -f ~/.vim/syntax/ledg_budget.vim
 	rm -f ~/.vim/ftplugin/ledg.vim
 	rm -f ~/.vim/ftdetect/ledg.vim
 	cp vim/syntax/* ~/.vim/syntax
