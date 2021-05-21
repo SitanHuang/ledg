@@ -1,5 +1,63 @@
 # Changelog
 
+## Unreleased
+### Added
+- timeline command to produce timelines of blocks of
+  time checked in and out throughout each day
+  - \--simple for table only
+- using sugar.js to process smart dates
+  - \--period=smartdate
+  - from:, to:, --skip
+  - budget file from: to:
+- vim plugin
+  - installable via `make install`
+  - syntax highlighting
+  - snippets
+- added the following error suppression flags:
+  - uuid-reassigned-warning
+  - timeclock-uuid-reassigned-warning
+
+### Changed
+- `make binary` now compresses binary to 50% of the
+  original size, making load times even faster
+- clockout entries with more than 2 transfers are
+  also serialized in journals and printed in cmds with
+  timeclock format
+
+### Fixed
+- print_max_width_from_entries counts amount string
+  length before conversion rather than after
+- division by zero if history command is run with
+  from: > to:
+- budget progress bar and usePerc does not work with
+  multicurrency
+
+## Past Releases
+* [[0.11.0] 2021-05-15](#0110-2021-05-15)
+* [[0.10.0] 2021-05-11](#0100-2021-05-11)
+* [[0.9.5] 2021-05-09](#095-2021-05-09)
+* [[0.9.4] 2021-05-05](#094-2021-05-05)
+* [[0.9.3] 2021-04-30](#093-2021-04-30)
+* [[0.9.2] 2021-04-28](#092-2021-04-28)
+* [[0.9.1] 2021-04-25](#091-2021-04-25)
+* [[0.9.0] 2021-04-23](#090-2021-04-23)
+* [[0.8.4] 2021-04-22](#084-2021-04-22)
+* [[0.8.3] 2021-04-19](#083-2021-04-19)
+* [[0.8.2] 2021-04-13](#082-2021-04-13)
+* [[0.8.1] 2021-04-11](#081-2021-04-11)
+* [[0.8.0] 2021-04-09](#080-2021-04-09)
+* [[0.8.0-beta] 2021-04-07](#080-beta-2021-04-07)
+* [[0.7.2] 2021-04-04](#072-2021-04-04)
+* [[0.7.1] 2021-03-30](#071-2021-03-30)
+* [[0.7.0] 2021-03-30](#070-2021-03-30)
+* [[0.6.1] 2021-03-28](#061-2021-03-28)
+* [[0.6.0] 2021-03-22](#060-2021-03-22)
+* [[0.5.0] 2021-03-20](#050-2021-03-20)
+* [[0.4.0] 2021-03-18](#040---2021-03-18)
+* [[0.3.0] 2021-03-16](#030---2021-03-16)
+* [[0.2.0] 2021-03-16](#020---2021-03-16)
+* [[0.1.0] 2021-03-15](#010---2021-03-15)
+
 ## [0.11.0] 2021-05-15
 ### Added
 - timeclock format support in regular journal files
@@ -34,30 +92,6 @@
 - reg command should not hide dates when --sort
 - add command has no extra space after prompt
 - missing --cleared documentation and autocomplete
-
-## Past Releases
-* [[0.10.0] 2021-05-11](#0100-2021-05-11)
-* [[0.9.4] 2021-05-05](#094-2021-05-05)
-* [[0.9.3] 2021-04-30](#093-2021-04-30)
-* [[0.9.2] 2021-04-28](#092-2021-04-28)
-* [[0.9.1] 2021-04-25](#091-2021-04-25)
-* [[0.9.0] 2021-04-23](#090-2021-04-23)
-* [[0.8.4] 2021-04-22](#084-2021-04-22)
-* [[0.8.3] 2021-04-19](#083-2021-04-19)
-* [[0.8.2] 2021-04-13](#082-2021-04-13)
-* [[0.8.1] 2021-04-11](#081-2021-04-11)
-* [[0.8.0] 2021-04-09](#080-2021-04-09)
-* [[0.8.0-beta] 2021-04-07](#080-beta-2021-04-07)
-* [[0.7.2] 2021-04-04](#072-2021-04-04)
-* [[0.7.1] 2021-03-30](#071-2021-03-30)
-* [[0.7.0] 2021-03-30](#070-2021-03-30)
-* [[0.6.1] 2021-03-28](#061-2021-03-28)
-* [[0.6.0] 2021-03-22](#060-2021-03-22)
-* [[0.5.0] 2021-03-20](#050-2021-03-20)
-* [[0.4.0] 2021-03-18](#040---2021-03-18)
-* [[0.3.0] 2021-03-16](#030---2021-03-16)
-* [[0.2.0] 2021-03-16](#020---2021-03-16)
-* [[0.1.0] 2021-03-15](#010---2021-03-15)
 
 ## [0.10.0] 2021-05-11
 ### Added

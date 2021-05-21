@@ -32,6 +32,10 @@ The project is under active development. [ChangeLogs](ChangeLog.md)
 ### Features
 #### ledg only features
 - dependency free
+- official vim plugin
+  - syntax highlighting
+  - snippets
+- timeclock timeline chart
 - batch modifications
   - `edit` command that pulls up filtered
     entries into a text editor and
@@ -50,12 +54,15 @@ The project is under active development. [ChangeLogs](ChangeLog.md)
 - specify precision with cli option
 
 #### Common Ledger Features
+- timeclock support
+- built in CSV importers (similar to hledger)
 - hledger style reports
   - incomestatement
   - cashflow
   - balancesheet
 - multicurrency and price table
-- envelope based budgeting
+- envelope based budgeting (virtual accounts)
+- smart dates
 - book closure
 - pending and virtual entries
 
@@ -68,6 +75,9 @@ MacOS/Linux supported only. Use WSL on Windows.
 1. Make sure `node` is in your path.
 2. Download and extract the source code from [Releases](https://github.com/SitanHuang/ledg/releases)
    OR download from the [develop](https://github.com/SitanHuang/ledg/archive/refs/heads/develop.zip) branch
+   - Note: make install creates a symlink to bin/ledg, which is a js file with
+     node shebang and it takes 70ms for node to parse the file; if you want faster
+     load times, download a binary from the releases to reduce it all the way to 35ms
 3. `make && make install`
 4. Put `~/bin` in your path
 
@@ -115,6 +125,10 @@ ledg git commit
 ### Screenshots
 <img
   src='assets/1.png'
+  alt='Screenshot'
+/>
+<img
+  src='assets/timeline.png'
   alt='Screenshot'
 />
 <img
@@ -237,7 +251,13 @@ FLAGS
                         imbalanced-entries,
                         timeclock-double-checkin,
                         timeclock-checkout-without-checkin,
-                        all
+                        all,
+
+                Warning: the following only suppress the warning msg and does
+                not prevent UUID reassignment; if you don't want ledg to write
+                to file, use --do-not-write-books
+                        timeclock-uuid-reassigned-warning,
+                        uuid-reassigned-warning
 
         --alias-NAME=ALIAS
                 Example: --alias-is="incomestatement --sort --tree"
@@ -269,11 +289,54 @@ FILTER
         [ modifiers ] [ account filter, ...]
         a set of arguments that filters entries
 
-        from:yyyy-mm-dd
-                limit entries starting from this date(inclusive)
+        --period="smartdate1 [(->?|\.\.\.*| to ) smartdate2]", -Psmartdate
+                using sugarjs library to parse date interval
+                if only one date is given, only from: will be set
+                Examples:
+                  - today
+                  - next week
+                  - last year
+                  - the 15th
+                  - next Tuesday
+                  - 3pm Wednesday
+                  - in 30 minutes
+                  - in half a year
+                  - five years ago
+                  - yesterday at 4pm
+                  - half an hour ago
+                  - an hour from now
+                  - 6:30pm in three days
+                  - the 4th of July
+                  - next week Thursday
+                  - the end of February
+                  - two weeks from today
+                  - the end of next week
+                  - next Saturday at 10am
+                  - the first day of 2013
+                  - four days after Monday
+                  - March 15th of last year
+                  - two days after tomorrow
+                  - the last day of February
+                  - Sunday, January 15th 2012
+                  - the beginning of this month
+                  - the 2nd Tuesday of November
+                  - 5-2002
+                  - 8/25/1978
+                  - 8-25-1978
+                  - 8.25.1978
+                  - 2012-12-31
+                  - 2016-Mar-18
+                  - 22 August
+                  - April 2012
+                  - 1 Dec. 2016
 
-        to:yyyy-mm-dd
+        from:yyyy-mm-dd|smartdate
+                limit entries starting from this date(inclusive)
+                overrides the start date specified by --period
+
+        to:yyyy-mm-dd|smartdate
                 limit entries before this date(exclusive)
+                overrides the end date specified by --period
 
         @min, @max, @year-start, @year-end, @tomorrow, @today, @month-start, @month-end
         @last-year-today, @last-year
@@ -336,6 +399,25 @@ COMMANDS
         accounts add <full account name>
                 create new account and write to FILE.config.ledg
 
+        timeline [--max-depth=] [--minhour] [--maxhour] [--simple]
+                 [ <filter> ]
+                shows blocks of time checked in and out throughout each day
+                colors are based on account names
+
+                --max-depth=A
+                        truncates account names to level A
+
+                --minhour=A
+                        Example: --minhour=14 # 2 pm
+                        instead of auto detecting the min hour, set manually
+
+                --maxhour=A
+                        Example: --maxhour=14 # 2 pm
+                        instead of auto detecting the max hour, set manually
+
+                --simple
+                        produces a table of the timeline rather than a graph
+
         burndown [--q1="[<filters>] <account filters>", --q2=...] [--abs=false] [--count]
                  [--cumulative]
                 Creates multi-dataset bar graphs
@@ -383,7 +465,7 @@ COMMANDS
                         Default: true
                         hide rows that are zeroes when used with reporting interval
 
-                --skip=yyyy-mm-dd
+                --skip=yyyy-mm-dd|smartdate
                         hides rows up until this date but keep cumulative sum from before
 
                 --csv
@@ -640,24 +722,24 @@ COMMANDS
                 Parser example:
                   // this is a custom csv parser file
                   // to execute: ledg import --parser=example.parser.js --source=example.csv
-                  
+
                   // ======  optional settings =====
                   delimeter = "|"
-                  
+
                   dateformat = "D/M/YY"
                   // or many formats such as ["YYYY-MM-DD", "M/D/YY"]
-                  
+
                   default_account = "Expense.Unknown"
-                  
+
                   // if error, stop
                   bail = true
-                  
+
                   skip(3)
-                  
+
                   process(() => {
                     // or trim(colNumber)
                     trim()
-                  
+
                     // arguments to call \`ledg add ...\`
                     if (row.length != 3)
                       return
@@ -665,7 +747,7 @@ COMMANDS
                       skip(Infinity)
                       return
                     }
-                    
+
                     add(
                       date(col(1)),
                       description(col(3)),
