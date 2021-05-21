@@ -13,7 +13,7 @@
   - installable via `make install`
   - syntax highlighting
   - snippets
-- added error suppression flags
+- added the following error suppression flags:
   - uuid-reassigned-warning
   - timeclock-uuid-reassigned-warning
 

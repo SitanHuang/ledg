@@ -32,6 +32,9 @@ The project is under active development. [ChangeLogs](ChangeLog.md)
 ### Features
 #### ledg only features
 - dependency free
+- official vim plugin
+  - syntax highlighting
+  - snippets
 - timeclock timeline chart
 - batch modifications
   - `edit` command that pulls up filtered

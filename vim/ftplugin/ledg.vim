@@ -14,6 +14,8 @@ setlocal shiftwidth=2
 setlocal indentexpr=
 setlocal colorcolumn=
 
+setlocal foldmethod=syntax
+
 autocmd BufWritePre *.ledg :%s/\s\+$//e
 
 func Eatchar(pat)
