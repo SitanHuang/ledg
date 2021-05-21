@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## [0.12.0] 2021-05-20
 ### Added
 - timeline command to produce timelines of blocks of
   time checked in and out throughout each day
