@@ -28,6 +28,13 @@ uninstall:
 	rm -f ~/.config/fish/completions/ledg.fish
 	rm -f ~/bin/ledg
 	rm -f ~/bin/ledg-*
+	rm -f ~/.vim/syntax/ledg.vim
+	rm -f ~/.vim/syntax/ledg_price.vim
+	rm -f ~/.vim/syntax/ledg_budget.vim
+	rm -f ~/.vim/ftplugin/ledg.vim
+	rm -f ~/.vim/ftplugin/ledg_price.vim
+	rm -f ~/.vim/ftplugin/ledg_budget.vim
+	rm -f ~/.vim/ftdetect/ledg.vim
 	find ~/.config/fish/ -type d -empty -delete
 	rmdir --ignore-fail-on-non-empty ~/bin
 
@@ -57,7 +64,20 @@ fish_autocomplete:
 	mkdir -p ~/.config/fish/completions/
 	cp autocomplete/ledg.autocomplete.fish ~/.config/fish/completions/ledg.fish
 
-install: bin/ledg SCRIPTS fish_autocomplete
+vim_scripts:
+	mkdir -p ~/.vim/syntax ~/.vim/ftplugin ~/.vim/ftdetect/
+	rm -f ~/.vim/syntax/ledg.vim
+	rm -f ~/.vim/syntax/ledg_price.vim
+	rm -f ~/.vim/syntax/ledg_budget.vim
+	rm -f ~/.vim/ftplugin/ledg.vim
+	rm -f ~/.vim/ftplugin/ledg_price.vim
+	rm -f ~/.vim/ftplugin/ledg_budget.vim
+	rm -f ~/.vim/ftdetect/ledg.vim
+	cp vim/syntax/* ~/.vim/syntax
+	cp vim/ftplugin/* ~/.vim/ftplugin
+	cp vim/ftdetect/* ~/.vim/ftdetect
+
+install: bin/ledg SCRIPTS fish_autocomplete vim_scripts
 	mkdir -p ~/bin
 	rm -f ~/bin/ledg
 	rm -f ~/bin/ledg-*

@@ -5,6 +5,7 @@
 - timeline command to produce timelines of blocks of
   time checked in and out throughout each day
 - using sugar.js to process smart dates
+- vim plugin installable via `make install`
 
 ### Changed
 - `make binary` now compresses binary to 50% of the

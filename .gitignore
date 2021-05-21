@@ -1,7 +1,7 @@
 node_modules/**/*
 *.swp
 ~*
-*.vim
+Session.vim
 bin/*
 node_modules
 package-lock.json
