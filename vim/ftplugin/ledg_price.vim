@@ -15,4 +15,6 @@ setlocal indentexpr=
 
 autocmd BufWritePre *.ledg :%s/\s\+$//e
 
+iabb <silent> <buffer> P P <C-R>=strftime("%Y-%m-%d")<CR>
+
 inoremap <tab> <c-v><tab>
