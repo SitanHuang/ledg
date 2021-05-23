@@ -1,4 +1,23 @@
 ## Multicurrency
+### 2021-05-22 v8 bytecode & binary compression
+105000 entries single currency
+
+| Command | Mean [ms] | Min [ms] | Max [ms] | Relative |
+|:---|---:|---:|---:|---:|
+| `/home/D/DIY/ledger/ledg-linux -Ftest --tree --no-config --sp` | 948.7 ± 17.3 | 934.8 | 988.8 | 1.09 ± 0.02 |
+| `ledger -f test.dat bal` | 868.8 ± 10.5 | 851.7 | 889.4 | 1.00 |
+| `hledger -ftest.dat bal` | 8553.7 ± 63.3 | 8494.0 | 8683.2 | 9.85 ± 0.14 |
+
+| Command | Mean [s] | Min [s] | Max [s] | Relative |
+|:---|---:|---:|---:|---:|
+| `/home/D/DIY/ledger/ledg-linux  -Ftest incomestatement f:2021-01-01 to:2022-01-01 --monthly --no-config` | 1.062 ± 0.017 | 1.044 | 1.091 | 1.00 |
+| `hledger -ftest.dat incomestatement -b 2021-01-01 -e 2022-01-01 --monthly` | 8.420 ± 0.022 | 8.383 | 8.454 | 7.93 ± 0.13 |
+
+| Command | Mean [s] | Min [s] | Max [s] | Relative |
+|:---|---:|---:|---:|---:|
+| `/home/D/DIY/ledger/ledg-linux  -Ftest balancesheet f:2021-01-01 to:2022-01-01 --monthly --no-config` | 1.044 ± 0.027 | 1.015 | 1.099 | 1.00 |
+| `hledger -ftest.dat balancesheet -b 2021-01-01 -e 2022-01-01 --monthly` | 8.252 ± 0.057 | 8.166 | 8.365 | 7.90 ± 0.21 |
+
 ### 2021-05-13 Timeclock only
 47040 individual directives of check-ins and check-outs
 
