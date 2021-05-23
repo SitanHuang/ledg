@@ -3,6 +3,7 @@
 ## [Unreleased]
 ### Added
 - \--test option for filtering entries with JS eval
+- Makefile now checks for min node version
 
 ## Past Releases
 * [[0.12.0] 2021-05-20](#0120-2021-05-20)
