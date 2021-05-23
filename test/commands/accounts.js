@@ -24,6 +24,7 @@ describe('ledg accounts', () => {
     ctx.fw('book.2021.ledg',
 `
 2021-01-01 asdf #afssssfa
+  ;test:"fds"
   add rmb\ta.b\t1r
   \tbal\t
 `
@@ -51,6 +52,16 @@ P 0000-01-01 r 1R
     ctx
       .ledg('accounts', '-F-')
       .out(`"Accounts","Balance"`);
+  });
+  it('should --test', () => {
+    ctx
+      .input(content+"  \ta\t-123.12345 USD\n2020-01-01 #kdkdkdkd\n  \tb\t1\n  \tc\t-1")
+      .ledg('accounts', '--test=uuid.startsWith("a")', '-F-')
+      .skip("\"a.aa")
+      .out(`"a.aa","USD123.12345"\n"b","0"\n"c","0"`)
+      .ledg('accounts', '-F-')
+      .skip("\"a.aa")
+      .out(`"a.aa","USD123.12345"\n"b","1.00"\n"c","-1.00"`)
   });
   it('should sum virt:true and --real', () => {
     ctx

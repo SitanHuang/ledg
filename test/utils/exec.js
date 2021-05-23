@@ -20,7 +20,7 @@ class TestContext {
   }
 
   get args() {
-    return ["-F" + this.root + "book", "--csv", "-y", "-W"];
+    return ["-F" + this.root + "book", "--csv", "-y", "-W", "--no-config"];
   }
 
   fw(name, content) {

@@ -289,6 +289,12 @@ FILTER
         [ modifiers ] [ account filter, ...]
         a set of arguments that filters entries
 
+        --test=JS code
+                the js code is applied with the context of each entry
+                Example:
+                  --test="transfers.filter(x => x[0].match(/tassel/i)).length"
+                  matches entries with transfer description /tassel/i
+
         --period="smartdate1 [(->?|\.\.\.*| to ) smartdate2]", -Psmartdate
                 using sugarjs library to parse date interval
                 if only one date is given, only from: will be set
