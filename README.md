@@ -243,7 +243,10 @@ FLAGS
                 Asks for confirmation before adding/modifying entry
 
         -Wflag1,flag2,flag3
-                Sets ignore flags
+                Example:
+                  # turns off everything then turn on imbalanced entries
+                  -Wnone,imbalanced-entries
+
                 Flags:
                         invalid-price-declaration,
                         unknown-book-directive,
@@ -251,7 +254,8 @@ FLAGS
                         imbalanced-entries,
                         timeclock-double-checkin,
                         timeclock-checkout-without-checkin,
-                        all,
+                        all, # sets everything to true
+                        none, # sets everything to false
 
                 Warning: the following only suppress the warning msg and does
                 not prevent UUID reassignment; if you don't want ledg to write
