@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 ### Added
+- event directive, similar to beancount but can contain transfers and modifiers,
+  can be batch modified
 - \--test option for filtering entries with JS eval
 - Makefile now checks for min node version
 - "none" flag for -W

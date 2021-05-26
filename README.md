@@ -267,6 +267,23 @@ FLAGS
                 Example: --alias-is="incomestatement --sort --tree"
                 replaces name with the alias and reparse argv
 
+EVENTS
+        format:
+          the event format is similar to that of beancount except that it accepts
+          modifiers and transactions as well
+
+          2021-01-01 event type description [#8chruuid]
+            ;key:inline json
+            desc(tab)account(tab)amount
+
+          event entries can have no transfers, and has the event: modifier set to
+          the type so they are queryable with event:.
+
+        workflow:
+          ledg add event:type "Description" ... optional transfers and modifiers
+
+          ledg info event:.
+
 TIMECLOCK
         format:
           ; clock in

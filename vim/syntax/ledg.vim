@@ -24,8 +24,10 @@ syn match ledgWrongSyntax1 "\v^\t.*$"
 syn match ledgDate "\v^\d{4}\-\d{2}\-\d{2}" skipwhite
                    \ nextgroup=ledgEntry
 
+syn match ledgEvent "event " contained
+
 syn region ledgEntry start="\v\s+" end="\v^([0-9a-zA-Z])@=" keepend contained fold
-                   \ contains=ledgPending,ledgUUID,ledgComment,ledgMeta,ledgTransfer,ledgComment,ledgWrongSyntax1
+                   \ contains=ledgPending,ledgUUID,ledgComment,ledgMeta,ledgTransfer,ledgComment,ledgWrongSyntax1,ledgEvent
                    \ nextgroup=ledgDate,ledgTimelog,ledgTimelogPending
 syn match ledgPending "!" contained
 syn match ledgUUID "\v\#[a-zA-Z0-9]{8}\s*$" contained
@@ -50,6 +52,7 @@ syn keyword ledgConstants true false null contained
 syn region ledgString start='"' skip='\\"' end='"' contained
 
 hi def link ledgDate Keyword
+hi def link ledgEvent Keyword
 hi def link ledgTimelog Keyword
 hi def link ledgTimelogEntry Keyword
 hi def link ledgUUID Identifier
