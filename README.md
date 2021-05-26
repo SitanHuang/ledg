@@ -272,7 +272,7 @@ EVENTS
           the event format is similar to that of beancount except that it accepts
           modifiers and transactions as well
 
-          2021-01-01 event type description [#8chruuid]
+          2021-01-01 [!] event type description [#8chruuid]
             ;key:inline json
             desc(tab)account(tab)amount
 
@@ -458,6 +458,18 @@ COMMANDS
 
                 --count
                         Show graph of numbers of entries rather than sum
+
+        events [--squash=ymd] [<filters>] [event:"."] [--today=@today]
+                Lists events
+
+                --today=yyyy-mm-dd|smartdate
+                        Default: @today
+                        indicate the date to calculate the "Since" column
+
+                --squash=
+                        Default: ymd
+                        whether to show year, month and day difference between
+                        --today and event date
 
         close --account=ACC [--income=Income*] [--expense=Expense*]
               [from:@year-start] [to:@year-end] [-i|--confirm=true]

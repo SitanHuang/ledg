@@ -4,6 +4,7 @@
 ### Added
 - event directive, similar to beancount but can contain transfers and modifiers,
   can be batch modified
+- events command
 - \--test option for filtering entries with JS eval
 - Makefile now checks for min node version
 - "none" flag for -W
