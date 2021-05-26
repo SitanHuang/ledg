@@ -13,6 +13,9 @@
   - now, it user wants to turn off a flag from .ledgrc, they can use -Wnone,...
     to first turn everything off then turn on specific ones
 
+### Fixed
+- system pager is invoked even with --html option
+
 ## Past Releases
 * [[0.12.0] 2021-05-20](#0120-2021-05-20)
 * [[0.11.0] 2021-05-15](#0110-2021-05-15)
