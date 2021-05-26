@@ -6,6 +6,7 @@
   can be batch modified
 - events command
 - \--test option for filtering entries with JS eval
+- \--no-comma option to disable commas in amounts
 - Makefile now checks for min node version
 - "none" flag for -W
   - previously, passing a list to -W only turns on the desired flags but does

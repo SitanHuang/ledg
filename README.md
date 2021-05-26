@@ -199,6 +199,9 @@ FLAGS
         --right
                 place currency right of the amount
 
+        --no-comma
+                do not print comma in amounts
+
         --transpose
                 force a table transpose
 
