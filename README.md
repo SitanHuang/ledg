@@ -196,6 +196,9 @@ FLAGS
         --csv-no-quotes
                 with --csv enabled, output no longer uses quotes around columns
 
+        --csv-delimiter=","
+                with --csv enabled, sets csv delimiter
+
         --right
                 place currency right of the amount
 
