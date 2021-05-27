@@ -282,7 +282,7 @@ EVENTS
             ;key:inline json
             desc(tab)account(tab)amount
 
-          event entries can have no transfers, and has the event: modifier set to
+          event entries can have no transfers; entries have the event: modifier set to
           the type so they are queryable with event:.
 
         workflow:
