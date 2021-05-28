@@ -13,12 +13,13 @@
   - previously, passing a list to -W only turns on the desired flags but does
     not turn off previously set flags; this makes it impossible to disable the
     -W list in .ledgrc if user wants to override it
-  - now, it user wants to turn off a flag from .ledgrc, they can use -Wnone,...
+  - now, if user wants to turn off a flag from .ledgrc, they can use -Wnone,...
     to first turn everything off then turn on specific ones
 
 ### Fixed
 - system pager is invoked even with --html option
 - incorrect expansion of ~ for --file
+- cannot find home directory in Windows
 
 ## Past Releases
 * [[0.12.0] 2021-05-20](#0120-2021-05-20)
