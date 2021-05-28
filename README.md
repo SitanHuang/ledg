@@ -213,6 +213,9 @@ FLAGS
         --drop-columns=A,B,C,D
                 drops columns in tabular outputs
 
+        --min-depth=A,--mdep=A,--mdepth=A
+                in supported reports, truncate top level account names
+
         --budget=NAME
                 this can be used in your .ledgrc to point to a default budget
                 ex. --budget="Monthly Budget"

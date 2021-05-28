@@ -8,6 +8,10 @@
 - \--test option for filtering entries with JS eval
 - \--no-comma option to disable commas in amounts
 - \--csv-delimiter option
+- \--min-depth option for
+  - accounts cmd
+  - multiperiod reports
+  - register cmd
 - Makefile now checks for min node version
 - "none" flag for -W
   - previously, passing a list to -W only turns on the desired flags but does
