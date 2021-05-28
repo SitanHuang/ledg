@@ -19,6 +19,7 @@
     -W list in .ledgrc if user wants to override it
   - now, if user wants to turn off a flag from .ledgrc, they can use -Wnone,...
     to first turn everything off then turn on specific ones
+- version cmd now shows git commit hash
 
 ### Fixed
 - system pager is invoked even with --html option

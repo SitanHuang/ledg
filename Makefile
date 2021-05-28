@@ -7,6 +7,12 @@ SOURCE_CLI = $(shell find lib/cli/ -type f -name '*.js' -not -path '**/index.js'
 NODE_VERSION = $(shell node -v | cut -c2-3)
 GOOD_NODE = $(shell if [ $(NODE_VERSION) -ge 14 ]; then echo true; fi)
 
+ifeq (, $(shell which git))
+COMMIT_HASH=
+else
+COMMIT_HASH=$(shell [ -d .git ] && git rev-parse --short HEAD)
+endif
+
 check_node:
 	mkdir -p bin
 ifeq ($(GOOD_NODE),)
@@ -39,6 +45,7 @@ uninstall:
 
 header:
 	echo "#!/usr/bin/env node" > bin/ledg
+	echo "const LEDG_COMMIT_HASH='$(COMMIT_HASH)';" >> bin/ledg
 
 core: ${SOURCE_CORE}
 	cat $^ >> bin/ledg
