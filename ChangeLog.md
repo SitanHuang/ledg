@@ -26,6 +26,7 @@
 - system pager is invoked even with --html option
 - incorrect expansion of ~ for --file
 - cannot find home directory in Windows
+- register command with interval does not sort accounts alphabetically
 
 ## Past Releases
 * [[0.12.0] 2021-05-20](#0120-2021-05-20)
