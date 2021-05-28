@@ -18,6 +18,7 @@
 
 ### Fixed
 - system pager is invoked even with --html option
+- incorrect expansion of ~ for --file
 
 ## Past Releases
 * [[0.12.0] 2021-05-20](#0120-2021-05-20)
