@@ -6,19 +6,20 @@
   can be batch modified
 - events command
 - \--test option for filtering entries with JS eval
-- \--no-comma option to disable commas in amounts
-- \--csv-delimiter option
+- account filter regex literal mode
 - \--min-depth option for
   - accounts cmd
   - multiperiod reports
   - register cmd
-- Makefile now checks for min node version
+- \--csv-delimiter option
+- \--no-comma option to disable commas in amounts
 - "none" flag for -W
   - previously, passing a list to -W only turns on the desired flags but does
     not turn off previously set flags; this makes it impossible to disable the
     -W list in .ledgrc if user wants to override it
   - now, if user wants to turn off a flag from .ledgrc, they can use -Wnone,...
     to first turn everything off then turn on specific ones
+- Makefile now checks for min node version
 - version cmd now shows git commit hash
 
 ### Fixed

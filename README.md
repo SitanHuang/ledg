@@ -414,6 +414,13 @@ FILTER
                         contains the letters in that order
                             ex: .csh. matches *\.[^.]*c[^.]*s[^.]*h[^.]*\.* in regex
 
+                regex literal mode
+                  adding "\v" to the beginning of an account filter will match
+                  accounts to the regular regex after "\v"
+
+                  example to exclude all equity accounts:
+                    "\v^(?!Equity)"
+
 VIRTUAL ENTRIES
         Entries are virtual with virt:true modifier.
         Pass --real flag ignores these virtual entries.
