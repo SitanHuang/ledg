@@ -16,7 +16,7 @@ set -l ledg_options "--file= -F --light-theme --lt --csv --html --format= --tran
        "--debug --do-not-write-books --do-not-write-config --rewrite --tc-prices=false"\
        "--tc-expose --timeclock --cleared --eop --source= --parser= --minhour="\
        "--maxhour= --period= -P --today= --squash= --no-comma --csv-delimiter="\
-       "--min-depth= --mdep= --mdepth="
+       "--min-depth= --mdep= --mdepth= --interval="
 
 set -l ledg_modifiers "desc: description: uuid: f: from: t: to: bc: bookClose:"\
        "pending: virt: clockIn: clockOut:"

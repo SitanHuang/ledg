@@ -502,7 +502,8 @@ COMMANDS
                         Specify the accounts for income and expense
 
         register [--daily] [--weekly] [--biweekly] [--monthly] [--quarterly]
-                 [--yearly] [--hide-zero=true, --hz]
+                 [--yearly] [--interval=y,m,d] [--hide-zero=true, --hz]
+                 [--sort=asc|desc]
                  [--skip-book-close=true] [--csv] [--invert]
                  [ <account filter 1> <account filter 2> ... ] [--skip=]
                 Default: --hide-zero to:@tomorrow from:@min
@@ -527,7 +528,8 @@ COMMANDS
                         tabulate data in csv (exporting for other use)
 
         history [--daily] [--weekly] [--biweekly] [--monthly] [--quarterly] [--invert]
-                [--yearly] [--cumulative] [--cumulative-columns=num list] [--avg]
+                [--yearly] [--interval=y,m,d] [--cumulative]
+                [--cumulative-columns=num list] [--avg]
                 [--skip-book-close=true] [--epoch] [--csv] [--iso] [--isofull]
                 [ <account filter 1> <account filter 2> ... ] [--skip=] [--sum=]
                 Defaults: shows accounts specified by --income, --expense, --asset, --liability,
@@ -576,7 +578,8 @@ COMMANDS
         balancesheetequity,
         cashflow,
         incomestatement [ <filter> ] [--daily] [--weekly] [--biweekly] [--monthly]
-                        [--quarterly] [--skip] [from:] [to:] [--hide-zero] [--tree]
+                        [--yearly] [--interval=y,m,d] [--quarterly] [--skip]
+                        [from:] [to:] [--hide-zero] [--tree]
                         [--skip-book-close=true] [--iso=true] [--isofull] [--sort]
                         [--sum-parent] [--avg] [ <currency flags> ] [--dp=2]
                         [--csv] [--asset=] [--income=] [--expense=] [--liability=]

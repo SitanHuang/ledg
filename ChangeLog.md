@@ -11,6 +11,7 @@
   - accounts cmd
   - multiperiod reports
   - register cmd
+- \--interval option for custom date intervals
 - \--csv-delimiter option
 - \--no-comma option to disable commas in amounts
 - "none" flag for -W
