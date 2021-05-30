@@ -208,6 +208,10 @@ FLAGS
         --transpose
                 force a table transpose
 
+        --flat[=false]
+                in reports that support --tree, set --tree to the opposite
+                boolean value of --flat
+
         --drop,
         --drop-cols,
         --drop-columns=A,B,C,D

@@ -14,6 +14,7 @@
 - \--interval option for custom date intervals
 - \--csv-delimiter option
 - \--no-comma option to disable commas in amounts
+- \--flat option as a shorthand for --tree=false
 - "none" flag for -W
   - previously, passing a list to -W only turns on the desired flags but does
     not turn off previously set flags; this makes it impossible to disable the
