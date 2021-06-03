@@ -25,6 +25,9 @@
 - Makefile now checks for min node version
 - version cmd now shows git commit hash
 
+### Changed
+- info command defaults to from:@min if --test is set
+
 ### Fixed
 - system pager is invoked even with --html option
 - incorrect expansion of ~ for --file
