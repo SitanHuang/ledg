@@ -5,7 +5,7 @@
 - event directive, similar to beancount but can contain transfers and modifiers,
   can be batch modified
 - events command
-- \--test option for filtering entries with JS eval
+- \--test option for filtering entries with JS eval and various macros
 - account filter regex literal mode
 - \--min-depth option for
   - accounts cmd
@@ -33,6 +33,7 @@
 - incorrect expansion of ~ for --file
 - cannot find home directory in Windows
 - register command with interval does not sort accounts alphabetically
+- Money.eq returns true even between two unresolvable currencies
 
 ## Past Releases
 * [[0.12.0] 2021-05-20](#0120-2021-05-20)
