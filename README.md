@@ -373,6 +373,18 @@ FILTER
                     will try to convert it to the same currency as x and then
                     compare
 
+                  gt(x)
+                    Like amount(x), but returns true if any transfer of an entry
+                    has amount greater than x
+
+                    Best used with positive amounts
+
+                  lt(x)
+                    Like gt(x), but returns true if any transfer of an entry has
+                    amount less than x
+
+                    Best used with negative amounts
+
         --period="smartdate1 [(->?|\.\.\.*| to ) smartdate2]", -Psmartdate
                 using sugarjs library to parse date interval
                 if only one date is given, only from: will be set
