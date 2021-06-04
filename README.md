@@ -329,6 +329,50 @@ FILTER
                   --test="transfers.filter(x => x[0].match(/tassel/i)).length"
                   matches entries with transfer description /tassel/i
 
+                  or, using macros for the same result:
+                  --test="transDesc(/tassel/i)"
+
+                Macros:
+                  desc(x)
+                    x is converted to regex if not already a regex
+
+                  transDesc(...x)
+                    if any of the arguments match any of the transfer
+                    descriptions, return true; all arguments are converted
+                    to regex if not already in regex
+
+                  or(...x), add(...x), not(x)
+
+                  tag(...x)
+                    returns true if the entry matches every tag in the arguments;
+                    arguments are exact matches but case insensitive
+
+                  match(x, e)
+                    matches x to e; e is converted to regex if not already a regex
+
+                  attr(x, e)
+                    Example: attr('payee', /Amazon|Walmart/i)
+
+                    matches the attribute x to e; e is converted to regex if not
+                    already a regex
+
+                    this is useful as referencing local variables that an entry
+                    doesn't have can cause errors while this macro doesn't
+
+                  before(iso), on(iso), after(iso)
+                    iso:string -> "YYYY-MM-DD"
+
+                  amount(x)
+                    Example: amount('12.312 EUR') matches 12.312 EUR or 14.92 USD
+                             amount('1 USD, 0.83 EUR') matches 2 USD or 1 USD, 0.83 EUR
+
+                    Note: currency conversion is calculated at the date of the entry
+
+                    returns true if any transfer of an entry has the amount
+                    equal to x; if the transfer has a different currency, ledg
+                    will try to convert it to the same currency as x and then
+                    compare
+
         --period="smartdate1 [(->?|\.\.\.*| to ) smartdate2]", -Psmartdate
                 using sugarjs library to parse date interval
                 if only one date is given, only from: will be set
