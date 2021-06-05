@@ -23,7 +23,7 @@
   - now, if user wants to turn off a flag from .ledgrc, they can use -Wnone,...
     to first turn everything off then turn on specific ones
 - Makefile now checks for min node version
-- version cmd now shows git commit hash
+- version cmd now shows git commit hash and node version
 
 ### Changed
 - info command defaults to from:@min if --test is set
