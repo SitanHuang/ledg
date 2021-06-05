@@ -43,7 +43,7 @@ end
 puts 'OK'
 
 print 'Update version.js: '
-unless `sed -E "s/version [^']+'/version #{version}'/g" lib/cli/commands/version.js -i`.empty?
+unless `sed -E "s/c.bold\\('[^']+'\\) \\+$/c.bold('#{version}') +/g" lib/cli/commands/version.js -i`.empty?
   puts 'Failed!'
   exit 1
 end

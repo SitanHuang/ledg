@@ -1,5 +1,67 @@
 # Changelog
 
+## [0.13.0] 2021-06-05
+### Added
+- event directive, similar to beancount but can contain transfers and modifiers,
+  can be batch modified
+- events command
+- \--test option for filtering entries with JS eval and various macros
+- account filter regex literal mode
+- \--min-depth option for
+  - accounts cmd
+  - multiperiod reports
+  - register cmd
+- \--interval option for custom date intervals
+- \--csv-delimiter option
+- \--no-comma option to disable commas in amounts
+- \--flat option as a shorthand for --tree=false
+- \--budget option now recognizes budget id
+- "none" flag for -W
+  - previously, passing a list to -W only turns on the desired flags but does
+    not turn off previously set flags; this makes it impossible to disable the
+    -W list in .ledgrc if user wants to override it
+  - now, if user wants to turn off a flag from .ledgrc, they can use -Wnone,...
+    to first turn everything off then turn on specific ones
+- Makefile now checks for min node version
+- version cmd now shows git commit hash and node version
+
+### Changed
+- info command defaults to from:@min if --test is set
+
+### Fixed
+- system pager is invoked even with --html option
+- incorrect expansion of ~ for --file
+- cannot find home directory in Windows
+- register command with interval does not sort accounts alphabetically
+- Money.eq returns true even between two unresolvable currencies
+
+## Past Releases
+* [[0.12.0] 2021-05-20](#0120-2021-05-20)
+* [[0.11.0] 2021-05-15](#0110-2021-05-15)
+* [[0.10.0] 2021-05-11](#0100-2021-05-11)
+* [[0.9.5] 2021-05-09](#095-2021-05-09)
+* [[0.9.4] 2021-05-05](#094-2021-05-05)
+* [[0.9.3] 2021-04-30](#093-2021-04-30)
+* [[0.9.2] 2021-04-28](#092-2021-04-28)
+* [[0.9.1] 2021-04-25](#091-2021-04-25)
+* [[0.9.0] 2021-04-23](#090-2021-04-23)
+* [[0.8.4] 2021-04-22](#084-2021-04-22)
+* [[0.8.3] 2021-04-19](#083-2021-04-19)
+* [[0.8.2] 2021-04-13](#082-2021-04-13)
+* [[0.8.1] 2021-04-11](#081-2021-04-11)
+* [[0.8.0] 2021-04-09](#080-2021-04-09)
+* [[0.8.0-beta] 2021-04-07](#080-beta-2021-04-07)
+* [[0.7.2] 2021-04-04](#072-2021-04-04)
+* [[0.7.1] 2021-03-30](#071-2021-03-30)
+* [[0.7.0] 2021-03-30](#070-2021-03-30)
+* [[0.6.1] 2021-03-28](#061-2021-03-28)
+* [[0.6.0] 2021-03-22](#060-2021-03-22)
+* [[0.5.0] 2021-03-20](#050-2021-03-20)
+* [[0.4.0] 2021-03-18](#040---2021-03-18)
+* [[0.3.0] 2021-03-16](#030---2021-03-16)
+* [[0.2.0] 2021-03-16](#020---2021-03-16)
+* [[0.1.0] 2021-03-15](#010---2021-03-15)
+
 ## [0.12.0] 2021-05-20
 ### Added
 - timeline command to produce timelines of blocks of
@@ -31,32 +93,6 @@
   from: > to:
 - budget progress bar and usePerc does not work with
   multicurrency
-
-## Past Releases
-* [[0.11.0] 2021-05-15](#0110-2021-05-15)
-* [[0.10.0] 2021-05-11](#0100-2021-05-11)
-* [[0.9.5] 2021-05-09](#095-2021-05-09)
-* [[0.9.4] 2021-05-05](#094-2021-05-05)
-* [[0.9.3] 2021-04-30](#093-2021-04-30)
-* [[0.9.2] 2021-04-28](#092-2021-04-28)
-* [[0.9.1] 2021-04-25](#091-2021-04-25)
-* [[0.9.0] 2021-04-23](#090-2021-04-23)
-* [[0.8.4] 2021-04-22](#084-2021-04-22)
-* [[0.8.3] 2021-04-19](#083-2021-04-19)
-* [[0.8.2] 2021-04-13](#082-2021-04-13)
-* [[0.8.1] 2021-04-11](#081-2021-04-11)
-* [[0.8.0] 2021-04-09](#080-2021-04-09)
-* [[0.8.0-beta] 2021-04-07](#080-beta-2021-04-07)
-* [[0.7.2] 2021-04-04](#072-2021-04-04)
-* [[0.7.1] 2021-03-30](#071-2021-03-30)
-* [[0.7.0] 2021-03-30](#070-2021-03-30)
-* [[0.6.1] 2021-03-28](#061-2021-03-28)
-* [[0.6.0] 2021-03-22](#060-2021-03-22)
-* [[0.5.0] 2021-03-20](#050-2021-03-20)
-* [[0.4.0] 2021-03-18](#040---2021-03-18)
-* [[0.3.0] 2021-03-16](#030---2021-03-16)
-* [[0.2.0] 2021-03-16](#020---2021-03-16)
-* [[0.1.0] 2021-03-15](#010---2021-03-15)
 
 ## [0.11.0] 2021-05-15
 ### Added

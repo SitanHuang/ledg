@@ -1,18 +1,22 @@
-all: check_node clean bin/ledg SCRIPTS
+all: clean bin/ledg SCRIPTS
 
 SOURCE_CORE = $(shell find lib/core/ -type f -name '*.js')
 SOURCE_FS = $(shell find lib/fs/ -type f -name '*.js')
 SOURCE_CLI = $(shell find lib/cli/ -type f -name '*.js' -not -path '**/index.js' -not -path '**/commands.js' -not -path 'lib/cli/charts/chart.js')
 
-NODE_VERSION := $(shell node --version 2>/dev/null)
+NODE_VERSION = $(shell node -v | cut -c2-3)
+GOOD_NODE = $(shell if [ $(NODE_VERSION) -ge 14 ]; then echo true; fi)
+
+ifeq (, $(shell which git))
+COMMIT_HASH=
+else
+COMMIT_HASH=$(shell [ -d .git ] && git rev-parse --short HEAD)
+endif
 
 check_node:
 	mkdir -p bin
-ifdef NODE_VERSION
-	# TODO:
-else
-	@echo Node.js not found
-	exit
+ifeq ($(GOOD_NODE),)
+	$(error Node.js not found or lower than version 14)
 endif
 
 SCRIPTS:
@@ -41,6 +45,7 @@ uninstall:
 
 header:
 	echo "#!/usr/bin/env node" > bin/ledg
+	echo "const LEDG_COMMIT_HASH='$(COMMIT_HASH)';" >> bin/ledg
 
 core: ${SOURCE_CORE}
 	cat $^ >> bin/ledg
@@ -54,7 +59,7 @@ cli: ${SOURCE_CLI}
 fs: ${SOURCE_FS}
 	cat $^ >> bin/ledg
 
-bin/ledg: header core fs cli
+bin/ledg: check_node header core fs cli
 	chmod +x bin/ledg
 
 binary: bin/ledg

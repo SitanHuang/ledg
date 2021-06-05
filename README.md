@@ -17,8 +17,8 @@
 ### About
 This is a personal project aimed at creating a ledger-like cli accounting program
 that I can customize according to my likings and workflow.
-For multicurrency journals, the performance is about 5.5 - 6 times faster than hledger
-and 1.6 times slower than ledger.
+For multicurrency journals, the performance is about 7-8 times faster than hledger
+and 1.1 times slower than ledger.
 [Benchmark](benchmark.md)
 
 The ledg file format is incompatible with other ledger-likes.
@@ -196,16 +196,29 @@ FLAGS
         --csv-no-quotes
                 with --csv enabled, output no longer uses quotes around columns
 
+        --csv-delimiter=","
+                with --csv enabled, sets csv delimiter
+
         --right
                 place currency right of the amount
 
+        --no-comma
+                do not print comma in amounts
+
         --transpose
                 force a table transpose
+
+        --flat[=false]
+                in reports that support --tree, set --tree to the opposite
+                boolean value of --flat
 
         --drop,
         --drop-cols,
         --drop-columns=A,B,C,D
                 drops columns in tabular outputs
+
+        --min-depth=A,--mdep=A,--mdepth=A
+                in supported reports, truncate top level account names
 
         --budget=NAME
                 this can be used in your .ledgrc to point to a default budget
@@ -243,7 +256,10 @@ FLAGS
                 Asks for confirmation before adding/modifying entry
 
         -Wflag1,flag2,flag3
-                Sets ignore flags
+                Example:
+                  # turns off everything then turn on imbalanced entries
+                  -Wnone,imbalanced-entries
+
                 Flags:
                         invalid-price-declaration,
                         unknown-book-directive,
@@ -251,7 +267,8 @@ FLAGS
                         imbalanced-entries,
                         timeclock-double-checkin,
                         timeclock-checkout-without-checkin,
-                        all,
+                        all, # sets everything to true
+                        none, # sets everything to false
 
                 Warning: the following only suppress the warning msg and does
                 not prevent UUID reassignment; if you don't want ledg to write
@@ -262,6 +279,23 @@ FLAGS
         --alias-NAME=ALIAS
                 Example: --alias-is="incomestatement --sort --tree"
                 replaces name with the alias and reparse argv
+
+EVENTS
+        format:
+          the event format is similar to that of beancount except that it accepts
+          modifiers and transactions as well
+
+          2021-01-01 [!] event type description [#8chruuid]
+            ;key:inline json
+            desc(tab)account(tab)amount
+
+          event entries can have no transfers; entries have the event: modifier set to
+          the type so they are queryable with event:.
+
+        workflow:
+          ledg add event:type "Description" ... optional transfers and modifiers
+
+          ledg info event:.
 
 TIMECLOCK
         format:
@@ -288,6 +322,68 @@ TIMECLOCK
 FILTER
         [ modifiers ] [ account filter, ...]
         a set of arguments that filters entries
+
+        --test=JS code
+                the js code is applied with the context of each entry
+                Example:
+                  --test="transfers.filter(x => x[0].match(/tassel/i)).length"
+                  matches entries with transfer description /tassel/i
+
+                  or, using macros for the same result:
+                  --test="transDesc(/tassel/i)"
+
+                Macros:
+                  desc(x)
+                    x is converted to regex if not already a regex
+
+                  transDesc(...x)
+                    if any of the arguments match any of the transfer
+                    descriptions, return true; all arguments are converted
+                    to regex if not already in regex
+
+                  or(...x), add(...x), not(x)
+
+                  tag(...x)
+                    returns true if the entry matches every tag in the arguments;
+                    arguments are exact matches but case insensitive
+
+                  match(x, e)
+                    matches x to e; e is converted to regex if not already a regex
+
+                  attr(x, e)
+                    Example: attr('payee', /Amazon|Walmart/i)
+
+                    matches the attribute x to e; e is converted to regex if not
+                    already a regex
+
+                    this is useful as referencing local variables that an entry
+                    doesn't have can cause errors while this macro doesn't
+
+                  before(iso), on(iso), after(iso)
+                    iso:string -> "YYYY-MM-DD"
+
+                  amount(x)
+                    Example: amount('12.312 EUR') matches 12.312 EUR or 14.92 USD
+                             amount('1 USD, 0.83 EUR') matches 2 USD or 1 USD, 0.83 EUR
+
+                    Note: currency conversion is calculated at the date of the entry
+
+                    returns true if any transfer of an entry has the amount
+                    equal to x; if the transfer has a different currency, ledg
+                    will try to convert it to the same currency as x and then
+                    compare
+
+                  gt(x)
+                    Like amount(x), but returns true if any transfer of an entry
+                    has amount greater than x
+
+                    Best used with positive amounts
+
+                  lt(x)
+                    Like gt(x), but returns true if any transfer of an entry has
+                    amount less than x
+
+                    Best used with negative amounts
 
         --period="smartdate1 [(->?|\.\.\.*| to ) smartdate2]", -Psmartdate
                 using sugarjs library to parse date interval
@@ -378,6 +474,13 @@ FILTER
                         contains the letters in that order
                             ex: .csh. matches *\.[^.]*c[^.]*s[^.]*h[^.]*\.* in regex
 
+                regex literal mode
+                  adding "\v" to the beginning of an account filter will match
+                  accounts to the regular regex after "\v"
+
+                  example to exclude all equity accounts:
+                    "\v^(?!Equity)"
+
 VIRTUAL ENTRIES
         Entries are virtual with virt:true modifier.
         Pass --real flag ignores these virtual entries.
@@ -432,6 +535,18 @@ COMMANDS
                 --count
                         Show graph of numbers of entries rather than sum
 
+        events [--squash=ymd] [<filters>] [event:"."] [--today=@today]
+                Lists events
+
+                --today=yyyy-mm-dd|smartdate
+                        Default: @today
+                        indicate the date to calculate the "Since" column
+
+                --squash=
+                        Default: ymd
+                        whether to show year, month and day difference between
+                        --today and event date
+
         close --account=ACC [--income=Income*] [--expense=Expense*]
               [from:@year-start] [to:@year-end] [-i|--confirm=true]
                 Moves income and expense balances in a given period to the
@@ -447,7 +562,8 @@ COMMANDS
                         Specify the accounts for income and expense
 
         register [--daily] [--weekly] [--biweekly] [--monthly] [--quarterly]
-                 [--yearly] [--hide-zero=true, --hz]
+                 [--yearly] [--interval=y,m,d] [--hide-zero=true, --hz]
+                 [--sort=asc|desc]
                  [--skip-book-close=true] [--csv] [--invert]
                  [ <account filter 1> <account filter 2> ... ] [--skip=]
                 Default: --hide-zero to:@tomorrow from:@min
@@ -472,7 +588,8 @@ COMMANDS
                         tabulate data in csv (exporting for other use)
 
         history [--daily] [--weekly] [--biweekly] [--monthly] [--quarterly] [--invert]
-                [--yearly] [--cumulative] [--cumulative-columns=num list] [--avg]
+                [--yearly] [--interval=y,m,d] [--cumulative]
+                [--cumulative-columns=num list] [--avg]
                 [--skip-book-close=true] [--epoch] [--csv] [--iso] [--isofull]
                 [ <account filter 1> <account filter 2> ... ] [--skip=] [--sum=]
                 Defaults: shows accounts specified by --income, --expense, --asset, --liability,
@@ -521,7 +638,8 @@ COMMANDS
         balancesheetequity,
         cashflow,
         incomestatement [ <filter> ] [--daily] [--weekly] [--biweekly] [--monthly]
-                        [--quarterly] [--skip] [from:] [to:] [--hide-zero] [--tree]
+                        [--yearly] [--interval=y,m,d] [--quarterly] [--skip]
+                        [from:] [to:] [--hide-zero] [--tree]
                         [--skip-book-close=true] [--iso=true] [--isofull] [--sort]
                         [--sum-parent] [--avg] [ <currency flags> ] [--dp=2]
                         [--csv] [--asset=] [--income=] [--expense=] [--liability=]

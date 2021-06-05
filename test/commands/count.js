@@ -21,7 +21,7 @@ describe('ledg count', () => {
   \tbal\t
 2011-01-01 asdf #afssssf2
   ;virt:true
-  add rmb\ta.a\t1r
+  filterTransDesc rmb\ta.a\t1r
   \tbal\t
 `
     );
@@ -44,6 +44,11 @@ describe('ledg count', () => {
     ctx
       .ledg('count', '-F-')
       .out('0');
+  });
+  it('should --test', () => {
+    ctx
+      .ledg('count', '--test=transfers.filter(x => x[0].match(/transdesc/i)).length')
+      .out('1');
   });
   it('should count all', () => {
     ctx
