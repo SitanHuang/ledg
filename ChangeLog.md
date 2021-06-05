@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.13.0] 2021-06-05
 ### Added
 - event directive, similar to beancount but can contain transfers and modifiers,
   can be batch modified
