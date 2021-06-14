@@ -27,7 +27,9 @@ There is a built-in print command that can directly be piped into an hledger com
 The program manages the journal for you, and for most of the times one only needs
 the `modify`, `edit` and `add` commands.
 
-The project is under active development. [ChangeLogs](ChangeLog.md)
+This project is moving towards 1.0.0 and development is focusing only on stability
+and bug fixes for the upcoming months until September.
+[ChangeLogs](ChangeLog.md)
 
 ### Features
 #### ledg only features
