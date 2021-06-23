@@ -2,6 +2,7 @@
 ## [Unreleased]
 ### Fixed
 - timeline command sets --maxhour off by 1 hour
+- budget command crash without --budget specified
 
 ## Past Releases
 * [[0.13.0] 2021-06-05](#0130-2021-06-05)
