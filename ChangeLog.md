@@ -3,6 +3,8 @@
 ### Fixed
 - timeline command sets --maxhour off by 1 hour
 - budget command crash without --budget specified
+- "Since" column in events command shows year, month and day in mixed signs if
+  event date is in the future
 
 ## Past Releases
 * [[0.13.0] 2021-06-05](#0130-2021-06-05)
