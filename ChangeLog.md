@@ -1,5 +1,8 @@
 # Changelog
 ## [Unreleased]
+### Changed
+- `info flat` now shows "--- Event ---" if entry is an event without transfers,
+  and "--- Empty ---" if entry is empty and not an event
 ### Fixed
 - timeline command sets --maxhour off by 1 hour
 - budget command crash without --budget specified
