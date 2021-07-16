@@ -1,5 +1,8 @@
 # Changelog
 ## [Unreleased]
+### Added
+- `acc(...x)` macro for --test to match multiple account filters
+
 ### Changed
 - `info flat` now shows "--- Event ---" if entry is an event without transfers,
   and "--- Empty ---" if entry is empty and not an event
