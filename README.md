@@ -22,12 +22,14 @@ and 1.1 times slower than ledger.
 [Benchmark](benchmark.md)
 
 The ledg file format is incompatible with other ledger-likes.
-It is though easy to switch back and forth by replacing tabs with spaces, etc
+It is though easy to switch back and forth by replacing tabs with spaces, etc.
 There is a built-in print command that can directly be piped into an hledger command.
 The program manages the journal for you, and for most of the times one only needs
 the `modify`, `edit` and `add` commands.
 
-The project is under active development. [ChangeLogs](ChangeLog.md)
+This project is moving towards 1.0.0 and development is focusing only on stability
+and bug fixes for the upcoming months until September.
+[ChangeLogs](ChangeLog.md)
 
 ### Features
 #### ledg only features
@@ -341,7 +343,11 @@ FILTER
                     descriptions, return true; all arguments are converted
                     to regex if not already in regex
 
-                  or(...x), add(...x), not(x)
+                  acc(...x)
+                    returns true if any transfer of the entry matches any of the
+                    account filters
+
+                  or(...x), and(...x), not(x)
 
                   tag(...x)
                     returns true if the entry matches every tag in the arguments;
