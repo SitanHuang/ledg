@@ -1,5 +1,5 @@
 # Changelog
-## [Unreleased]
+## [1.0.0-beta] 2021-08-02
 ### Added
 - `acc(...x)` macro for --test to match multiple account filters
 
