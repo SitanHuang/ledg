@@ -1,19 +1,11 @@
 # Changelog
-## [1.0.0-beta] 2021-08-02
-### Added
-- `acc(...x)` macro for --test to match multiple account filters
+## [Unreleased]
 
-### Changed
-- `info flat` now shows "--- Event ---" if entry is an event without transfers,
-  and "--- Empty ---" if entry is empty and not an event
 ### Fixed
-- timeline command sets --maxhour off by 1 hour
-- budget command crash without --budget specified
-- "Since" column in events command shows year, month and day in mixed signs if
-  event date is in the future
-- typos in --help page
+- `\v` is not escaped in manual
 
 ## Past Releases
+* [[1.0.0-beta] 2021-08-02](#100-beta-2021-08-02)
 * [[0.13.0] 2021-06-05](#0130-2021-06-05)
 * [[0.12.0] 2021-05-20](#0120-2021-05-20)
 * [[0.11.0] 2021-05-15](#0110-2021-05-15)
@@ -40,6 +32,20 @@
 * [[0.3.0] 2021-03-16](#030---2021-03-16)
 * [[0.2.0] 2021-03-16](#020---2021-03-16)
 * [[0.1.0] 2021-03-15](#010---2021-03-15)
+
+## [1.0.0-beta] 2021-08-02
+### Added
+- `acc(...x)` macro for --test to match multiple account filters
+
+### Changed
+- `info flat` now shows "--- Event ---" if entry is an event without transfers,
+  and "--- Empty ---" if entry is empty and not an event
+### Fixed
+- timeline command sets --maxhour off by 1 hour
+- budget command crash without --budget specified
+- "Since" column in events command shows year, month and day in mixed signs if
+  event date is in the future
+- typos in --help page
 
 ## [0.13.0] 2021-06-05
 ### Added
