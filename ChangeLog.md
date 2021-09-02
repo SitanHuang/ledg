@@ -1,8 +1,11 @@
 # Changelog
 ## [Unreleased]
+### Added
+- \--version is now synonymous for the version subcommand
 
 ### Fixed
 - `\v` is not escaped in manual
+- version and help are not in fish autocomplete
 
 ## Past Releases
 * [[1.0.0-beta] 2021-08-02](#100-beta-2021-08-02)
