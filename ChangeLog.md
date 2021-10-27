@@ -12,7 +12,7 @@
 - README: replace `~/bin` with `$HOME/bin` in installation guide
 
 ### Project
-- examples: add .ledgrc sample
+- examples: add .ledgrc, aliases.fish samples
 
 ## Past Releases
 * [[1.0.0-beta] 2021-08-02](#100-beta-2021-08-02)
