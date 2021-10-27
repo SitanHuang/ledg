@@ -5,7 +5,11 @@
 
 ### Fixed
 - `\v` is not escaped in manual
+- on some environments, Makefile includes chart.js twice
 - version and help are not in fish autocomplete
+
+### Changed
+- README: replace `~/bin` with `$HOME/bin` in installation guide
 
 ## Past Releases
 * [[1.0.0-beta] 2021-08-02](#100-beta-2021-08-02)

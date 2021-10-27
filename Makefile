@@ -1,8 +1,8 @@
 all: clean bin/ledg SCRIPTS
 
-SOURCE_CORE = $(shell find lib/core/ -type f -name '*.js')
-SOURCE_FS = $(shell find lib/fs/ -type f -name '*.js')
-SOURCE_CLI = $(shell find lib/cli/ -type f -name '*.js' -not -path '**/index.js' -not -path '**/commands.js' -not -path 'lib/cli/charts/chart.js')
+SOURCE_CORE = $(shell find lib/core -type f -name '*.js')
+SOURCE_FS = $(shell find lib/fs -type f -name '*.js')
+SOURCE_CLI = $(shell find lib/cli -type f -name '*.js' -not -path '**/index.js' -not -path '**/commands.js' -not -path '**/charts/chart.js')
 
 NODE_VERSION = $(shell node -v | cut -c2-3)
 GOOD_NODE = $(shell if [ $(NODE_VERSION) -ge 14 ]; then echo true; fi)
