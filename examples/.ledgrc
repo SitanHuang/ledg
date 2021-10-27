@@ -1,0 +1,28 @@
+# SitanHuang's personal .ledgrc
+
+--hide-zero
+# I had a script that switches this on and off depending on terminal theme
+#--light-theme
+
+# the "book" is part of the file prefix
+# the ~/Documents/ledg/ is the directory
+--file=~/Documents/ledg/book
+
+--alias---nhz="--hz=false"
+
+--alias-is="incomestatement"
+--alias-inc="incomestatement"
+--alias-bs="balancesheet"
+--alias-bse="balancesheete"
+--alias-cf="cashflow"
+
+--alias-incomestatement="incomestatement --tree --sort --sp"
+--alias-balancesheet="balancesheet --tree --sort=false --sp"
+--alias-cashflow="cashflow --tree --sort --sp --real"
+
+-i
+--default-pending
+
+--valuation-eop
+
+--tree

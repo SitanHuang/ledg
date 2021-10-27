@@ -83,6 +83,10 @@ MacOS/Linux supported only. Use WSL on Windows.
 3. `make && make install`
 4. Put `$HOME/bin` in your path
 
+#### Useful examples
+- [Examples](examples/)
+- [sample .ledgrc](examples/.ledgrc)
+
 #### Create a sample journal
 `ledg add "Opening Balances" Equity.OpeningBalances 10$ Assets.Cash`
 

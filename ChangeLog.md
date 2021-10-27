@@ -11,6 +11,9 @@
 ### Changed
 - README: replace `~/bin` with `$HOME/bin` in installation guide
 
+### Project
+- examples: add .ledgrc sample
+
 ## Past Releases
 * [[1.0.0-beta] 2021-08-02](#100-beta-2021-08-02)
 * [[0.13.0] 2021-06-05](#0130-2021-06-05)
