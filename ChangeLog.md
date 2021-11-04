@@ -1,7 +1,7 @@
 # Changelog
 ## [Unreleased]
 ### Added
-- \--version is now synonymous for the version subcommand
+- \--version is now synonymous with the version subcommand
 
 ### Fixed
 - `\v` is not escaped in manual
@@ -9,7 +9,6 @@
 - version and help are not in fish autocomplete
 
 ### Changed
-- README: replace `~/bin` with `$HOME/bin` in installation guide
 - `account(a, b, c)` macro for csv parsers now returns `a || default_account`
   if only 1 argument is provided
 
