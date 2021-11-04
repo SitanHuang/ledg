@@ -10,6 +10,8 @@
 
 ### Changed
 - README: replace `~/bin` with `$HOME/bin` in installation guide
+- `account(a, b, c)` macro for csv parsers now returns `a || default_account`
+  if only 1 argument is provided
 
 ### Project
 - examples: add .ledgrc, aliases.fish samples
