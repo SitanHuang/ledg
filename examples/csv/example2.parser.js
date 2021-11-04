@@ -34,7 +34,7 @@ process(() => {
     return
   trim()
 
-  if (col(3).indexOf('-') != 0) {
+  if (col(3).indexOf('-') != 0) { // if going into bank account
     add(
       date(col(1)),
       description(col(2)),
@@ -62,7 +62,7 @@ process(() => {
         )
       )
     )
-  } else {
+  } else { // if going out
     /// TODO: ...
   }
 });
