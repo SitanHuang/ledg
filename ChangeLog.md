@@ -1,5 +1,5 @@
 # Changelog
-## [Unreleased]
+## [1.0.0-beta.1]
 ### Added
 - \--version is now synonymous with the version subcommand
 
@@ -7,6 +7,11 @@
 - `\v` is not escaped in manual
 - on some environments, Makefile includes chart.js twice
 - version and help are not in fish autocomplete
+- fixed critical error [#9](https://github.com/SitanHuang/ledg/issues/9) with
+  ledg not using different timezone offset when parsing entries from a date with
+  different timezone (ie. running ledg during winter caused all dates to shift
+  back a day as ledg used same timezone offset from UTC on dates during daylight
+  savings period)
 
 ### Changed
 - `account(a, b, c)` macro for csv parsers now returns `a || default_account`
