@@ -1,6 +1,6 @@
 set -l ledg_commands edit accounts burndown close register history balancesheet\
        balancesheetequity cashflow incomestatement info tags add modify\
-       delete budget print git eval stats count export
+       delete budget print git eval stats count export help version
 
 set -l ledg_options "--file= -F --light-theme --lt --csv --html --format= --transpose"\
        "--budget= --currency= --valuation-date= --valuation-eop --income= --expense="\
@@ -16,7 +16,7 @@ set -l ledg_options "--file= -F --light-theme --lt --csv --html --format= --tran
        "--debug --do-not-write-books --do-not-write-config --rewrite --tc-prices=false"\
        "--tc-expose --timeclock --cleared --eop --source= --parser= --minhour="\
        "--maxhour= --period= -P --today= --squash= --no-comma --csv-delimiter="\
-       "--min-depth= --mdep= --mdepth= --interval= --flat"
+       "--min-depth= --mdep= --mdepth= --interval= --flat --help --version"
 
 set -l ledg_modifiers "desc: description: uuid: f: from: t: to: bc: bookClose:"\
        "pending: virt: clockIn: clockOut:"
