@@ -27,8 +27,8 @@ There is a built-in print command that can directly be piped into an hledger com
 The program manages the journal for you, and for most of the times one only needs
 the `modify`, `edit` and `add` commands.
 
-This project is moving towards 1.0.0 and development is focusing only on stability
-and bug fixes for the upcoming months until September.
+This project is moving towards 1.0.0 and development is focusing on stability
+and bug fixes.
 [ChangeLogs](ChangeLog.md)
 
 ### Features
@@ -81,7 +81,11 @@ MacOS/Linux supported only. Use WSL on Windows.
      node shebang and it takes 70ms for node to parse the file; if you want faster
      load times, download a binary from the releases to reduce it all the way to 35ms
 3. `make && make install`
-4. Put `~/bin` in your path
+4. Put `$HOME/bin` in your path
+
+#### Useful examples
+- [Examples](examples/)
+- [sample .ledgrc](examples/.ledgrc)
 
 #### Create a sample journal
 `ledg add "Opening Balances" Equity.OpeningBalances 10$ Assets.Cash`

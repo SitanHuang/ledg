@@ -32,7 +32,11 @@ process(() => {
     cleared(), // or pending()
     modifier("tags", "IMPORTED"),
     transfer(
-      // categorize accounts
+      /* categorize accounts
+       *
+       * Another useful example:
+       * account(col(6) || default_account) // if col 6 is empty, use default
+       */
       account(
         col(3),
         {
