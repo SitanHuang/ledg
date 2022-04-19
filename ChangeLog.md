@@ -1,4 +1,8 @@
 # Changelog
+## [Unreleased]
+### Misc Changes in
+- help command
+
 ## [1.0.0-beta.1] 2021-11-08
 ### Added
 - \--version is now synonymous with the version subcommand
