@@ -8,6 +8,7 @@ describe('ledg accounts', () => {
     ctx.fw('book.config.ledg', `
     {
       "data": {
+        // "test": , 1
         "accounts": {},
         "defaultCurrency": "R",
         "priceFiles": [ "prices" ]

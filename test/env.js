@@ -13,6 +13,8 @@ describe('Test environment', () => {
   });
 });
 
+require("./misc/comments");
+
 require("./commands/accounts");
 require("./commands/count");
 require("./commands/history");

@@ -1,5 +1,8 @@
 # Changelog
 ## [Unreleased]
+### Added
+- allow C-style comments in config files & corresponding test cases
+
 ### Misc Changes in
 - help command
 

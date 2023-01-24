@@ -34,6 +34,11 @@ class TestContext {
     return this;
   }
 
+  ledgErr(...args) {
+    this._process = cp.spawnSync(this.ledg_bin, this.args.concat(args), this._modExecOpts({}));
+    return this;
+  }
+
   input(str) {
     this._input = str;
     return this;
@@ -48,6 +53,11 @@ class TestContext {
 
   out(str) {
     assert.strictEqual(this._process.stdout.toString().trim(), str.trim(), "Output does not match");
+    return this;
+  }
+
+  errContains(str) {
+    assert(this._process.stderr.toString().indexOf(str) >= 0, "Error output does not match");
     return this;
   }
 
