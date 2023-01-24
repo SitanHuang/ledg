@@ -173,6 +173,22 @@ FLAGS
                 3. current directory
         after fetching .ledgrc, process.argv is reparsed again, overriding .ledgrc
 
+        --file=FILE, -FFILE
+                Default: book
+                if FILE="-", then ledg reads entries from stdin
+                set FILE as a prefix for ledg file locations:
+                ex. --file=Documents/book will point to Documents/book.*.ledg
+
+        --do-not-write-books
+                stub fs_write_books so ledg no longer modifies your journals
+
+        --do-not-write-config
+                stub fs_write_config so ledg no longer modifies your config file
+
+                Note: This is useful as FILE.config.ledg is a JSON file that
+                allows any C-style comments (ie. "//", "/* */"). In addition,
+                any line starting with "#", ";" or "!" is ignored.
+
         --no-config
                 do not load .ledgrc files
 
@@ -184,12 +200,6 @@ FLAGS
                 when reading journals, modifying or adding entries, try to
                 convert imbalance or the balance of the last empty transfer
                 in CUR
-
-        --file=FILE, -FFILE
-                Default: book
-                if FILE="-", then ledg reads entries from stdin
-                set FILE as a prefix for ledg file locations:
-                ex. --file=Documents/book will point to Documents/book.*.ledg
 
         --light-theme, --lt
                 put this in your .ledgrc if your terminal has light background
