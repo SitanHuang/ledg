@@ -63,7 +63,7 @@ bin/ledg: check_node header core fs cli
 	chmod +x bin/ledg
 
 binary: bin/ledg
-	pkg --compress Brotli bin/ledg
+	pkg --compress Brotli bin/ledg || ./node_modules/pkg/lib-es5/bin.js --compress Brotli bin/ledg
 
 fish_autocomplete:
 	mkdir -p ~/.config/fish/completions/
