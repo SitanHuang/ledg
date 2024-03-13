@@ -30,7 +30,25 @@ class TestContext {
 
   ledg(...args) {
     this._process = cp.spawnSync(this.ledg_bin, this.args.concat(args), this._modExecOpts({}));
+
+    if (this._process.stderr.length > 0 && this._debug) {
+      console.error(`Command: ${this.ledg_bin} ${this.args.concat(args).join(' ')}`);
+      console.error(`Stdin: ${this._input.toString()}`);
+      console.error(`Stdout: ${this._process.stdout.toString()}`);
+    }
+
     assert(this._process.stderr.length == 0, "Exited with stderr: " + this._process.stderr);
+
+    return this;
+  }
+
+  toggleDebug() {
+    this._debug = !this._debug;
+    return this;
+  }
+
+  ledgErr(...args) {
+    this._process = cp.spawnSync(this.ledg_bin, this.args.concat(args), this._modExecOpts({}));
     return this;
   }
 
@@ -48,6 +66,11 @@ class TestContext {
 
   out(str) {
     assert.strictEqual(this._process.stdout.toString().trim(), str.trim(), "Output does not match");
+    return this;
+  }
+
+  errContains(str) {
+    assert(this._process.stderr.toString().indexOf(str) >= 0, "Error output does not match");
     return this;
   }
 

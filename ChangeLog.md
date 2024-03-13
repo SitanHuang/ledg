@@ -1,26 +1,16 @@
 # Changelog
-## [1.0.0-beta.1] 2021-11-08
+## [1.0.0] 2024-03-13
 ### Added
-- \--version is now synonymous with the version subcommand
+- allow C-style comments in config files & corresponding test cases
 
 ### Fixed
-- `\v` is not escaped in manual
-- on some environments, Makefile includes chart.js twice
-- version and help are not in fish autocomplete
-- fixed critical error [#9](https://github.com/SitanHuang/ledg/issues/9) with
-  ledg not using different timezone offset when parsing entries from a date with
-  different timezone (ie. running ledg during winter caused all dates to shift
-  back a day as ledg used same timezone offset from UTC on dates during daylight
-  savings period)
+- --balance-to-currency does not correctly resolve imbalance errors
 
-### Changed
-- `account(a, b, c)` macro for csv parsers now returns `a || default_account`
-  if only 1 argument is provided
-
-### Project
-- examples: add .ledgrc, aliases.fish samples
+### Misc Changes in
+- help command
 
 ## Past Releases
+* [[1.0.0-beta.1] 2021-11-08](#100-beta1-2021-11-08)
 * [[1.0.0-beta] 2021-08-02](#100-beta-2021-08-02)
 * [[0.13.0] 2021-06-05](#0130-2021-06-05)
 * [[0.12.0] 2021-05-20](#0120-2021-05-20)
@@ -48,6 +38,27 @@
 * [[0.3.0] 2021-03-16](#030---2021-03-16)
 * [[0.2.0] 2021-03-16](#020---2021-03-16)
 * [[0.1.0] 2021-03-15](#010---2021-03-15)
+
+## [1.0.0-beta.1] 2021-11-08
+### Added
+- \--version is now synonymous with the version subcommand
+
+### Fixed
+- `\v` is not escaped in manual
+- on some environments, Makefile includes chart.js twice
+- version and help are not in fish autocomplete
+- fixed critical error [#9](https://github.com/SitanHuang/ledg/issues/9) with
+  ledg not using different timezone offset when parsing entries from a date with
+  different timezone (ie. running ledg during winter caused all dates to shift
+  back a day as ledg used same timezone offset from UTC on dates during daylight
+  savings period)
+
+### Changed
+- `account(a, b, c)` macro for csv parsers now returns `a || default_account`
+  if only 1 argument is provided
+
+### Project
+- examples: add .ledgrc, aliases.fish samples
 
 ## [1.0.0-beta] 2021-08-02
 ### Added
