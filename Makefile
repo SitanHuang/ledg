@@ -91,4 +91,4 @@ install: bin/ledg SCRIPTS fish_autocomplete vim_scripts
 
 test: bin/ledg
 	mkdir -p ./test/tmp/
-	./node_modules/mocha/bin/mocha --bail
+	./node_modules/mocha/bin/mocha.js --bail

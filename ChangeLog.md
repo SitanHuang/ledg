@@ -3,6 +3,9 @@
 ### Added
 - allow C-style comments in config files & corresponding test cases
 
+### Fixed
+- --balance-to-currency does not correctly resolve imbalance errors
+
 ### Misc Changes in
 - help command
 

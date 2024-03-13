@@ -32,6 +32,7 @@ describe('ledg accounts', () => {
     );
     ctx.fw('prices',
 `
+P 2020-01-01 NULLTEST $0
 P 2010-01-01 R $1
 P 2020-01-01 R $2
 P 3000-01-01 R $4
@@ -86,6 +87,20 @@ P 0000-01-01 r 1R
         .input(content)
         .ledg('accounts', '-F-');
     }, { message: /imbalance.+-123\.12345/i });
+    assert.throws(() => {
+      ctx
+        .input(content + "  \ta\t-123.12345 USD\n\n2020-01-01 #kdkdkdkd\n  \tb\t1NULLTEST\n")
+        .ledg('accounts', '-F-', '--real',
+          `--include-prices=${ctx.root}/prices`, '--dp=0', '--hide-zero')
+        .out(`"Accounts","Balance"\n"b","NULLTEST1"`);
+    }, { message: /imbalance.+-1NULLTEST/i });
+  });
+  it('should not emit imbalance on --balance-to-currency with a null currency', () => {
+    ctx
+      .input(content+"  \ta\t-123.12345 USD\n\n2020-01-01 #kdkdkdkd\n  \tb\t1NULLTEST\n")
+      .ledg('accounts', '-F-', '--balance-to-currency=$', '--real',
+        `--include-prices=${ctx.root}/prices`, '--dp=0', '--hide-zero')
+      .out(`"Accounts","Balance"\n"b","NULLTEST1"`);
   });
   it('should balance last posting', () => {
     let o =
