@@ -1,5 +1,5 @@
 # Changelog
-## [Unreleased]
+## [1.0.0] 2024-03-13
 ### Added
 - allow C-style comments in config files & corresponding test cases
 
