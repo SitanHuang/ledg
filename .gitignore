@@ -1,0 +1,15 @@
+node_modules/**/*
+*.swp
+~*
+Session.vim
+bin/*
+node_modules
+package-lock.json
+tags
+*.kdev4
+.kdev4
+*.json
+test/tmp
+ledg-linux
+ledg-macos
+ledg-win.exe
