@@ -3,8 +3,8 @@ interface RationalFormatOptions {
 }
 
 export class Rational {
-  public numerator: bigint; // Sign carrier
-  public denominator: bigint;
+  public readonly numerator: bigint; // Sign carrier
+  public readonly denominator: bigint;
 
   public static ZERO = new Rational(0n, 1n);
 
