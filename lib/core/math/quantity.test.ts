@@ -72,8 +72,8 @@ describe('Quantity', () => {
         const a = new Quantity(1n, 2n);
         const b = new Quantity(1n, 2n);
         const result = a.plus(b);
-        expect(result.numerator).toBe(4n);
-        expect(result.denominator).toBe(4n);
+        expect(result.numerator).toBe(1n);
+        expect(result.denominator).toBe(1n);
       });
 
       it('should add two quantities with different denominators correctly', () => {
@@ -122,8 +122,8 @@ describe('Quantity', () => {
         const a = new Quantity(3n, 4n);
         const b = new Quantity(1n, 4n);
         const result = a.minus(b);
-        expect(result.numerator).toBe(8n);
-        expect(result.denominator).toBe(16n);
+        expect(result.numerator).toBe(1n);
+        expect(result.denominator).toBe(2n);
       });
 
       it('should subtract a number from a quantity correctly', () => {
@@ -165,8 +165,8 @@ describe('Quantity', () => {
         const a = new Quantity(1n, 2n);
         const b = new Quantity(2n, 3n);
         const result = a.times(b);
-        expect(result.numerator).toBe(2n);
-        expect(result.denominator).toBe(6n);
+        expect(result.numerator).toBe(1n);
+        expect(result.denominator).toBe(3n);
       });
 
       it('should multiply a quantity by a number correctly', () => {
@@ -235,8 +235,8 @@ describe('Quantity', () => {
         const a = new Quantity(3n, 4n);
         const b = new Quantity(-1n, 2n);
         const result = a.div(b);
-        expect(result.numerator).toBe(-6n);
-        expect(result.denominator).toBe(4n);
+        expect(result.numerator).toBe(-3n);
+        expect(result.denominator).toBe(2n);
       });
 
       it('should throw an error when division by a zero Quantity is attempted', () => {
@@ -361,8 +361,8 @@ describe('Quantity', () => {
       const half = new Quantity(1n, 2n);
 
       const quotient = negativeFraction.div(half);
-      expect(quotient.numerator).toBe(-6n);
-      expect(quotient.denominator).toBe(4n);
+      expect(quotient.numerator).toBe(-3n);
+      expect(quotient.denominator).toBe(2n);
 
       // Reduced form is -3/2
       const reduced = quotient.reduce();
