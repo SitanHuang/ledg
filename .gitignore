@@ -13,3 +13,4 @@ test/tmp
 ledg-linux
 ledg-macos
 ledg-win.exe
+out/*
