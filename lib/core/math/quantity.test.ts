@@ -10,26 +10,26 @@ describe('Quantity', () => {
         { input: 1, expectedNumerator: 1n, expectedDenom: 1n },
         { input: -5, expectedNumerator: -5n, expectedDenom: 1n },
         { input: 100, expectedNumerator: 100n, expectedDenom: 1n },
+        { input: 212e-12, expectedNumerator: 212n, expectedDenom: 10n ** 12n },
         { input: 1e21, expectedNumerator: BigInt(1e21), expectedDenom: 1n },
       ];
 
       for (const { input, expectedNumerator, expectedDenom } of testCases) {
         const q = Quantity.fromNumber(input);
-        expect(q.numerator).toEqual(expectedNumerator);
-        expect(q.denominator).toEqual(expectedDenom);
+        expect(q.eq(new Quantity(expectedNumerator, expectedDenom))).toEqual(true);
       }
     });
 
     it('should correctly convert a non-integer decimal to a Quantity', () => {
       const q = Quantity.fromNumber(123.456);
-      expect(q.numerator).toEqual(123456n);
-      expect(q.denominator).toEqual(1000n);
+      expect(q.toNumber()).toEqual(123.456);
+      expect(q.toString()).toEqual("123.456");
     });
 
     it('should correctly convert negative decimal numbers', () => {
       const q = Quantity.fromNumber(-0.125);
-      expect(q.numerator).toEqual(-125n);
-      expect(q.denominator).toEqual(1000n);
+      expect(q.toNumber()).toEqual(-0.125);
+      expect(q.toString()).toEqual("-0.125");
     });
 
     it('should correctly handle numbers that use exponential notation (via toPrecision)', () => {
@@ -71,7 +71,7 @@ describe('Quantity', () => {
         // 1/2 + 1/2 = 2/2 but raw result is (1*2 + 1*2)/(2*2)= (2+2)/4 = 4/4
         const a = new Quantity(1n, 2n);
         const b = new Quantity(1n, 2n);
-        const result = a.plus(b);
+        const result = a.plus(b).reduce();
         expect(result.numerator).toBe(1n);
         expect(result.denominator).toBe(1n);
       });
@@ -121,7 +121,7 @@ describe('Quantity', () => {
         // 3/4 - 1/4 = (3*4 - 1*4)/(4*4) = (12-4)/16 = 8/16 which is equivalent to 1/2.
         const a = new Quantity(3n, 4n);
         const b = new Quantity(1n, 4n);
-        const result = a.minus(b);
+        const result = a.minus(b).reduce();
         expect(result.numerator).toBe(1n);
         expect(result.denominator).toBe(2n);
       });
@@ -252,10 +252,22 @@ describe('Quantity', () => {
 
     test('plus: Adding mixed fractions (different denominators)', () => {
       // 1/2 + 2/3 = 3/6 + 4/6 = 7/6
-      const q1 = new Quantity(1n, 2n);  // 0.5
-      const q2 = new Quantity(2n, 3n);  // ~0.6667
+      let q1 = new Quantity(1n, 2n);  // 0.5
+      let q2 = new Quantity(2n, -3n);  // ~0.6667
 
-      const sum = q1.plus(q2);
+      let sum = q1.plus(q2).reduce();
+      // Should be 7/6
+      expect(sum.numerator).toBe(-1n);
+      expect(sum.denominator).toBe(6n);
+
+      // eq check:
+      expect(sum.eq(new Quantity(-1n, 6n))).toBe(true);
+      expect(sum.toNumber()).toBeCloseTo(-0.1666666667, 10);
+
+      q1 = new Quantity(1n, 2n);  // 0.5
+      q2 = new Quantity(2n, 3n);  // ~0.6667
+
+      sum = q1.plus(q2).reduce();
       // Should be 7/6
       expect(sum.numerator).toBe(7n);
       expect(sum.denominator).toBe(6n);
@@ -299,7 +311,7 @@ describe('Quantity', () => {
 
     test('minus: Subtracting zero-literal number', () => {
       const q = new Quantity(5n, 2n);  // 2.5
-      const diff = q.minus(0);
+      const diff = q.minus(0).reduce();
       expect(diff.numerator).toBe(5n);
       expect(diff.denominator).toBe(2n);
       expect(diff.toNumber()).toBe(2.5);
@@ -336,6 +348,13 @@ describe('Quantity', () => {
       expect(product.numerator).toBe(expected);
       expect(product.denominator).toBe(10000n);
       expect(product.toString({ displayPrecision: 4 })).toBe('121932631234567900441820454.1893');
+    });
+
+    test("parsing long DPs", () => {
+      expect(Quantity.parse("1.1234567890").toString({displayPrecision: 20})).toEqual("1.123456789");
+      expect(Quantity.parse("1.1234567890").toNumber()).toEqual(1.1234567890);
+      expect(Quantity.parse("-21.1234567890").toString({displayPrecision: 20})).toEqual("-21.123456789");
+      expect(Quantity.parse("-21.1234567890").toNumber()).toEqual(-21.1234567890);
     });
 
     test('div: Dividing two integer-based Quantities', () => {
