@@ -1,1 +1,1 @@
-export * from './quantity.ts';
+export * from './rational.ts';
