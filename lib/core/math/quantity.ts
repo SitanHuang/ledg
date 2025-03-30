@@ -122,7 +122,9 @@ export class Quantity {
     // Multiply numerator by factor, then divide by the denominator with rounding.
     const scaled: bigint = this.numerator * factor;
     const halfDenom: bigint = this.denominator / 2n;
-    const rounded: bigint = (scaled + halfDenom) / this.denominator;
+    const rounded: bigint = this.numerator >= 0n
+      ? (scaled + halfDenom) / this.denominator
+      : (scaled - halfDenom) / this.denominator;
     return new Quantity(rounded, factor);
   }
 
@@ -138,13 +140,20 @@ export class Quantity {
     // Ensure we have at least dp+1 digits.
     let s: string = absNum.toString().padStart(dp + 1, '0');
     const intPart: string = s.slice(0, s.length - dp);
-    let fracPart: string = s.slice(s.length - dp);
-    // Remove any trailing zeros but always leave at least one digit.
-    fracPart = fracPart.replace(/0+$/, "");
-    if (fracPart === "") {
-      fracPart = "0";
+    const sign: string = q.numerator < 0n ? "-" : "";
+    // If display precision is 0, return just the integer part without a decimal point.
+    if (dp === 0) {
+      return sign + intPart;
+    } else {
+      let fracPart: string = s.slice(s.length - dp);
+      // Remove any trailing zeros but always leave at least one digit.
+      fracPart = fracPart.replace(/0+$/, "");
+      if (fracPart === "") {
+        fracPart = "0";
+      }
+
+      return sign + intPart + "." + fracPart;
     }
-    return (q.numerator < 0n ? '-' : '') + intPart + "." + fracPart;
   }
 
   /**
