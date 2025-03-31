@@ -532,11 +532,13 @@ describe('Rational', () => {
       expect(q.round(0).toNumber()).toBe(-1);
       expect(q.round(5).toNumber()).toBe(-1.46);
       expect(q.round(2).toNumber()).toBe(-1.46);
+      expect(q.round(2).isZero()).toBe(false);
     });
 
     test('round: returns zero when Rational is zero regardless of precision', () => {
       const q = Rational.fromNumber(0);
       expect(q.round(3).toNumber()).toBe(0);
+      expect(q.round(3).isZero()).toBe(true);
     });
   });
 });

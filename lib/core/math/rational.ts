@@ -116,6 +116,10 @@ export class Rational {
     return this.numerator * q.denominator === q.numerator * this.denominator;
   }
 
+  public isZero(): boolean {
+    return this.numerator === 0n;
+  }
+
   /**
    * Rounds this Quantity to the given number of decimal places.
    * The rounding is performed in a fixed-point style.

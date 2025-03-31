@@ -2,13 +2,14 @@
 type timestamp = number;
 
 const None = Symbol(":none");
+type NoneType = typeof None;
 type Some<T> = T;
-type Option<T> = Some<T> | Symbol;
+type Option<T> = Some<T> | NoneType;
 
 function isSome<T>(opt: Option<T>): opt is T {
   return opt !== None;
 }
-function isNone<T>(opt: Option<T>): opt is T {
+function isNone<T>(opt: Option<T>): opt is NoneType {
   return opt === None;
 }
 
