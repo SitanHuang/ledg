@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Currency, CurrencyProviderService } from './currency.ts';
 import { Rational } from './rational.ts';
+import { None, unwrap } from '../types.ts';
 
 describe('CurrencyProviderService', () => {
   let service: CurrencyProviderService;
@@ -20,7 +21,7 @@ describe('CurrencyProviderService', () => {
   it('should return identity conversion for the same currency', () => {
     const now = Date.now();
     const rate = service.resolveConversion(currencyA, currencyA, now);
-    expect(rate.eq(Rational.ONE)).toBe(true);
+    expect(unwrap(rate).eq(Rational.ONE)).toBe(true);
   });
 
   it('should register a direct conversion and its reciprocal', () => {
@@ -30,11 +31,11 @@ describe('CurrencyProviderService', () => {
     service.registerConversion(currencyA, currencyB, rateAtoB, timestamp);
 
     const resolvedAtoB = service.resolveConversion(currencyA, currencyB, timestamp);
-    expect(resolvedAtoB.eq(rateAtoB)).toBe(true);
+    expect(unwrap(resolvedAtoB).eq(rateAtoB)).toBe(true);
 
     const resolvedBtoA = service.resolveConversion(currencyB, currencyA, timestamp);
     const reciprocalRate = new Rational(2n, 3n);
-    expect(resolvedBtoA.eq(reciprocalRate)).toBe(true);
+    expect(unwrap(resolvedBtoA).eq(reciprocalRate)).toBe(true);
   });
 
   it('should resolve conversion using multi-step path when direct conversion is not valid at query time', () => {
@@ -56,12 +57,12 @@ describe('CurrencyProviderService', () => {
     // Composite rate should be 2 * 3 = 6.
     const resolvedAtoC = service.resolveConversion(currencyA, currencyC, 1500);
     const expectedComposite = new Rational(6n, 1n);
-    expect(resolvedAtoC.eq(expectedComposite)).toBe(true);
+    expect(unwrap(resolvedAtoC).eq(expectedComposite)).toBe(true);
 
     // Also check reverse: C->A should be reciprocal of 6 i.e. 1/6.
     const resolvedCtoA = service.resolveConversion(currencyC, currencyA, 1500);
     const expectedReverse = new Rational(1n, 6n);
-    expect(resolvedCtoA.eq(expectedReverse)).toBe(true);
+    expect(unwrap(resolvedCtoA).eq(expectedReverse)).toBe(true);
   });
 
   it('should resolve direct conversion when available', () => {
@@ -69,7 +70,7 @@ describe('CurrencyProviderService', () => {
     const rateAtoB = new Rational(5n, 2n);
     service.registerConversion(currencyA, currencyB, rateAtoB, timestamp);
     const resolvedRate = service.resolveConversion(currencyA, currencyB, timestamp);
-    expect(resolvedRate.eq(rateAtoB)).toBe(true);
+    expect(unwrap(resolvedRate).eq(rateAtoB)).toBe(true);
   });
 
   it('should correctly handle zero conversion rates', () => {
@@ -78,16 +79,16 @@ describe('CurrencyProviderService', () => {
     service.registerConversion(currencyA, currencyB, Rational.ZERO, timestamp);
 
     const resolvedAtoB = service.resolveConversion(currencyA, currencyB, timestamp);
-    expect(resolvedAtoB.eq(Rational.ZERO)).toBe(true);
+    expect(unwrap(resolvedAtoB).eq(Rational.ZERO)).toBe(true);
 
     const resolvedBtoA = service.resolveConversion(currencyB, currencyA, timestamp);
-    expect(resolvedBtoA.eq(Rational.ZERO)).toBe(true);
+    expect(unwrap(resolvedBtoA).eq(Rational.ZERO)).toBe(true);
   });
 
-  it('should throw an error when no conversion path is available', () => {
+  it('should to return None when no conversion path is available', () => {
     const timestamp = 5000;
     // No conversion exists between A and D.
-    expect(() => service.resolveConversion(currencyA, currencyD, timestamp)).toThrowError();
+    expect(service.resolveConversion(currencyA, currencyD, timestamp)).toEqual(None);
   });
 
   it('should choose the shortest (fewest-hop) valid path when multiple paths exist', () => {
@@ -106,7 +107,7 @@ describe('CurrencyProviderService', () => {
     const resolvedRate = service.resolveConversion(currencyA, currencyD, t);
     // Both paths have 2 hops. BFS will return the first valid path encountered.
     // Accept either composite rate 6 or 8.
-    const isValid = resolvedRate.eq(new Rational(6n, 1n)) || resolvedRate.eq(new Rational(8n, 1n));
+    const isValid = unwrap(resolvedRate).eq(new Rational(6n, 1n)) || unwrap(resolvedRate).eq(new Rational(8n, 1n));
     expect(isValid).toBe(true);
   });
 
@@ -116,7 +117,7 @@ describe('CurrencyProviderService', () => {
     service.registerConversion(currencyA, currencyB, new Rational(2n, 1n), 1000);
     // Query at t=1500 should select the registration at t=1000 (rate 2) since 2000 > 1500.
     const resolvedRate = service.resolveConversion(currencyA, currencyB, 1500);
-    expect(resolvedRate.eq(new Rational(2n, 1n))).toBe(true);
+    expect(unwrap(resolvedRate).eq(new Rational(2n, 1n))).toBe(true);
   });
 
   describe('Additional Edge Coverage Tests', () => {
@@ -158,7 +159,7 @@ describe('CurrencyProviderService', () => {
 
       // When querying at t=2500, the latest valid registration should be the one at t=2000 (rate 2/1).
       const resolvedRate = service.resolveConversion(currencyA, currencyB, 2500);
-      expect(resolvedRate.eq(new Rational(2n, 1n))).toBe(true);
+      expect(unwrap(resolvedRate).eq(new Rational(2n, 1n))).toBe(true);
     });
   });
 });

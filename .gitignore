@@ -15,3 +15,4 @@ ledg-macos
 ledg-win.exe
 out/*
 coverage/*
+types/*

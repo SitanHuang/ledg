@@ -1,13 +1,10 @@
 import { Rational } from "./rational.ts";
-import { timestamp } from "../types.ts";
+import { None, Option, timestamp } from "../types.ts";
 
 export class Currency {
-  public readonly id: string;
-  public readonly displayFormat: string;
-
-  constructor(id: string, displayFormat: string) {
-    this.id = id;
-    this.displayFormat = displayFormat;
+  constructor(
+    public readonly id: string,
+    public displayFormat?: string) {
   }
 }
 
@@ -82,10 +79,9 @@ export class CurrencyProviderService {
    * @param from The source currency.
    * @param to The target currency.
    * @param timestamp Unix timestamp in ms.
-   * @returns The composite conversion rate (a Rational) such that (value in from)*rate = value in to.
-   * @throws Error if no conversion is available.
+   * @returns The composite conversion rate (a Rational) such that (value in from)*rate = value in to. None if resolution failed.
    */
-  public resolveConversion(from: Currency, to: Currency, timestamp: timestamp): Rational {
+  public resolveConversion(from: Currency, to: Currency, timestamp: timestamp): Option<Rational> {
     if (from.id === to.id) {
       return Rational.ONE;
     }
@@ -132,7 +128,7 @@ export class CurrencyProviderService {
       }
     }
 
-    throw new Error(`No conversion path found from ${from.id} to ${to.id} at timestamp ${timestamp}.`);
+    return None;
   }
 
   /**
