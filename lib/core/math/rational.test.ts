@@ -2,9 +2,9 @@
 import { describe, it, expect, test } from 'vitest';
 import { Rational } from './rational.ts';
 
-describe('Quantity', () => {
+describe('Rational', () => {
   describe('fromNumber', () => {
-    it('should return a Quantity with denominator 1 for integer inputs', () => {
+    it('should return a Rational with denominator 1 for integer inputs', () => {
       const testCases = [
         { input: 0, expectedNumerator: 0n, expectedDenom: 1n },
         { input: 1, expectedNumerator: 1n, expectedDenom: 1n },
@@ -20,7 +20,7 @@ describe('Quantity', () => {
       }
     });
 
-    it('should correctly convert a non-integer decimal to a Quantity', () => {
+    it('should correctly convert a non-integer decimal to a Rational', () => {
       const q = Rational.fromNumber(123.456);
       expect(q.toNumber()).toEqual(123.456);
       expect(q.toString()).toEqual("123.456");
@@ -44,7 +44,7 @@ describe('Quantity', () => {
       expect(q.toNumber()).toBeCloseTo(input, 17);
     });
 
-    it('should preserve the numeric value when converting to Quantity and back to number', () => {
+    it('should preserve the numeric value when converting to Rational and back to number', () => {
       const testValues = [0.1, 0.2, 0.3, 12.34, -56.78, 1e-8, 9e7];
       for (const val of testValues) {
         const q = Rational.fromNumber(val);
@@ -85,7 +85,7 @@ describe('Quantity', () => {
         expect(result.denominator).toBe(6n);
       });
 
-      it('should add a number to a quantity correctly', () => {
+      it('should add a number to a Rational correctly', () => {
         // 1/2 + 0.5 (0.5 => 1/2) should equal 1/2+1/2 = 1
         const a = new Rational(1n, 2n);
         const result = a.plus(0.5);
@@ -126,7 +126,7 @@ describe('Quantity', () => {
         expect(result.denominator).toBe(2n);
       });
 
-      it('should subtract a number from a quantity correctly', () => {
+      it('should subtract a number from a Rational correctly', () => {
         // 3/4 - 0.25 (0.25 => 1/4) = 3/4 - 1/4 = 2/4
         const a = new Rational(3n, 4n);
         const result = a.minus(0.25);
@@ -169,7 +169,7 @@ describe('Quantity', () => {
         expect(result.denominator).toBe(3n);
       });
 
-      it('should multiply a quantity by a number correctly', () => {
+      it('should multiply a Rational by a number correctly', () => {
         // (3/4) * 2 = (3/4)*(2/1) = 6/4
         const a = new Rational(3n, 4n);
         const result = a.times(2);
@@ -208,7 +208,7 @@ describe('Quantity', () => {
         expect(result.eq(new Rational(3n, 4n))).toBe(true);
       });
 
-      it('should divide a quantity by a number correctly', () => {
+      it('should divide a Rational by a number correctly', () => {
         // (3/4) / 2 = (3/4)*(1/2)= 3/8
         const a = new Rational(3n, 4n);
         const result = a.div(2);
@@ -230,7 +230,7 @@ describe('Quantity', () => {
         expect(result.eq(new Rational(-3n, 8n))).toBe(true);
       });
 
-      it('should ensure the resulting denominator is positive when dividing by a negative quantity', () => {
+      it('should ensure the resulting denominator is positive when dividing by a negative Rational', () => {
         // (3/4) / (-1/2) = (3/4)*(-2/1)= -6/4; the constructor adjusts the sign so that denominator > 0.
         const a = new Rational(3n, 4n);
         const b = new Rational(-1n, 2n);
@@ -239,7 +239,7 @@ describe('Quantity', () => {
         expect(result.denominator).toBe(2n);
       });
 
-      it('should throw an error when division by a zero Quantity is attempted', () => {
+      it('should throw an error when division by a zero Rational is attempted', () => {
         const a = new Rational(1n, 2n);
         expect(() => a.div(new Rational(0n, 1n))).toThrow("Division by zero");
       });
@@ -447,7 +447,7 @@ describe('Quantity', () => {
     });
 
     test('Denominator sign correction: ensuring sign is only carried by numerator', () => {
-      // We will create a quantity with a negative denominator. We expect it to be normalized
+      // We will create a Rational with a negative denominator. We expect it to be normalized
       // so that the numerator is negative, denominator is positive.
       const tricky = new Rational(5n, -3n);
       expect(tricky.numerator).toBe(-5n);
@@ -472,7 +472,7 @@ describe('Quantity', () => {
   });
 
   test('toString removes trailing zeros in fractional part and always leaves at least one digit', () => {
-    // Create an integer Quantity so that after rounding the fractional part is all zeros.
+    // Create an integer Rational so that after rounding the fractional part is all zeros.
     // With default display precision (10), we expect "5.0" instead of "5.".
     const qInteger = new Rational(5n, 1n);
     expect(qInteger.toString()).toBe("5.0");
@@ -534,7 +534,7 @@ describe('Quantity', () => {
       expect(q.round(2).toNumber()).toBe(-1.46);
     });
 
-    test('round: returns zero when quantity is zero regardless of precision', () => {
+    test('round: returns zero when Rational is zero regardless of precision', () => {
       const q = Rational.fromNumber(0);
       expect(q.round(3).toNumber()).toBe(0);
     });

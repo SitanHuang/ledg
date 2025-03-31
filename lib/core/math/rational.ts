@@ -7,6 +7,7 @@ export class Rational {
   public readonly denominator: bigint;
 
   public static ZERO = new Rational(0n, 1n);
+  public static ONE = new Rational(1n, 1n);
 
   public constructor(numerator: bigint, denominator: bigint = 1n) {
     if (denominator === 0n) {
