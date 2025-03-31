@@ -541,4 +541,62 @@ describe('Rational', () => {
       expect(q.round(3).isZero()).toBe(true);
     });
   });
+
+  describe('Comparisons', () => {
+    it('should recognize equal values', () => {
+      const a = new Rational(1n, 2n);
+      const b = new Rational(2n, 4n);
+      expect(a.eq(b)).toBe(true);
+      expect(a.lte(b)).toBe(true);
+      expect(a.gte(b)).toBe(true);
+    });
+
+    it('should correctly compare less than', () => {
+      const a = new Rational(1n, 3n);
+      const b = new Rational(1n, 2n);
+      expect(a.lt(b)).toBe(true);
+      expect(b.lt(a)).toBe(false);
+    });
+
+    it('should correctly compare greater than', () => {
+      const a = new Rational(3n, 4n);
+      const b = new Rational(2n, 3n);
+      expect(a.gt(b)).toBe(true);
+      expect(b.gt(a)).toBe(false);
+    });
+
+    it('should correctly compare less than or equal', () => {
+      const a = new Rational(1n, 2n);
+      const b = new Rational(2n, 4n);
+      const c = new Rational(1n, 3n);
+      expect(a.lte(b)).toBe(true); // equal case
+      expect(c.lte(b)).toBe(true); // less than case
+      expect(b.lte(c)).toBe(false);
+      expect(new Rational(-1n, 2n).lte(new Rational(1n, 2n))).toBe(true);
+      expect(new Rational(1n, 2n).lte(new Rational(-1n, 2n))).toBe(false);
+    });
+
+    it('should correctly compare greater than or equal', () => {
+      const a = new Rational(1n, 2n);
+      const b = new Rational(2n, 4n);
+      const c = new Rational(3n, 4n);
+      expect(a.gte(b)).toBe(true); // equal case
+      expect(c.gte(b)).toBe(true); // greater than case
+      expect(b.gte(c)).toBe(false);
+      expect(new Rational(-1n, 2n).gte(new Rational(1n, 2n))).toBe(false);
+      expect(new Rational(1n, 2n).gte(new Rational(-1n, 2n))).toBe(true);
+    });
+
+    it('should handle comparisons with number inputs', () => {
+      const a = new Rational(1n, 2n);
+      // 0.5 equals 1/2
+      expect(a.eq(0.5)).toBe(true);
+      expect(a.lte(0.5)).toBe(true);
+      expect(a.gte(0.5)).toBe(true);
+      // 0.6 is greater than 0.5, so 1/2 should be less than 0.6
+      expect(a.lt(0.6)).toBe(true);
+      // 0.4 is less than 0.5, so 1/2 should be greater than 0.4
+      expect(a.gt(0.4)).toBe(true);
+    });
+  });
 });

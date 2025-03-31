@@ -1,8 +1,13 @@
-
 type timestamp = number;
 
-const None = Symbol(":none");
-type NoneType = typeof None;
+class NoneType {
+  private constructor() {}
+
+  public static readonly instance: NoneType = Object.freeze(new NoneType());
+}
+
+const None: NoneType = NoneType.instance;
+
 type Some<T> = T;
 type Option<T> = Some<T> | NoneType;
 

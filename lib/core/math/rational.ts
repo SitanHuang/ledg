@@ -8,6 +8,7 @@ export class Rational {
 
   public static ZERO = new Rational(0n, 1n);
   public static ONE = new Rational(1n, 1n);
+  public static NEGATIVE_ONE = new Rational(-1n, 1n);
 
   public constructor(numerator: bigint, denominator: bigint = 1n) {
     if (denominator === 0n) {
@@ -190,5 +191,47 @@ export class Rational {
    */
   private static scale(precision: number): bigint {
     return BigInt(Math.pow(10, precision));
+  }
+
+  /**
+   * Helper method that compares this Rational with another.
+   * Returns -1 if this < other, 0 if equal, and 1 if this > other.
+   * Uses cross-multiplication to avoid floating point inaccuracies.
+   */
+  private compareTo(other: Rational): number {
+    const diff = this.numerator * other.denominator - other.numerator * this.denominator;
+    return diff < 0n ? -1 : diff > 0n ? 1 : 0;
+  }
+
+  /**
+   * Returns true if this Rational is less than the other.
+   */
+  public lt(other: Rational | number): boolean {
+    const q: Rational = typeof other === "number" ? Rational.fromNumber(other) : other;
+    return this.compareTo(q) < 0;
+  }
+
+  /**
+   * Returns true if this Rational is greater than the other.
+   */
+  public gt(other: Rational | number): boolean {
+    const q: Rational = typeof other === "number" ? Rational.fromNumber(other) : other;
+    return this.compareTo(q) > 0;
+  }
+
+  /**
+   * Returns true if this Rational is less than or equal to the other.
+   */
+  public lte(other: Rational | number): boolean {
+    const q: Rational = typeof other === "number" ? Rational.fromNumber(other) : other;
+    return this.compareTo(q) <= 0;
+  }
+
+  /**
+   * Returns true if this Rational is greater than or equal to the other.
+   */
+  public gte(other: Rational | number): boolean {
+    const q: Rational = typeof other === "number" ? Rational.fromNumber(other) : other;
+    return this.compareTo(q) >= 0;
   }
 }
