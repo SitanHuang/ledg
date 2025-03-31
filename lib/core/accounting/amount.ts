@@ -1,4 +1,4 @@
-import { Currency } from "../math/currency.ts";
+import { Currency } from "../valuation/currency.ts";
 import { Rational } from "../math/rational.ts";
 import { Option, None, isNone } from "../types.ts";
 import { ValuationPolicy } from "../valuation/policy.ts";

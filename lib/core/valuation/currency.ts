@@ -1,4 +1,4 @@
-import { Rational } from "./rational.ts";
+import { Rational } from "../math/rational.ts";
 import { None, Option, timestamp } from "../types.ts";
 
 export class Currency {

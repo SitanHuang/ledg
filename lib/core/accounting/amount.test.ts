@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Amount } from './amount.ts';
 import { Rational } from '../math/rational.ts';
-import { Currency } from '../math/currency.ts';
+import { Currency } from '../valuation/currency.ts';
 import { ValuationPolicy } from '../valuation/policy.ts';
 import { None } from '../types.ts';
 import { CurrencyProviderService } from '../valuation/currencyProviderService.ts';

@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Currency } from './currency.ts';
-import { Rational } from './rational.ts';
+import { Rational } from '../math/rational.ts';
 import { None, unwrap } from '../types.ts';
-import { CurrencyProviderService } from '../valuation/currencyProviderService.ts';
+import { CurrencyProviderService } from './currencyProviderService.ts';
 
 describe('CurrencyProviderService', () => {
   let service: CurrencyProviderService;

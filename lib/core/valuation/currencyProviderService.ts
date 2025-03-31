@@ -1,5 +1,5 @@
 import { Rational } from "../math/rational.ts";
-import { Currency } from "../math/currency.ts";
+import { Currency } from "./currency.ts";
 import { timestamp, Option, None } from "../types.ts";
 
 
