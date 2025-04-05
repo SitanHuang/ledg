@@ -5,12 +5,14 @@ import { Currency } from "../valuation/currency.ts";
 import { Rational } from "../math/rational.ts";
 import { CurrencyProvider } from "../valuation/currencyProvider.ts";
 import { AmountParseError, ValueExpressionEvalError } from "./parseErrors.ts";
+import { RoundFunction } from "./value_expression_functions/round.ts";
 
-type EvalValue =
+export type EvalValue =
   | { type: "scalar"; value: Rational }
-  | { type: "amount"; value: Amount };
+  | { type: "amount"; value: Amount }
+  | { type: "string"; value: string };
 
-interface Token {
+export interface Token {
   type: "amount" | "paren" | "comma" | "number" | "identifier" | "operator" | "string";
   value: string;
 }
@@ -77,8 +79,12 @@ export class ValueExpressionParser {
       );
       const result = parser.parseExpression();
       if (!parser.atEnd()) {
-        throw new ValueExpressionEvalError("Unexpected extra tokens", input);
+        return new ValueExpressionEvalError("Unexpected extra tokens", input);
       }
+      if (result.type === "string") {
+        return new ValueExpressionEvalError("Value expression cannot return a string", input);
+      }
+
       // If the final result is a scalar, convert it to an Amount with the empty-string currency.
       let finalAmount: Amount;
       if (result.type === "scalar") {
@@ -330,6 +336,9 @@ class Parser {
    * Combines two EvalValues using a binary operator.
    */
   private combineBinary(op: string, left: EvalValue, right: EvalValue): EvalValue {
+    if (left.type === "string" || right.type === "string") {
+      throw new ValueExpressionEvalError("Binary operators do not support string operations", this.input);
+    }
     switch (op) {
       case "+":
         if (left.type === right.type) {
@@ -375,16 +384,17 @@ class Parser {
 
   /**
    * Parses an expression (handles + and -).
+   * @param inFunctionArg Whether string literals are allowed (only allowed in function arguments)
    */
-  parseExpression(): EvalValue {
-    let left = this.parseTerm();
+  parseExpression(inFunctionArg: boolean = false): EvalValue {
+    let left = this.parseTerm(inFunctionArg);
     while (
       this.current() &&
       this.current()!.type === "operator" &&
       (this.current()!.value === "+" || this.current()!.value === "-")
     ) {
       const op = this.eat().value;
-      const right = this.parseTerm();
+      const right = this.parseTerm(inFunctionArg);
       left = this.combineBinary(op, left, right);
     }
     return left;
@@ -393,15 +403,15 @@ class Parser {
   /**
    * Parses a term (handles * and /).
    */
-  parseTerm(): EvalValue {
-    let left = this.parseFactor();
+  parseTerm(inFunctionArg: boolean): EvalValue {
+    let left = this.parseFactor(inFunctionArg);
     while (
       this.current() &&
       this.current()!.type === "operator" &&
       (this.current()!.value === "*" || this.current()!.value === "/")
     ) {
       const op = this.eat().value;
-      const right = this.parseFactor();
+      const right = this.parseFactor(inFunctionArg);
       left = this.combineBinary(op, left, right);
     }
     return left;
@@ -410,30 +420,32 @@ class Parser {
   /**
    * Parses a factor (handles unary + and -).
    */
-  parseFactor(): EvalValue {
+  parseFactor(inFunctionArg: boolean): EvalValue {
     if (
       this.current() &&
       this.current()!.type === "operator" &&
       (this.current()!.value === "+" || this.current()!.value === "-")
     ) {
       const op = this.eat().value;
-      const operand = this.parseFactor();
+      const operand = this.parseFactor(inFunctionArg);
       if (op === "-") {
         if (operand.type === "scalar") {
           return { type: "scalar", value: operand.value.times(Rational.NEGATIVE_ONE) };
+        } else if (operand.type === "string") {
+          throw new ValueExpressionEvalError("Binary operators do not support string operations", this.input);
         } else {
           return { type: "amount", value: operand.value.times(Rational.NEGATIVE_ONE) };
         }
       }
       return operand; // unary plus
     }
-    return this.parsePrimary();
+    return this.parsePrimary(inFunctionArg);
   }
 
   /**
-   * Parses a primary value: number, amount literal, parenthesized expression, or function call.
+   * Parses a primary value: number, amount literal, parenthesized expression, function call, or string literal.
    */
-  parsePrimary(): EvalValue {
+  parsePrimary(inFunctionArg: boolean): EvalValue {
     const token = this.current();
     if (!token) {
       throw new ValueExpressionEvalError("Unexpected end of expression", this.input);
@@ -444,7 +456,10 @@ class Parser {
         const num = Rational.parse(token.value);
         return { type: "scalar", value: num };
       } catch (e) {
-        const e2 = new ValueExpressionEvalError(`Number literal "${token.value}" cannot be parsed as a valid Rational.`, this.input);
+        const e2 = new ValueExpressionEvalError(
+          `Number literal "${token.value}" cannot be parsed as a valid Rational.`,
+          this.input
+        );
         e2.cause = e;
         throw e2;
       }
@@ -455,9 +470,16 @@ class Parser {
       if (amt instanceof Error) throw amt;
       return { type: "amount", value: amt };
     }
+    if (token.type === "string") {
+      if (!inFunctionArg) {
+        throw new ValueExpressionEvalError("String literal is only allowed in function arguments", this.input);
+      }
+      this.eat();
+      return { type: "string", value: token.value };
+    }
     if (token.type === "paren" && token.value === "(") {
       this.eat(); // consume '('
-      const expr = this.parseExpression();
+      const expr = this.parseExpression(inFunctionArg);
       const closing = this.current();
       if (!closing || closing.type !== "paren" || closing.value !== ")") {
         throw new ValueExpressionEvalError("Expected ')'", this.input);
@@ -466,16 +488,16 @@ class Parser {
       return expr;
     }
     if (token.type === "identifier") {
-      // If identifier is immediately followed by '(' then it's a function call.
       const ident = token.value;
       this.eat(); // consume identifier
       if (this.current() && this.current()!.type === "paren" && this.current()!.value === "(") {
         this.eat(); // consume '('
-        let argCount = 0;
+        const args: EvalValue[] = [];
         if (this.current() && !(this.current()!.type === "paren" && this.current()!.value === ")")) {
           while (true) {
-            this.parseExpression();
-            argCount++;
+            // In function arguments, allow string literals.
+            const arg = this.parseExpression(true);
+            args.push(arg);
             if (this.current() && this.current()!.type === "comma") {
               this.eat(); // consume comma
             } else {
@@ -487,7 +509,14 @@ class Parser {
           throw new ValueExpressionEvalError("Expected ')' after function arguments", this.input);
         }
         this.eat(); // consume ')'
-        throw new ValueExpressionEvalError(`${ident}(${argCount}) is unsupported.`, this.input);
+
+        // Function evaluation:
+        if (ident === "round") {
+          const roundFunction = new RoundFunction();
+          return roundFunction.evaluate(args, this.input);
+        }
+
+        throw new ValueExpressionEvalError(`Unsupported function '${ident}'`, this.input);
       }
       throw new ValueExpressionEvalError(`Unexpected identifier '${ident}'`, this.input);
     }

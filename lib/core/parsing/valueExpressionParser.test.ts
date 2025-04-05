@@ -378,7 +378,7 @@ describe('ValueExpressionParser -> evaluateValueExpression part', () => {
   });
 
   it('evaluates an expression with decimals', () => {
-    const input = '([2.5 USD] * 2)';
+    const input = '+([2.5 USD] * 2)';
     const result = parser.evaluateValueExpression(input, currencyProvider);
     expect(result).toBeInstanceOf(Amount);
     const amount = result as Amount;
@@ -408,7 +408,7 @@ describe('ValueExpressionParser -> evaluateValueExpression part', () => {
     const input = 'someDummyFunctionName_23([$1], [EUR 3], "2024-03-01")';
     const result = parser.evaluateValueExpression(input, currencyProvider);
     expect(result).toBeInstanceOf(ValueExpressionEvalError);
-    expect((result as Error).message).toContain('unsupported');
+    expect((result as Error).message).toMatch(/unsupported/i);
   });
 
   it('returns error for division by zero', () => {
