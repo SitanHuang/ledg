@@ -4,7 +4,7 @@ import { Rational } from '../math/rational.ts';
 import { Currency } from '../valuation/currency.ts';
 import { ValuationPolicy } from '../valuation/policy.ts';
 import { None } from '../types.ts';
-import { CurrencyProviderService } from '../valuation/currencyProviderService.ts';
+import { CurrencyConversionService } from '../valuation/currencyConversionService.ts';
 
 const USD = new Currency("USD");
 const CAD = new Currency("CAD");
@@ -12,7 +12,7 @@ const EUR = new Currency("EUR");
 
 const r = (n: number) => Rational.fromNumber(n);
 
-class DummyCurrencyProviderService extends CurrencyProviderService {
+class DummyCurrencyConversionService extends CurrencyConversionService {
   private conversions: Map<string, Rational>;
   constructor(conversions: { from: Currency; to: Currency; rate: Rational }[]) {
     super();
@@ -92,10 +92,15 @@ describe('Amount', () => {
       expect(cadEntry!.value.eq(r(3))).toBe(true);
     });
 
-    it('plus: should cancel out currencies when the sum is zero', () => {
-      const amt1 = Amount.create([{ currency: USD, value: r(5) }]);
-      const amt2 = Amount.create([{ currency: USD, value: r(-5) }]);
-      const result = amt1.plus(amt2);
+    it('plus/minus: should cancel out currencies when the sum is zero', () => {
+      let amt1 = Amount.create([{ currency: USD, value: r(5) }]);
+      let amt2 = Amount.create([{ currency: USD, value: r(-5) }]);
+      let result = amt1.plus(amt2);
+      expect(result.getEntries().length).toBe(0);
+      expect(result).toEqual(Amount.ZERO);
+      amt1 = Amount.create([{ currency: USD, value: r(5) }]);
+      amt2 = Amount.create([{ currency: USD, value: r(5) }]);
+      result = amt1.minus(amt2);
       expect(result.getEntries().length).toBe(0);
       expect(result).toEqual(Amount.ZERO);
     });
@@ -117,6 +122,10 @@ describe('Amount', () => {
       expect(entries.length).toBe(1);
       expect(entries[0].currency.id).toBe(USD.id);
       expect(entries[0].value.eq(r(7))).toBe(true);
+      expect(Amount.create([{ currency: USD, value: r(3) }]).minus(Amount.create([{ currency: USD, value: r(3) }])).isZero(
+        new DummyCurrencyConversionService([]),
+        new ValuationPolicy(0)
+      )).toBe(true);
     });
 
     it('minus: should subtract amounts across different currencies correctly', () => {
@@ -138,6 +147,10 @@ describe('Amount', () => {
       expect(cadEntry).toBeDefined();
       expect(usdEntry!.value.eq(r(7))).toBe(true);
       expect(cadEntry!.value.eq(r(-2))).toBe(true);
+      const result2 = result.minus(Amount.create([{ currency: EUR, value: r(1) }]));
+      expect(
+        result2.getEntries().find(e => e.currency.id === EUR.id)!.value.eq(r(-1))
+      ).toBe(true);
     });
 
     it('times: should multiply each currency value by the factor', () => {
@@ -191,7 +204,7 @@ describe('Amount', () => {
       { from: EUR, to: USD, rate: r(1.2) },
       { from: USD, to: EUR, rate: r(0.83333) },
     ];
-    const provider = new DummyCurrencyProviderService(conversionRates);
+    const provider = new DummyCurrencyConversionService(conversionRates);
 
     it('convertTo: converting an amount with the same currency returns the same value', () => {
       const amt = Amount.create([{ currency: USD, value: r(50) }]);
@@ -227,7 +240,7 @@ describe('Amount', () => {
       { from: CAD, to: USD, rate: r(0.8) },
       { from: USD, to: CAD, rate: r(1.25) },
     ];
-    const provider = new DummyCurrencyProviderService(conversionRates);
+    const provider = new DummyCurrencyConversionService(conversionRates);
 
     it('isZero: should return true for an amount with no entries', () => {
       expect(Amount.ZERO.isZero(provider, policy)).toBe(true);
@@ -274,7 +287,7 @@ describe('Amount', () => {
 
     it('isZero: should return false if any conversion fails', () => {
       // Use a provider that does not support conversion from EUR to USD.
-      const providerFail = new DummyCurrencyProviderService([]);
+      const providerFail = new DummyCurrencyConversionService([]);
       expect(Amount.create([
         { currency: EUR, value: r(5) }
       ]).isZero(providerFail, policy)).toBe(false);
@@ -295,5 +308,60 @@ describe('Amount', () => {
 
   it('toString: coverage', () => {
     expect(Amount.create([{ currency: EUR, value: r(1) }]).toString().length).toBeGreaterThan(0);
+  });
+
+  it('should correctly round a positive amount to specified precision', () => {
+    const amt = Amount.create([{ currency: USD, value: r(1.2345) }]);
+    const rounded = amt.round(2);
+    const entries = rounded.getEntries();
+    expect(entries.length).toBe(1);
+    expect(entries[0].value.eq(r(1.23))).toBe(true);
+  });
+
+  it('should correctly round a negative amount to specified precision', () => {
+    const amt = Amount.create([{ currency: CAD, value: r(-2.718) }]);
+    const rounded = amt.round(1);
+    const entries = rounded.getEntries();
+    expect(entries.length).toBe(1);
+    expect(entries[0].value.eq(r(-2.7))).toBe(true);
+  });
+
+  it('should omit currency entries that round to zero', () => {
+    const amt = Amount.create([{ currency: EUR, value: r(0.0049) }]);
+    const rounded = amt.round(2);
+    expect(rounded.getEntries().length).toBe(0);
+    expect(rounded).toEqual(Amount.ZERO);
+  });
+
+  it('should correctly round multiple currency entries independently', () => {
+    const amt = Amount.create([
+      { currency: USD, value: r(1.999) },
+      { currency: CAD, value: r(-3.14159) },
+    ]);
+    const rounded = amt.round(1);
+    const entries = rounded.getEntries();
+    expect(entries.length).toBe(2);
+    const usdEntry = entries.find(e => e.currency.id === USD.id);
+    const cadEntry = entries.find(e => e.currency.id === CAD.id);
+    expect(usdEntry).toBeDefined();
+    expect(cadEntry).toBeDefined();
+    expect(usdEntry!.value.eq(r(2.0))).toBe(true);
+    expect(cadEntry!.value.eq(r(-3.1))).toBe(true);
+  });
+
+  it('should handle rounding when precision is zero', () => {
+    const amt = Amount.create([
+      { currency: USD, value: r(1.5) },
+      { currency: CAD, value: r(-2.5) },
+    ]);
+    const rounded = amt.round(0);
+    const entries = rounded.getEntries();
+    expect(entries.length).toBe(2);
+    const usdEntry = entries.find(e => e.currency.id === USD.id);
+    const cadEntry = entries.find(e => e.currency.id === CAD.id);
+    expect(usdEntry).toBeDefined();
+    expect(cadEntry).toBeDefined();
+    expect(usdEntry!.value.eq(r(2))).toBe(true);
+    expect(cadEntry!.value.eq(r(-3))).toBe(true);
   });
 });

@@ -208,4 +208,19 @@ export class Amount {
     }
     return parts.join(", ");
   }
+
+  /**
+   * Rounds the underlying rational values of every currency to the given number
+   * of decimal places. Returns a new Amount with the rounded values.
+   */
+  public round(precision: number): Amount {
+    const result = new Map<string, { currency: Currency; value: Rational }>();
+    for (const [curId, { currency, value }] of this.amounts) {
+      const roundedValue = value.round(precision);
+      if (!roundedValue.isZero()) {
+        result.set(curId, { currency, value: roundedValue });
+      }
+    }
+    return Amount.fromMap(result);
+  }
 }
