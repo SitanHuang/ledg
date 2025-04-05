@@ -6,16 +6,22 @@ import { Rational } from "../math/rational.ts";
 import { CurrencyProvider } from "../valuation/currencyProvider.ts";
 import { AmountParseError, ValueExpressionEvalError } from "./parseErrors.ts";
 import { RoundFunction } from "./value_expression_functions/round.ts";
+import { DebugIdentityFunction } from "./value_expression_functions/debug.ts";
 
 export type EvalValue =
   | { type: "scalar"; value: Rational }
   | { type: "amount"; value: Amount }
   | { type: "string"; value: string };
 
-export interface Token {
-  type: "amount" | "paren" | "comma" | "number" | "identifier" | "operator" | "string";
+export type BinaryOperator = "+" | "-" | "*" | "/";
+
+export type Token = {
+  type: "amount" | "paren" | "comma" | "number" | "identifier" | "operator" | "string",
   value: string;
-}
+} | {
+  type: "operator",
+  value: BinaryOperator
+};
 
 export class ValueExpressionParser {
   private static readonly QUANTITY_PATTERN = '[+-]?(\\d+\\.?\\d*|\\.\\d+)';
@@ -124,7 +130,7 @@ export class ValueExpressionParser {
    */
   parseAmount(input: string, currencyProvider: CurrencyProvider): Result<Amount, AmountParseError> {
     if (input.includes("[")) {
-      return new AmountParseError("Unreachable.", input);
+      return new AmountParseError("Amount literal cannot contain brackets.", input);
     }
 
     /* Benchmark results:
@@ -335,7 +341,7 @@ class Parser {
   /**
    * Combines two EvalValues using a binary operator.
    */
-  private combineBinary(op: string, left: EvalValue, right: EvalValue): EvalValue {
+  private combineBinary(op: BinaryOperator, left: EvalValue, right: EvalValue): EvalValue {
     if (left.type === "string" || right.type === "string") {
       throw new ValueExpressionEvalError("Binary operators do not support string operations", this.input);
     }
@@ -393,7 +399,7 @@ class Parser {
       this.current()!.type === "operator" &&
       (this.current()!.value === "+" || this.current()!.value === "-")
     ) {
-      const op = this.eat().value;
+      const op = this.eat().value as BinaryOperator;
       const right = this.parseTerm(inFunctionArg);
       left = this.combineBinary(op, left, right);
     }
@@ -410,7 +416,7 @@ class Parser {
       this.current()!.type === "operator" &&
       (this.current()!.value === "*" || this.current()!.value === "/")
     ) {
-      const op = this.eat().value;
+      const op = this.eat().value as BinaryOperator;
       const right = this.parseFactor(inFunctionArg);
       left = this.combineBinary(op, left, right);
     }
@@ -511,9 +517,11 @@ class Parser {
         this.eat(); // consume ')'
 
         // Function evaluation:
+        if (ident === "DEBUG_IDENTITY") {
+          return new DebugIdentityFunction().evaluate(args, this.input)
+        }
         if (ident === "round") {
-          const roundFunction = new RoundFunction();
-          return roundFunction.evaluate(args, this.input);
+          return new RoundFunction().evaluate(args, this.input);
         }
 
         throw new ValueExpressionEvalError(`Unsupported function '${ident}'`, this.input);

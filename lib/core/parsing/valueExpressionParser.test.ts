@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ValueExpressionParser } from './valueExpressionParser.ts';
 import { CurrencyProvider } from '../valuation/currencyProvider.ts';
-import { AmountParseError, ValueExpressionEvalError } from './parseErrors.ts';
+import { AmountParseError, ParseError, ValueExpressionEvalError } from './parseErrors.ts';
 import { Amount } from '../accounting/amount.ts';
 import { CurrencyConversionService } from '../valuation/currencyConversionService.ts';
 import { ValuationPolicy } from '../valuation/policy.ts';
@@ -287,7 +287,7 @@ describe('ValueExpressionParser -> evaluateValueExpression part', () => {
   });
 
   it('evaluates multiplication with a scalar', () => {
-    const input = '([5 USD] * 3)';
+    const input = '1 * ([5 USD] * 3)';
     const result = parser.evaluateValueExpression(input, currencyProvider);
     expect(result).toBeInstanceOf(Amount);
     const amount = result as Amount;
@@ -483,11 +483,19 @@ describe('ValueExpressionParser -> evaluateValueExpression part', () => {
     expect(entries[0].value.eq(14)).toBe(true);
   });
 
-  it('returns error for unmatched parentheses', () => {
+  it('returns error for unmatched parentheses or brackets', () => {
     const input = '([5 USD] + [3 EUR]';
     const result = parser.evaluateValueExpression(input, currencyProvider);
     expect(result).toBeInstanceOf(ValueExpressionEvalError);
     expect((result as Error).message.length).toBeGreaterThan(0)
+    const input2 = '[5 USD] + [3 EUR])';
+    const result2 = parser.evaluateValueExpression(input2, currencyProvider);
+    expect(result2).toBeInstanceOf(ValueExpressionEvalError);
+    expect((result2 as Error).message.length).toBeGreaterThan(0)
+    const input3 = '[5 USD] + [3 EUR';
+    const result3 = parser.evaluateValueExpression(input3, currencyProvider);
+    expect(result3).toBeInstanceOf(ValueExpressionEvalError);
+    expect((result3 as Error).message.length).toBeGreaterThan(0)
   });
 
   it('returns error for invalid scalar format', () => {
@@ -563,5 +571,26 @@ describe('ValueExpressionParser -> evaluateValueExpression part', () => {
     const result = parser.evaluateValueExpression(input, currencyProvider);
     const entries = (result as Amount).getEntries();
     expect(entries[0].value.eq(new Rational(5n, 2n))).toBe(true);
+  });
+
+  it('cannot return a string in any value expression', () => {
+    expect(parser.evaluateValueExpression('[10 USD] / ""', currencyProvider)).toBeInstanceOf(ValueExpressionEvalError);
+    expect(parser.evaluateValueExpression('"10" + [10 USD]', currencyProvider)).toBeInstanceOf(ValueExpressionEvalError);
+    expect(parser.evaluateValueExpression('""', currencyProvider)).toBeInstanceOf(ParseError); // might be AmountParseError too
+    expect(parser.evaluateValueExpression('"[*+-]"', currencyProvider)).toBeInstanceOf(ValueExpressionEvalError);
+    expect(parser.evaluateValueExpression('round("[*+-]", 1)', currencyProvider)).toBeInstanceOf(ValueExpressionEvalError);
+    expect((parser.evaluateValueExpression('DEBUG_IDENTITY("[*+-]\\"")', currencyProvider) as ValueExpressionEvalError).message).toMatch(/string/i);
+  });
+
+  it('passes extra coverage tests', () => {
+    expect((parser.evaluateValueExpression('DEBUG_IDENTITY("[*+-]", 1)', currencyProvider) as ValueExpressionEvalError).message).toMatch(/arg/i);
+    expect((parser.evaluateValueExpression('DEBUG_IDENTITY("[*+-])', currencyProvider) as ValueExpressionEvalError).message).toMatch(/untermin/i);
+    expect((parser.evaluateValueExpression('DEBUG_IDENTITY("[*+-]" + "")', currencyProvider) as ValueExpressionEvalError).message).toMatch(/string/i);
+    expect((parser.evaluateValueExpression('[0]-1', currencyProvider) as ValueExpressionEvalError).message).toMatch(/incompat/i);
+    expect((parser.evaluateValueExpression('1/[0]', currencyProvider) as ValueExpressionEvalError).message).toMatch(/amount/i);
+    expect((parser.evaluateValueExpression('2 + -"*"', currencyProvider) as ValueExpressionEvalError).message).toMatch(/string/i);
+    expect((parser.evaluateValueExpression('3*', currencyProvider) as ValueExpressionEvalError).message).toMatch(/unexp/i);
+    expect((parser.evaluateValueExpression('round(', currencyProvider) as ValueExpressionEvalError).message).toMatch(/expec/i);
+    expect((parser.evaluateValueExpression('round*', currencyProvider) as ValueExpressionEvalError).message).toMatch(/expec/i);
   });
 });
