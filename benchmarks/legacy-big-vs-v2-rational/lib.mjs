@@ -1,4 +1,4 @@
-import { Quantity } from "../../out/core/math/quantity.js";
+import { Rational } from "../../out/core/math/quantity.js";
 
 class Big {
 
@@ -95,4 +95,4 @@ Big.ZERO = new Big(0n, true);
 Big._SHIFT = BigInt(Math.pow(10, Big.DP));
 Big._SHIFT_PRIM = Math.pow(10, Big.DP);
 
-export { Quantity, Big };
+export { Rational, Big };

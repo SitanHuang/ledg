@@ -22,7 +22,7 @@ export class Rational {
   }
 
   /**
-   * Creates a Quantity from a number.
+   * Creates a Rational from a number.
    * If the number is an integer, a fast path is used.
    * Otherwise, the number is converted to a string and processed similarly
    * to parse, determining the denominator from the count of digits after the decimal.
@@ -56,7 +56,7 @@ export class Rational {
   }
 
   /**
-   * Parses a string (like "123.456") into a Quantity.
+   * Parses a string (like "123.456") into a Rational.
    * The denominator is determined solely from the number of decimal places provided in the string.
    * For example, "123.45" becomes numerator=12345 and denominator=100.
    * @param str The string representation.
@@ -122,7 +122,7 @@ export class Rational {
   }
 
   /**
-   * Rounds this Quantity to the given number of decimal places.
+   * Rounds this Rational to the given number of decimal places.
    * The rounding is performed in a fixed-point style.
    */
   public round(precision: number): Rational {
@@ -165,7 +165,7 @@ export class Rational {
   }
 
   /**
-   * Returns a new Quantity with the fraction reduced by dividing both numerator and denominator by their GCD.
+   * Returns a new Rational with the fraction reduced by dividing both numerator and denominator by their GCD.
    */
   public reduce(): Rational {
     let a = this.numerator;

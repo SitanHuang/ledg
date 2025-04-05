@@ -13,7 +13,7 @@ interface ConversionRegistration {
 
 
 /**
- * CurrencyProviderService implements two main features:
+ * CurrencyConversionService implements two main features:
  *  1. Register a fractional conversion rate between two currencies at a given timestamp.
  *     Registering from -> to automatically registers to -> from with the reciprocal rate,
  *     except that if the rate is zero then both directions are zero.
@@ -21,7 +21,7 @@ interface ConversionRegistration {
  *     The resolution uses the fewest‐edge (i.e. “shortest”) valid path.
  *     For each direct edge, a binary search (O(log k)) over registrations is performed.
  */
-export class CurrencyProviderService {
+export class CurrencyConversionService {
   // Map from currency id to Currency instance.
   private currencies: Map<string, Currency> = new Map();
 

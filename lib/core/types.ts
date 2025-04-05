@@ -25,4 +25,6 @@ function unwrap<T>(opt: Option<T>): T {
   throw new Error("Called unwrap on a None value");
 }
 
-export { timestamp, Option, Some, None, isSome, isNone, unwrap };
+type Result<T, E extends Error = Error> = Some<T> | E;
+
+export { timestamp, Option, Some, None, isSome, isNone, unwrap, Result };

@@ -2,7 +2,7 @@ import { Currency } from "../valuation/currency.ts";
 import { Rational } from "../math/rational.ts";
 import { Option, None, isNone } from "../types.ts";
 import { ValuationPolicy } from "../valuation/policy.ts";
-import { CurrencyProviderService } from "../valuation/currencyProviderService.ts";
+import { CurrencyConversionService } from "../valuation/currencyConversionService.ts";
 
 /**
  * Represents a multi-currency monetary amount. Internally, amounts are stored
@@ -74,8 +74,23 @@ export class Amount {
    * Subtracts another Amount from this Amount. Returns a new Amount.
    */
   public minus(other: Amount): Amount {
-    // Multiply other by -1 and then add
-    return this.plus(other.times(Rational.NEGATIVE_ONE));
+    const result = new Map(this.amounts);
+    for (const [curId, { currency, value }] of other.amounts) {
+      if (result.has(curId)) {
+        const existing = result.get(curId)!;
+        const sum = existing.value.minus(value);
+        if (sum.isZero()) {
+          result.delete(curId);
+        } else {
+          result.set(curId, { currency: currency, value: sum });
+        }
+      } else {
+        if (!value.isZero()) {
+          result.set(curId, { currency: currency, value: Rational.ZERO.minus(value) });
+        }
+      }
+    }
+    return Amount.fromMap(result);
   }
 
   /**
@@ -108,11 +123,11 @@ export class Amount {
 
   /**
    * Converts this Amount into the designated target currency at the given
-   * valuation date, using the provided CurrencyProviderService. If any
+   * valuation date, using the provided CurrencyConversionService. If any
    * conversion fails, returns None. Otherwise, returns the total converted
    * value as a Rational.
    */
-  public convertTo(target: Currency, provider: CurrencyProviderService, valuationPolicy: ValuationPolicy): Option<Rational> {
+  public convertTo(target: Currency, provider: CurrencyConversionService, valuationPolicy: ValuationPolicy): Option<Rational> {
     let total: Rational = Rational.ZERO;
     for (const { currency, value } of this.amounts.values()) {
       let converted: Rational;
@@ -146,7 +161,7 @@ export class Amount {
    * minor conversion errors.
    */
   public isZero(
-    provider: CurrencyProviderService,
+    provider: CurrencyConversionService,
     valuationPolicy: ValuationPolicy,
     tolerance: Rational = Rational.ZERO,
     targetCurrency?: Currency

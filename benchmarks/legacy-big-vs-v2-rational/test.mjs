@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { Quantity, Big } from './lib.mjs';
+import { Rational, Big } from './lib.mjs';
 
 import { performance } from 'perf_hooks';
 
@@ -68,7 +68,7 @@ function generateRandomNumber(integerDigits, decimalDigits) {
 // --- Test definitions ---
 //
 // Each test definition includes a name, a type ("construct", "binary", or "unary")
-// and for "construct" tests, separate constructor functions for Quantity and Big.
+// and for "construct" tests, separate constructor functions for Rational and Big.
 // For binary/unary tests, an op function is defined (which is common to both classes).
 const tests = [
   {
@@ -76,7 +76,7 @@ const tests = [
     type: "construct",
     inputType: "string", // input is a string representation
     constructor: {
-      Quantity: (s) => Quantity.parse(s),
+      Rational: (s) => Rational.parse(s),
       Big: (s) => new Big(s),
     }
   },
@@ -85,7 +85,7 @@ const tests = [
     type: "construct",
     inputType: "number", // input is a JS number
     constructor: {
-      Quantity: (n) => Quantity.fromNumber(n),
+      Rational: (n) => Rational.fromNumber(n),
       Big: (n) => new Big(n),
     }
   },
@@ -136,11 +136,11 @@ const tests = [
 ];
 
 // For arithmetic tests we use the following conversion functions to create operands:
-// For Quantity, we use Quantity.fromNumber and for Big, new Big(x)
+// For Rational, we use Rational.fromNumber and for Big, new Big(x)
 // (This mirrors the sample code and keeps the input similar.)
 function convertArithmeticOperand(className, x) {
-  if (className === "Quantity") {
-    return Quantity.fromNumber(x);
+  if (className === "Rational") {
+    return Rational.fromNumber(x);
   } else if (className === "Big") {
     return new Big(x);
   }
@@ -243,7 +243,7 @@ function runUnaryTest(opFn, className, iterations, warmup, integerDigits, decima
 // --- Main Benchmark Runner ---
 //
 // For each test and for each test case (combination of integerDigits and decimalDigits),
-// run the test for both Quantity and Big and output a CSV row comparing them.
+// run the test for both Rational and Big and output a CSV row comparing them.
 function runBenchmarks() {
   // Print CSV header.
   console.log("operation,integerDigits,decimalDigits,decimalToIntegerRatio,iterations,quantity_total_ms,quantity_avg_ms,big_total_ms,big_avg_ms,relative_ratio");
@@ -256,15 +256,15 @@ function runBenchmarks() {
       let qtyTime, bigTime;
       // Branch on test type.
       if (testDef.type === "construct") {
-        // For Quantity
-        qtyTime = runConstructTest(testDef.constructor.Quantity, testDef.inputType, "Quantity", iterations, warmup, integerDigits, decimalDigits);
+        // For Rational
+        qtyTime = runConstructTest(testDef.constructor.Rational, testDef.inputType, "Rational", iterations, warmup, integerDigits, decimalDigits);
         // For Big
         bigTime = runConstructTest(testDef.constructor.Big, testDef.inputType, "Big", iterations, warmup, integerDigits, decimalDigits);
       } else if (testDef.type === "binary") {
-        qtyTime = runBinaryTest(testDef.op, "Quantity", iterations, warmup, integerDigits, decimalDigits);
+        qtyTime = runBinaryTest(testDef.op, "Rational", iterations, warmup, integerDigits, decimalDigits);
         bigTime = runBinaryTest(testDef.op, "Big", iterations, warmup, integerDigits, decimalDigits);
       } else if (testDef.type === "unary") {
-        qtyTime = runUnaryTest(testDef.op, "Quantity", iterations, warmup, integerDigits, decimalDigits);
+        qtyTime = runUnaryTest(testDef.op, "Rational", iterations, warmup, integerDigits, decimalDigits);
         bigTime = runUnaryTest(testDef.op, "Big", iterations, warmup, integerDigits, decimalDigits);
       } else {
         continue;

@@ -1,2 +1,2 @@
-export * from './currencyProviderService.ts';
+export * from './currencyConversionService.ts';
 export * from './currency.ts';

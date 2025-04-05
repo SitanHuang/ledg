@@ -2,17 +2,17 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { Currency } from './currency.ts';
 import { Rational } from '../math/rational.ts';
 import { None, unwrap } from '../types.ts';
-import { CurrencyProviderService } from './currencyProviderService.ts';
+import { CurrencyConversionService } from './currencyConversionService.ts';
 
-describe('CurrencyProviderService', () => {
-  let service: CurrencyProviderService;
+describe('CurrencyConversionService', () => {
+  let service: CurrencyConversionService;
   let currencyA: Currency;
   let currencyB: Currency;
   let currencyC: Currency;
   let currencyD: Currency;
 
   beforeEach(() => {
-    service = new CurrencyProviderService();
+    service = new CurrencyConversionService();
     currencyA = new Currency('A', '$');
     currencyB = new Currency('B', '€');
     currencyC = new Currency('C', '£');
@@ -122,12 +122,12 @@ describe('CurrencyProviderService', () => {
   });
 
   describe('Additional Edge Coverage Tests', () => {
-    let service: CurrencyProviderService;
+    let service: CurrencyConversionService;
     let currencyA: Currency;
     let currencyB: Currency;
 
     beforeEach(() => {
-      service = new CurrencyProviderService();
+      service = new CurrencyConversionService();
       currencyA = new Currency('A', '$');
       currencyB = new Currency('B', '€');
     });
