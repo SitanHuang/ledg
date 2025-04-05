@@ -3,14 +3,15 @@ import { Currency } from "./currency.ts";
 export class CurrencyProvider {
   public defaultCurrencyCode = '$';
 
-  private currencies: Map<string, Currency> = new Map();
+  private currencies = new Map<string, Currency>();
 
   public getOrCreateCurrencyById(code: string): Currency {
     if (!code)
       code = this.defaultCurrencyCode;
 
-    if (this.currencies.has(code))
-      return this.currencies.get(code) as Currency;
+    const currency = this.currencies.get(code);
+    if (currency !== undefined)
+      return currency;
 
     const newCurrency = new Currency(code);
     this.currencies.set(code, newCurrency);

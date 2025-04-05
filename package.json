@@ -4,16 +4,21 @@
   "type": "module",
   "scripts": {
     "clean": "rimraf out/ types/",
+    "lint": "eslint lib",
     "build": "tsc",
     "test": "vitest run --config lib/vitest.config.ts --coverage",
     "buildtest": "tsc && vitest run --config lib/vitest.config.ts --coverage"
   },
   "devDependencies": {
+    "@eslint/js": "^9.24.0",
     "@types/node": "^22.13.14",
     "@vitest/coverage-v8": "^3.0.9",
+    "eslint": "^9.24.0",
     "node-sloc": "^0.2.1",
     "rimraf": "^6.0.1",
-    "typescript": "^5.8.2",
+    "tar": "^7.4.3",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.29.0",
     "vitest": "^3.0.9"
   }
 }

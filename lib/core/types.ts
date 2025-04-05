@@ -1,6 +1,8 @@
 type timestamp = number;
 
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class
 class NoneType {
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
   private constructor() {}
 
   public static readonly instance: NoneType = Object.freeze(new NoneType());

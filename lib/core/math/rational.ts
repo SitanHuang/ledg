@@ -10,7 +10,7 @@ export class Rational {
   public static ONE = new Rational(1n, 1n);
   public static NEGATIVE_ONE = new Rational(-1n, 1n);
 
-  public constructor(numerator: bigint, denominator: bigint = 1n) {
+  public constructor(numerator: bigint, denominator = 1n) {
     if (denominator === 0n) {
       throw new Error("Denominator cannot be zero.");
     }
@@ -36,7 +36,7 @@ export class Rational {
     let s: string = value.toString();
 
     // Handle exponential notation
-    if (s.indexOf('e') !== -1) {
+    if (s.includes('e')) {
       s = value.toFixed(17);
     }
 
@@ -49,7 +49,7 @@ export class Rational {
     // Split the number at the decimal point.
     const integerPart: string = s.substring(0, dotIndex);
     const fractionalPart: string = s.substring(dotIndex + 1);
-    const denominator: bigint = BigInt(10 ** fractionalPart.length);
+    const denominator = BigInt(10 ** fractionalPart.length);
     const combined: string = integerPart + fractionalPart;
 
     return new Rational(BigInt(combined), denominator);
@@ -70,7 +70,7 @@ export class Rational {
       const integerPart: string = str.substring(0, dotIndex);
       const fractionalPart: string = str.substring(dotIndex + 1);
       const denominator: bigint = this.scale(fractionalPart.length);
-      const numerator: bigint = BigInt(integerPart + fractionalPart);
+      const numerator = BigInt(integerPart + fractionalPart);
       return new Rational(numerator, denominator);
     }
   }
@@ -141,12 +141,12 @@ export class Rational {
   }
 
   public valueOf(options?: RationalFormatOptions): string {
-    const dp: number = options && options.displayPrecision !== undefined ? options.displayPrecision : 10;
+    const dp: number = options?.displayPrecision ?? 10;
     // Round to the desired precision so that the denominator becomes 10^dp.
     const q: Rational = this.round(dp);
-    let absNum: bigint = q.numerator < 0n ? -q.numerator : q.numerator;
+    const absNum: bigint = q.numerator < 0n ? -q.numerator : q.numerator;
     // Ensure we have at least dp+1 digits.
-    let s: string = absNum.toString().padStart(dp + 1, '0');
+    const s: string = absNum.toString().padStart(dp + 1, '0');
     const intPart: string = s.slice(0, s.length - dp);
     const sign: string = q.numerator < 0n ? "-" : "";
     // If display precision is 0, return just the integer part without a decimal point.

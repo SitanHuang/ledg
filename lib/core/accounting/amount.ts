@@ -19,7 +19,7 @@ export class Amount {
    * Helper to create an Amount instance. It takes an optional array of entries
    * (currency/value pairs) and filters out zero-valued entries.
    */
-  public static create(entries?: { currency: Currency; value: Rational }[]): Amount {
+  public static create(entries?: readonly { currency: Currency; value: Rational }[]): Amount {
     const map = new Map<string, { currency: Currency; value: Rational }>();
     if (entries) {
       for (const { currency, value } of entries) {

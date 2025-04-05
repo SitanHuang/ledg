@@ -23,12 +23,12 @@ interface ConversionRegistration {
  */
 export class CurrencyConversionService {
   // Map from currency id to Currency instance.
-  private currencies: Map<string, Currency> = new Map();
+  private currencies = new Map<string, Currency>();
 
   // The conversion graph is stored as a nested Map.
   // edges.get(fromId)?.get(toId) returns a sorted array (by timestamp ascending)
   // of registrations for conversion from currency "fromId" to "toId".
-  private edges: Map<string, Map<string, ConversionRegistration[]>> = new Map();
+  private edges = new Map<string, Map<string, ConversionRegistration[]>>();
 
   /**
    * Optionally registers a Currency if it isn’t already known.
@@ -83,9 +83,9 @@ export class CurrencyConversionService {
     }
 
     // BFS queue elements: { currencyId, compositeRate }
-    const queue: Array<{ id: string, rate: Rational }> = [];
+    const queue: { id: string, rate: Rational }[] = [];
     // visited map to record the minimum number of hops used to reach a currency.
-    const visited: Map<string, number> = new Map();
+    const visited = new Map<string, number>();
 
     queue.push({ id: from.id, rate: Rational.ONE });
     visited.set(from.id, 0);

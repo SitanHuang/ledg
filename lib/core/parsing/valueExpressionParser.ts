@@ -65,12 +65,12 @@ export class ValueExpressionParser {
     currencyProvider: CurrencyProvider
   ): Result<Amount, AmountParseError | ValueExpressionEvalError> {
     if (
-      input.indexOf('(') === -1 &&
-      input.indexOf(')') === -1 &&
-      input.indexOf('*') === -1 &&
-      input.indexOf('/') === -1 &&
-      input.indexOf('[') === -1 &&
-      input.indexOf(']') === -1
+      !input.includes('(') &&
+      !input.includes(')') &&
+      !input.includes('*') &&
+      !input.includes('/') &&
+      !input.includes('[') &&
+      !input.includes(']')
     ) {
       return this.parseAmount(input, currencyProvider);
     }
@@ -309,7 +309,7 @@ function tokenize(input: string): Token[] {
  */
 class Parser {
   private tokens: Token[];
-  private pos: number = 0;
+  private pos = 0;
   private currencyProvider: CurrencyProvider;
   private parseAmountFunc: (input: string, cp: CurrencyProvider) => Result<Amount, AmountParseError>;
   private input: string;
@@ -392,7 +392,7 @@ class Parser {
    * Parses an expression (handles + and -).
    * @param inFunctionArg Whether string literals are allowed (only allowed in function arguments)
    */
-  parseExpression(inFunctionArg: boolean = false): EvalValue {
+  parseExpression(inFunctionArg = false): EvalValue {
     let left = this.parseTerm(inFunctionArg);
     while (
       this.current() &&
