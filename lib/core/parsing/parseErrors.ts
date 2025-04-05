@@ -20,3 +20,10 @@ export class AmountParseError extends ParseError {
     this.name = "AmountParseError";
   }
 }
+
+export class ValueExpressionEvalError extends AmountParseError {
+  constructor(message: string, sourceString: string) {
+    super(message, sourceString);
+    this.name = "ValueExpressionEvalError";
+  }
+}

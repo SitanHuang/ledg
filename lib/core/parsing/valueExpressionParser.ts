@@ -4,7 +4,16 @@ import { Result } from "../types.ts";
 import { Currency } from "../valuation/currency.ts";
 import { Rational } from "../math/rational.ts";
 import { CurrencyProvider } from "../valuation/currencyProvider.ts";
-import { AmountParseError } from "./parseErrors.ts";
+import { AmountParseError, ValueExpressionEvalError } from "./parseErrors.ts";
+
+type EvalValue =
+  | { type: "scalar"; value: Rational }
+  | { type: "amount"; value: Amount };
+
+interface Token {
+  type: "amount" | "paren" | "comma" | "number" | "identifier" | "operator" | "string";
+  value: string;
+}
 
 export class ValueExpressionParser {
   private static readonly QUANTITY_PATTERN = '[+-]?(\\d+\\.?\\d*|\\.\\d+)';
@@ -16,20 +25,94 @@ export class ValueExpressionParser {
   private static readonly CURRENCY_REGEX_FULL = new RegExp(`^${ValueExpressionParser.CURRENCY_PATTERN}$`);
 
   /**
-   * Parse a pure amount string (the part inside "[]" in a value expression).
-   * Each amount is either in the form "<quantity><whitespace><currency>" or
-   * vice versa, and multiple amounts are comma separated. Currency code can be
+   * Evaluate a value expression string. A value expression string currently supports:
+   *   - bracket-enclosed Amount string literal
+   *   - Precedence-aware arithmetics: plus, minus, divide, times
+   *       ex. "([1 USD] / +3 + [1 CAD]) * (-2 + 0.1)"
+   *   - any future-supported function calls (non-supported yet)
+   *       ex. "ratio([$1], [EUR 3], "2024-03-01")" -> ValueExpressionEvalError: "ratio(3) is unsupported."
+   *
+   * An Amount can only be divided or multiplied by a scalar.
+   *
+   * If the input can be quickly identified as a pure Amount literal (i.e. it
+   * does not contain any grouping or arithmetic operators such as '(', ')',
+   * '*', '/', '[' or ']'), then this method directly delegates parsing to
+   * parseAmount for performance.
+   *
+   * Note: Ambiguous '+/-' signs are interpreted as part of the numeric
+   * quantities. If these signs were intended as arithmetic operators, the
+   * parser will emit an error.
+   *
+   *
+   * If the final result is a scalar, it will be cast into an Amount with an
+   * empty-string currency.
+   *
+   * @param input - The value expression string.
+   * @param currencyProvider - A provider to resolve currencies.
+   * @returns A Result containing the parsed Amount, a AmountParseError (if any
+   * bracketed Amount string fails to be parsed), or a ValueExpressionEvalError.
+   */
+  evaluateValueExpression(
+    input: string,
+    currencyProvider: CurrencyProvider
+  ): Result<Amount, AmountParseError | ValueExpressionEvalError> {
+    if (
+      input.indexOf('(') === -1 &&
+      input.indexOf(')') === -1 &&
+      input.indexOf('*') === -1 &&
+      input.indexOf('/') === -1 &&
+      input.indexOf('[') === -1 &&
+      input.indexOf(']') === -1
+    ) {
+      return this.parseAmount(input, currencyProvider);
+    }
+
+    try {
+      const tokens = tokenize(input);
+      const parser = new Parser(
+        tokens,
+        currencyProvider,
+        this.parseAmount.bind(this),
+        input
+      );
+      const result = parser.parseExpression();
+      if (!parser.atEnd()) {
+        throw new ValueExpressionEvalError("Unexpected extra tokens", input);
+      }
+      // If the final result is a scalar, convert it to an Amount with the empty-string currency.
+      let finalAmount: Amount;
+      if (result.type === "scalar") {
+        const defaultCurrency = currencyProvider.getOrCreateCurrencyById("");
+        finalAmount = Amount.create([{ currency: defaultCurrency, value: result.value }]);
+      } else {
+        finalAmount = result.value;
+      }
+      return finalAmount;
+    } catch (e) {
+      if (e instanceof AmountParseError || e instanceof ValueExpressionEvalError) {
+        return e;
+      }
+      return new ValueExpressionEvalError((e as Error).message, input);
+    }
+  }
+
+  /**
+   * Parse a pure Amount string (the part inside "[]" in a value expression).
+   * Each Amount is either in the form "<quantity><whitespace><currency>" or
+   * vice versa, and multiple Amounts are comma separated. Currency code can be
    * an empty string; in that case, the CurrencyProvider determines
    * implementation-specific behavior.
    *
    * A <quantity> may begin with optional "+" or "-" sign followed by a 10-base
    * decimal. Leading zero before the decimal point is optional.
    *
-   * A <currency> is any non-numeric string any non-numeric string that does not
-   * contain a period, comma, forward slash or at-sign. It may appear after or
-   * before a <quantity>.
+   * A <currency> is any non-numeric string that does not contain period, comma, brackets, forward slash, or at-sign.
+   * Multiple entries may be separated by commas.
    *
-   * @param input - The pure amount string.
+   * Note: Ambiguous '+/-' signs are interpreted as part of the numeric quantities. If these signs were
+   * intended as arithmetic operators, the parser will emit an error.
+   *
+   * @param input - The pure Amount string.
    * @param currencyProvider - A provider to resolve currencies.
    * @returns A Result containing the parsed Amount or an Error.
    */
@@ -111,4 +194,303 @@ export class ValueExpressionParser {
   }
 
 
+}
+
+/**
+ * Tokenizes the input string into an array of tokens.
+ */
+function tokenize(input: string): Token[] {
+  const tokens: Token[] = [];
+  let i = 0;
+  const len = input.length;
+  while (i < len) {
+    const ch = input[i];
+    // Skip whitespace
+    if (/\s/.test(ch)) {
+      i++;
+      continue;
+    }
+    // Amount literal: [ ... ]
+    if (ch === "[") {
+      i++; // skip '['
+      let literal = "";
+      while (i < len && input[i] !== "]") {
+        literal += input[i];
+        i++;
+      }
+      if (i >= len) {
+        throw new ValueExpressionEvalError("Unmatched '['", input);
+      }
+      i++; // skip ']'
+      tokens.push({ type: "amount", value: literal.trim() });
+      continue;
+    }
+    // Parentheses
+    if (ch === "(" || ch === ")") {
+      tokens.push({ type: "paren", value: ch });
+      i++;
+      continue;
+    }
+    // Operators
+    if (ch === "+" || ch === "-" || ch === "*" || ch === "/") {
+      tokens.push({ type: "operator", value: ch });
+      i++;
+      continue;
+    }
+    // Comma (for function argument separation)
+    if (ch === ",") {
+      tokens.push({ type: "comma", value: ch });
+      i++;
+      continue;
+    }
+    // Number literal (digits and decimal point)
+    if (/[0-9.]/.test(ch)) {
+      let numStr = "";
+      while (i < len && /[0-9.]/.test(input[i])) {
+        numStr += input[i];
+        i++;
+      }
+      tokens.push({ type: "number", value: numStr });
+      continue;
+    }
+    // String literal: support for double and single quotes
+    if (ch === '"' || ch === "'") {
+      const quoteType = ch;
+      i++; // skip opening quote
+      let literal = "";
+      while (i < len && input[i] !== quoteType) {
+        if (input[i] === '\\') {
+          i++;
+          if (i < len) {
+            literal += input[i];
+            i++;
+          }
+        } else {
+          literal += input[i];
+          i++;
+        }
+      }
+      if (i >= len) {
+        throw new ValueExpressionEvalError("Unterminated string literal", input);
+      }
+      i++; // skip closing quote
+      tokens.push({ type: "string", value: literal });
+      continue;
+    }
+    // Identifier (for function names)
+    if (/[A-Za-z_]/.test(ch)) {
+      let ident = "";
+      while (i < len && /[A-Za-z0-9_]/.test(input[i])) {
+        ident += input[i];
+        i++;
+      }
+      tokens.push({ type: "identifier", value: ident });
+      continue;
+    }
+    throw new ValueExpressionEvalError(`Unexpected character '${ch}'`, input);
+  }
+  return tokens;
+}
+
+/**
+ * Recursive descent parser for value expressions.
+ */
+class Parser {
+  private tokens: Token[];
+  private pos: number = 0;
+  private currencyProvider: CurrencyProvider;
+  private parseAmountFunc: (input: string, cp: CurrencyProvider) => Result<Amount, AmountParseError>;
+  private input: string;
+
+  constructor(
+    tokens: Token[],
+    currencyProvider: CurrencyProvider,
+    parseAmountFunc: (input: string, cp: CurrencyProvider) => Result<Amount, AmountParseError>,
+    input: string
+  ) {
+    this.tokens = tokens;
+    this.currencyProvider = currencyProvider;
+    this.parseAmountFunc = parseAmountFunc;
+    this.input = input;
+  }
+
+  atEnd(): boolean {
+    return this.pos >= this.tokens.length;
+  }
+
+  private current(): Token | null {
+    return this.pos < this.tokens.length ? this.tokens[this.pos] : null;
+  }
+
+  private eat(): Token {
+    return this.tokens[this.pos++];
+  }
+
+  /**
+   * Combines two EvalValues using a binary operator.
+   */
+  private combineBinary(op: string, left: EvalValue, right: EvalValue): EvalValue {
+    switch (op) {
+      case "+":
+        if (left.type === right.type) {
+          if (left.type === "scalar") {
+            return { type: "scalar", value: left.value.plus(right.value as Rational) };
+          } else {
+            return { type: "amount", value: left.value.plus(right.value as Amount) };
+          }
+        }
+        throw new ValueExpressionEvalError("Incompatible types for operator +", this.input);
+      case "-":
+        if (left.type === right.type) {
+          if (left.type === "scalar") {
+            return { type: "scalar", value: left.value.minus(right.value as Rational) };
+          } else {
+            return { type: "amount", value: left.value.minus(right.value as Amount) };
+          }
+        }
+        throw new ValueExpressionEvalError("Incompatible types for operator -", this.input);
+      case "*":
+        if (left.type === "scalar" && right.type === "scalar") {
+          return { type: "scalar", value: left.value.times(right.value) };
+        } else if (left.type === "amount" && right.type === "scalar") {
+          return { type: "amount", value: left.value.times(right.value) };
+        } else if (left.type === "scalar" && right.type === "amount") {
+          return { type: "amount", value: right.value.times(left.value) };
+        }
+        throw new ValueExpressionEvalError("Multiplication of two Amounts is not allowed", this.input);
+      case "/":
+        if (left.type === "scalar" && right.type === "scalar") {
+          return { type: "scalar", value: left.value.div(right.value) };
+        } else if (left.type === "amount" && right.type === "scalar") {
+          return { type: "amount", value: left.value.div(right.value) };
+        }
+        throw new ValueExpressionEvalError(
+          "Division is only allowed as Amount divided by scalar or scalar divided by scalar",
+          this.input
+        );
+      default:
+        throw new ValueExpressionEvalError(`Unsupported operator '${op}'`, this.input);
+    }
+  }
+
+  /**
+   * Parses an expression (handles + and -).
+   */
+  parseExpression(): EvalValue {
+    let left = this.parseTerm();
+    while (
+      this.current() &&
+      this.current()!.type === "operator" &&
+      (this.current()!.value === "+" || this.current()!.value === "-")
+    ) {
+      const op = this.eat().value;
+      const right = this.parseTerm();
+      left = this.combineBinary(op, left, right);
+    }
+    return left;
+  }
+
+  /**
+   * Parses a term (handles * and /).
+   */
+  parseTerm(): EvalValue {
+    let left = this.parseFactor();
+    while (
+      this.current() &&
+      this.current()!.type === "operator" &&
+      (this.current()!.value === "*" || this.current()!.value === "/")
+    ) {
+      const op = this.eat().value;
+      const right = this.parseFactor();
+      left = this.combineBinary(op, left, right);
+    }
+    return left;
+  }
+
+  /**
+   * Parses a factor (handles unary + and -).
+   */
+  parseFactor(): EvalValue {
+    if (
+      this.current() &&
+      this.current()!.type === "operator" &&
+      (this.current()!.value === "+" || this.current()!.value === "-")
+    ) {
+      const op = this.eat().value;
+      const operand = this.parseFactor();
+      if (op === "-") {
+        if (operand.type === "scalar") {
+          return { type: "scalar", value: operand.value.times(Rational.NEGATIVE_ONE) };
+        } else {
+          return { type: "amount", value: operand.value.times(Rational.NEGATIVE_ONE) };
+        }
+      }
+      return operand; // unary plus
+    }
+    return this.parsePrimary();
+  }
+
+  /**
+   * Parses a primary value: number, amount literal, parenthesized expression, or function call.
+   */
+  parsePrimary(): EvalValue {
+    const token = this.current();
+    if (!token) {
+      throw new ValueExpressionEvalError("Unexpected end of expression", this.input);
+    }
+    if (token.type === "number") {
+      this.eat();
+      try {
+        const num = Rational.parse(token.value);
+        return { type: "scalar", value: num };
+      } catch (e) {
+        const e2 = new ValueExpressionEvalError(`Number literal "${token.value}" cannot be parsed as a valid Rational.`, this.input);
+        e2.cause = e;
+        throw e2;
+      }
+    }
+    if (token.type === "amount") {
+      this.eat();
+      const amt = this.parseAmountFunc(token.value, this.currencyProvider);
+      if (amt instanceof Error) throw amt;
+      return { type: "amount", value: amt };
+    }
+    if (token.type === "paren" && token.value === "(") {
+      this.eat(); // consume '('
+      const expr = this.parseExpression();
+      const closing = this.current();
+      if (!closing || closing.type !== "paren" || closing.value !== ")") {
+        throw new ValueExpressionEvalError("Expected ')'", this.input);
+      }
+      this.eat(); // consume ')'
+      return expr;
+    }
+    if (token.type === "identifier") {
+      // If identifier is immediately followed by '(' then it's a function call.
+      const ident = token.value;
+      this.eat(); // consume identifier
+      if (this.current() && this.current()!.type === "paren" && this.current()!.value === "(") {
+        this.eat(); // consume '('
+        let argCount = 0;
+        if (this.current() && !(this.current()!.type === "paren" && this.current()!.value === ")")) {
+          while (true) {
+            this.parseExpression();
+            argCount++;
+            if (this.current() && this.current()!.type === "comma") {
+              this.eat(); // consume comma
+            } else {
+              break;
+            }
+          }
+        }
+        if (!this.current() || this.current()!.type !== "paren" || this.current()!.value !== ")") {
+          throw new ValueExpressionEvalError("Expected ')' after function arguments", this.input);
+        }
+        this.eat(); // consume ')'
+        throw new ValueExpressionEvalError(`${ident}(${argCount}) is unsupported.`, this.input);
+      }
+      throw new ValueExpressionEvalError(`Unexpected identifier '${ident}'`, this.input);
+    }
+    throw new ValueExpressionEvalError(`Unexpected token '${token.value}'`, this.input);
+  }
 }
