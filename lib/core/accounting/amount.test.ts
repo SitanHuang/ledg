@@ -245,16 +245,16 @@ describe('Amount', () => {
     });
   });
 
-  describe('isZero', () => {
-    const valuationDate = 2000;
-    const policy = new ValuationPolicy(valuationDate);
-    // Provider with only CAD <-> USD conversions.
-    const conversionRates = [
-      { from: CAD, to: USD, rate: r(0.8) },
-      { from: USD, to: CAD, rate: r(1.25) },
-    ];
-    const provider = new DummyCurrencyConversionService(conversionRates);
+  const valuationDate = 2000;
+  const policy = new ValuationPolicy(valuationDate);
+  // Provider with only CAD <-> USD conversions.
+  const conversionRates = [
+    { from: CAD, to: USD, rate: r(0.8) },
+    { from: USD, to: CAD, rate: r(1.25) },
+  ];
+  const provider = new DummyCurrencyConversionService(conversionRates);
 
+  describe('isZero', () => {
     it('isZero: should return true for an amount with no entries', () => {
       expect(Amount.ZERO.isZero(provider, policy)).toBe(true);
     });
@@ -316,6 +316,72 @@ describe('Amount', () => {
         { currency: EUR, value: r(0) },
         { currency: USD, value: r(0) },
       ]).isZero(providerFail, policy)).toBe(true);
+    });
+  });
+
+  describe('isStrictlyZero', () => {
+    const USD = new Currency('USD');
+    const CAD = new Currency('CAD');
+    const EUR = new Currency('EUR');
+
+    function r(n: number): Rational {
+      return Rational.fromNumber(n);
+    }
+
+    it('should return true for Amount.ZERO', () => {
+      expect(Amount.ZERO.isStrictlyZero()).toBe(true);
+    });
+
+    it('should return true when created with zero entries (filtered out)', () => {
+      const amt = Amount.create([{ currency: USD, value: r(0) }]);
+      expect(amt.isStrictlyZero()).toBe(true);
+    });
+
+    it('should return true when entries sum to zero in same currency', () => {
+      const amt = Amount.create([
+        { currency: USD, value: r(10) },
+        { currency: USD, value: r(-10) },
+      ]);
+      expect(amt.isStrictlyZero()).toBe(true);
+    });
+
+    it('should return true when created via fromMap with all zero entries', () => {
+      const amt = Amount.create([
+        { currency: USD, value: r(0) },
+        { currency: CAD, value: r(0) }
+      ]);
+      expect(amt.isStrictlyZero()).toBe(true);
+    });
+
+    it('should return false when any entry is non-zero', () => {
+      const amt = Amount.create([{ currency: USD, value: r(5) }]);
+      expect(amt.isStrictlyZero()).toBe(false);
+    });
+
+    it('should return false with multiple non-zero currencies', () => {
+      const amt = Amount.create([
+        { currency: USD, value: r(5) },
+        { currency: CAD, value: r(10) },
+      ]);
+      expect(amt.isStrictlyZero()).toBe(false);
+    });
+
+    it('should return false when created via fromMap with mixed zero and non-zero entries', () => {
+      const amt = Amount.create([
+        { currency: USD, value: r(0) },
+        { currency: CAD, value: r(5) }
+      ]);
+      expect(amt.isStrictlyZero()).toBe(false);
+    });
+
+    it('should return false even if converted total is zero', () => {
+      // This amount would sum to zero when converted, but entries are non-zero
+      const amt = Amount.create([
+        { currency: USD, value: r(10) },
+        { currency: CAD, value: r(-12.5) }, // CAD to USD rate is 0.8, so -12.5 CAD = -10 USD
+      ]);
+      expect(amt.isStrictlyZero()).toBe(false);
+      expect(amt.isZero(provider, policy)).toBe(true);
     });
   });
 

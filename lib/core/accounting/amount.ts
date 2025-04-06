@@ -200,6 +200,18 @@ export class Amount {
   }
 
   /**
+   * Returns true only if all amounts zero strictly zero.
+   */
+  public isStrictlyZero(): boolean {
+    for (const entry of this.amounts.values()) {
+      if (!entry.value.isZero()) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
    * Returns an array of currency/value entries for inspection.
    */
   public getEntries(): { currency: Currency; value: Rational }[] {
