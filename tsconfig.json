@@ -19,7 +19,7 @@
     "declarationDir": "./types/",
     // "inlineSourceMap": true,                       /* Include sourcemap files inside the emitted JavaScript. */
     "outDir": "./out/",                               /* Specify an output folder for all emitted files. */
-    "removeComments": true,                           /* Disable emitting comments. */
+    "removeComments": false,                           /* Disable emitting comments. */
     "newLine": "lf",                                  /* Set the newline character for emitting files. */
 
     // "esModuleInterop": true,                       /* Emit additional JavaScript to ease support for importing CommonJS modules. This enables 'allowSyntheticDefaultImports' for type compatibility. */

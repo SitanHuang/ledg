@@ -199,7 +199,7 @@ async function main() {
 
   // Generate and write the HTML visualization.
   const htmlContent = generateHTML(results);
-  const outputPath = path.join(process.cwd(), "git-sloc-history.html");
+  const outputPath = path.join(process.cwd(), "~git-sloc-history.html");
   fs.writeFileSync(outputPath, htmlContent);
   console.log(`Visualization generated: ${outputPath}`);
 }
