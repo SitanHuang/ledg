@@ -45,7 +45,6 @@ describe('ValueExpressionParser -> round()', () => {
     const result = parser.evaluateValueExpression(expr, currencyProvider) as Amount;
     const entries = result.getEntries();
     expect(entries.length).toBe(0);
-    expect(result).toEqual(Amount.ZERO);
   });
 
   it('should correctly round multiple currency entries independently', () => {
@@ -114,6 +113,7 @@ describe('ValueExpressionParser -> round()', () => {
     const expr = "round(1, 2, 3)";
     const result = parser.evaluateValueExpression(expr, currencyProvider);
     expect(result).toBeInstanceOf(ValueExpressionEvalError);
+    expect((result as Amount).sourceString).toBe(expr);
   });
 
   it('should error when round\'s first argument is a string literal', () => {

@@ -34,6 +34,19 @@ describe('Amount', () => {
       const amt = Amount.create();
       expect(amt).toEqual(Amount.ZERO);
       expect(amt.getEntries()).toEqual([]);
+      expect(amt.sourceString).toBeUndefined();
+    });
+
+    it('should carry an immutable sourceString', () => {
+      let amt2 = Amount.create([], "asdf");
+      expect(amt2.getEntries().length).toEqual(0);
+      expect(amt2.sourceString).toEqual("asdf");
+      expect(amt2.times(Rational.ONE).sourceString).toBeUndefined();
+      const amt3 = Amount.create([], "123");
+      expect(amt2.sourceString).toEqual("asdf");
+      amt2 = amt2.plus(amt3);
+      expect(amt2.sourceString).toBeUndefined();
+      expect(amt3.sourceString).toEqual("123");
     });
 
     it('should filter out zero-valued entries', () => {

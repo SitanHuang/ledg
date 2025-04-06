@@ -92,14 +92,14 @@ export class ValueExpressionParser {
       }
 
       // If the final result is a scalar, convert it to an Amount with the empty-string currency.
-      let finalAmount: Amount;
       if (result.type === "scalar") {
         const defaultCurrency = currencyProvider.getOrCreateCurrencyById("");
-        finalAmount = Amount.create([{ currency: defaultCurrency, value: result.value }]);
-      } else {
-        finalAmount = result.value;
+        return Amount.create([{ currency: defaultCurrency, value: result.value }], input);
       }
-      return finalAmount;
+
+
+      const finalAmount: Amount = result.value;
+      return Amount.fromAmount(finalAmount, input); // clone the old one and assign input string as source
     } catch (e) {
       if (e instanceof AmountParseError || e instanceof ValueExpressionEvalError) {
         return e;
@@ -202,7 +202,7 @@ export class ValueExpressionParser {
       return new AmountParseError("Empty Amount captured.", input);
     }
 
-    return Amount.create(entries);
+    return Amount.create(entries, input);
   }
 
 

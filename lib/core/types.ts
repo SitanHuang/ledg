@@ -8,10 +8,20 @@ class NoneType {
   public static readonly instance: NoneType = Object.freeze(new NoneType());
 }
 
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class
+class OkType {
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  private constructor() { }
+
+  public static readonly instance: NoneType = Object.freeze(new OkType());
+}
+
 const None: NoneType = NoneType.instance;
+const Ok: OkType = OkType.instance;
 
 type Some<T> = T;
 type Option<T> = Some<T> | NoneType;
+type Maybe<E extends Error = Error> = OkType | E;
 
 type Result<T, E extends Error = Error> = Some<T> | E;
 
@@ -29,7 +39,7 @@ function unwrap<T>(opt: Option<T>): T {
   if (isSome(opt)) {
     return opt;
   }
-  throw new Error("Called unwrap on a None value");
+  throw new Error("PANIC: Called unwrap on a None value");
 }
 
-export { timestamp, Option, Some, None, isSome, isNone, unwrap, Result };
+export { timestamp, Option, Some, None, isSome, isNone, unwrap, Result, Ok, Maybe, NoneType, OkType };

@@ -25,6 +25,8 @@ describe('ValueExpressionParser -> parseAmount part', () => {
     expect(entries.length).toBe(1);
     expect(entries[0].currency.id).toBe('BTC-ABC');
     expect(entries[0].value.eq(100)).toBe(true);
+
+    expect(amount.sourceString).toBe(input);
   });
 
   it('parses a single amount with currency first and quantity second', () => {
@@ -36,6 +38,8 @@ describe('ValueExpressionParser -> parseAmount part', () => {
     expect(entries.length).toBe(1);
     expect(entries[0].currency.id).toBe('BTC-ABC');
     expect(entries[0].value.eq(-100)).toBe(true);
+
+    expect(amount.sourceString).toBe(input);
   });
 
   it('parses multiple amounts separated by commas', () => {
@@ -48,6 +52,8 @@ describe('ValueExpressionParser -> parseAmount part', () => {
     expect(entries[0].value.eq(100)).toBe(true);
     expect(entries[1].currency.id).toBe('EUR');
     expect(entries[1].value.eq(200)).toBe(true);
+
+    expect((result as Amount).sourceString).toBe(input);
   });
 
   it('handles extra whitespace gracefully', () => {
@@ -261,6 +267,7 @@ describe('ValueExpressionParser -> evaluateValueExpression part', () => {
     expect(entries.length).toBe(1);
     expect(entries[0].currency.id).toBe('USD');
     expect(entries[0].value.eq(1)).toBe(true);
+    expect(amount.sourceString).toBe(input);
   });
 
   it('evaluates simple addition of same currency amounts', () => {
@@ -273,6 +280,7 @@ describe('ValueExpressionParser -> evaluateValueExpression part', () => {
     expect(entries.length).toBe(1);
     expect(entries[0].currency.id).toBe('USD');
     expect(entries[0].value.eq(3)).toBe(true);
+    expect(amount.sourceString).toBe(input);
   });
 
   it('evaluates subtraction of same currency amounts', () => {
@@ -438,6 +446,7 @@ describe('ValueExpressionParser -> evaluateValueExpression part', () => {
     const entries = result.getEntries();
     expect(entries[0].currency.id).toBe(currencyProvider.defaultCurrencyCode);
     expect(entries[0].value.eq(new Rational(20n, 3n))).toBe(true);
+    expect((result as Amount).sourceString).toBe(input);
   });
 
   it('evaluates unary minus on an amount', () => {
@@ -571,6 +580,7 @@ describe('ValueExpressionParser -> evaluateValueExpression part', () => {
     const result = parser.evaluateValueExpression(input, currencyProvider);
     const entries = (result as Amount).getEntries();
     expect(entries[0].value.eq(new Rational(5n, 2n))).toBe(true);
+    expect((result as Amount).sourceString).toBe(input);
   });
 
   it('cannot return a string in any value expression', () => {

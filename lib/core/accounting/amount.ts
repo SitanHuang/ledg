@@ -9,9 +9,14 @@ import { CurrencyConversionService } from "../valuation/currencyConversionServic
  * as a map keyed by currency id.
  */
 export class Amount {
+  public readonly sourceString?: string;
+
   private constructor(
-    private amounts: Map<string, { currency: Currency; value: Rational }>
-  ) {}
+    private readonly amounts: ReadonlyMap<string, { currency: Currency; value: Rational }>,
+    sourceString?: string
+  ) {
+    this.sourceString = sourceString;
+  }
 
   public static ZERO: Amount = new Amount(new Map());
 
@@ -19,7 +24,7 @@ export class Amount {
    * Helper to create an Amount instance. It takes an optional array of entries
    * (currency/value pairs) and filters out zero-valued entries.
    */
-  public static create(entries?: readonly { currency: Currency; value: Rational }[]): Amount {
+  public static create(entries: readonly { currency: Currency; value: Rational }[]=[], sourceString?: string): Amount {
     const map = new Map<string, { currency: Currency; value: Rational }>();
     if (entries) {
       for (const { currency, value } of entries) {
@@ -40,11 +45,14 @@ export class Amount {
         }
       }
     }
-    return new Amount(map);
+    return new Amount(map, sourceString);
   }
 
-  private static fromMap(map: Map<string, { currency: Currency; value: Rational }>): Amount {
-    return new Amount(map);
+  private static fromMap(map: ReadonlyMap<string, { currency: Currency; value: Rational }>, sourceString?: string): Amount {
+    return new Amount(map, sourceString);
+  }
+  public static fromAmount(amount: Amount, sourceString?: string): Amount {
+    return new Amount(amount.amounts, sourceString);
   }
 
   /**
