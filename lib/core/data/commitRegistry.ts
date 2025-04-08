@@ -1,6 +1,6 @@
 import { LedgObject } from "./ledgObject.ts";
 
-class Commit {
+export class Commit {
   constructor(
     public readonly messages: string[],
     public readonly object: LedgObject,
@@ -18,5 +18,9 @@ export class CommitRegistry {
     object: LedgObject
   }): void {
     this.commits.push(new Commit(messages, object));
+  }
+
+  getCurrentCommits(): Commit[] {
+    return this.commits;
   }
 }
