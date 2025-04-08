@@ -17,7 +17,8 @@ export default tseslint.config(
     },
     rules: {
       "@typescript-eslint/no-non-null-assertion": "off",
-      "@typescript-eslint/prefer-for-of": "off"
+      "@typescript-eslint/prefer-for-of": "off",
+      "@typescript-eslint/no-this-alias": "off",
     }
   },
   globalIgnores(["lib/**/*.test.ts", "node_modules/*", "out/*", "types/*"]),

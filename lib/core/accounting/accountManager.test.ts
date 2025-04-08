@@ -118,8 +118,25 @@ describe('AccountManager', () => {
 
   it('should error on requestAccountAssignment if account was never opened', () => {
     // Create a dummy LedgObject with just date and date2 (order does not matter)
-    const dummyLedgObject = { date: 100, date2: 100 } as LedgObject;
-    const result = accountManager.requestAccountAssignment("C", dummyLedgObject);
+    let result = accountManager.requestAccountAssignment("C", { date: 100, date2: 100 });
+    expect(result).toBeInstanceOf(AccountAssignmentError);
+    if (result instanceof AccountAssignmentError) {
+      expect(result.message).toContain("never opened");
+    }
+    accountManager.openAccount("C", 100);
+    result = accountManager.requestAccountAssignment("C", { date: 100, date2: 100 });
+    expect(result).toBeInstanceOf(Account);
+
+    result = accountManager.requestAccountAssignment("C", { date: 100 });
+    expect(result).toBeInstanceOf(Account);
+
+    result = accountManager.requestAccountAssignment("C", {});
+    expect(result).toBeInstanceOf(AccountAssignmentError);
+    if (result instanceof AccountAssignmentError) {
+      expect(result.message).toContain("never opened");
+    }
+
+    result = accountManager.requestAccountAssignment("C", { date2: 100 });
     expect(result).toBeInstanceOf(AccountAssignmentError);
     if (result instanceof AccountAssignmentError) {
       expect(result.message).toContain("never opened");

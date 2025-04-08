@@ -1,4 +1,3 @@
-import { LedgObject } from "../data/ledgObject.ts";
 import { isNone, Option, Result, timestamp, OkType, unwrap, None, Ok } from "../types.ts";
 import { Account, AccountIdentifier } from "./account.ts";
 import { BalanceAssertionService } from "./balanceAssertionService.ts";
@@ -9,6 +8,11 @@ export type AccountStatus = "closed" | "open" | "unopen";
 export const ACCOUNT_CLOSED: AccountStatus = "closed";
 export const ACCOUNT_OPEN: AccountStatus = "open";
 export const ACCOUNT_UNOPEN: AccountStatus = "unopen";
+
+export interface AccountAssignableObject {
+  date?: timestamp;
+  date2?: timestamp;
+}
 
 /**
  * The AccountManager's primary purpose is to track an account's life cycle:
@@ -51,7 +55,7 @@ export abstract class AccountManager {
 
   /**
    * Returns account status for a specific date/date2 range of a single
-   * LedgObject. If an account is partially CLOSED during `from` to `to`, then
+   * AccountAssignableObject. If an account is partially CLOSED during `from` to `to`, then
    * the method returns CLOSED. The method returns UNOPEN if and only if the
    * entire duration is UNOPEN.
    */
@@ -63,8 +67,13 @@ export abstract class AccountManager {
 
   getAccountStatusByContext(
     identifier: AccountIdentifier,
-    objContext: LedgObject
+    objContext: AccountAssignableObject
   ): AccountStatus {
+    if (objContext.date === undefined)
+      return ACCOUNT_UNOPEN;
+
+    objContext.date2 ??= objContext.date;
+
     if (objContext.date < objContext.date2)
       return this.getAccountStatusByDateRange(identifier, objContext.date, objContext.date2);
     else
@@ -72,7 +81,7 @@ export abstract class AccountManager {
   }
 
   /**
-   * Requests assignment of an Account onto a LedgObject. Returns error if:
+   * Requests assignment of an Account onto a AccountAssignableObject. Returns error if:
    *   - Account has yet to be opened
    *   - Account has been closed
    *
@@ -83,7 +92,7 @@ export abstract class AccountManager {
    */
   requestAccountAssignment(
     identifier: AccountIdentifier,
-    objContext: LedgObject
+    objContext: AccountAssignableObject
   ): Result<Account, AccountAssignmentError> {
     const accountResult = this.getAccount(identifier);
     if (isNone(accountResult)) {
