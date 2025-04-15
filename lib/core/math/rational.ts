@@ -185,6 +185,11 @@ export class Rational {
     return this.valueOf(options);
   }
 
+  public toFractionString(): string {
+    const reduced = this.reduce();
+    return reduced.numerator.toString(10) + ' / ' + reduced.denominator.toString(10);
+  }
+
   /**
    * Returns 10^precision as a bigint.
    * @param precision The number of decimal places.

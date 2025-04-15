@@ -4,6 +4,7 @@ import { TransactionID } from "./types.ts";
 import { LedgObject, LedgObjectBuilder, Metadata } from "../data/ledgObject.ts";
 import { isOk, Maybe, Ok, Result, timestamp } from "../types.ts";
 import { TransactionAutoBalanceError, TransactionAutoBalancer } from "./transactionAutoBalancer.ts";
+import { TransactionValidationService } from "./transactionValidationService.ts";
 
 export class Transaction implements LedgObject {
   constructor(
@@ -20,8 +21,12 @@ export class TransactionBuilder extends LedgObjectBuilder<Transaction> {
   protected postingBuilders: PostingBuilder[] = [];
 
   constructor(
-    public transactionValidationService: unknown // stub for transaction-specific validation logic
+    public transactionValidationService: TransactionValidationService // stub for transaction-specific validation logic
   ) { super(); }
+
+  getPostingBuilders() {
+    return this.postingBuilders;
+  }
 
   /**
    * Appends a PostingBuilder to the transaction.
@@ -48,10 +53,9 @@ export class TransactionBuilder extends LedgObjectBuilder<Transaction> {
       return parentBuildable;
     }
 
-    // Stub:
-    // if (!this.transactionValidationService.validate(this)) {
-    //   return new TransactionValidationError("Transaction cannot be balanced.");
-    // }
+    const validation = this.transactionValidationService.validate(this);
+    if (!isOk(validation))
+      return validation;
 
     for (let i = 0;i < this.postingBuilders.length;i++) {
       const postingBuilder = this.postingBuilders[i];

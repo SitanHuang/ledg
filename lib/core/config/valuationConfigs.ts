@@ -1,3 +1,4 @@
+import { Rational } from "../math/rational.ts";
 import { timestamp } from "../types.ts";
 
 export class ValuationConfiguration {
@@ -11,6 +12,14 @@ export class ValuationConfiguration {
    * valuated at a posting's date.
    */
   public autoBalanceTargetCurrency: false | string = false;
+
+  /**
+   * When a transaction contains postings with different currencies, their total
+   * amount, evaluated at the `date` of the entire transaction, must balance to
+   * zero. This tolerance determines the maximum non-zero amount after currency
+   * conversions.
+   */
+  public transactionBalanceTolerance: Rational = new Rational(1n, 100000n);
 
   /**
    * date      - valuate based on a posting's date
