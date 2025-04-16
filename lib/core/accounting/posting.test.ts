@@ -1,14 +1,13 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { Posting, PostingBuilder } from './posting.ts';
-import { Account } from './account.ts';
-import { Amount } from './amount.ts';
-import { Rational } from '../math/rational.ts';
-import { AccountManager, AccountAssignmentError, DefaultAccountManager } from './accountManager.ts';
-import { None, Ok } from '../types.ts';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { CommitRegistry } from '../data/commitRegistry.ts';
 import { Metadata } from '../data/ledgObject.ts';
+import { Rational } from '../math/rational.ts';
+import { Ok } from '../types.ts';
+import { Account } from './account.ts';
+import { AccountAssignmentError, DefaultAccountManager } from './accountManager.ts';
+import { Amount } from './amount.ts';
+import { PostingBuilder } from './posting.ts';
 
-// A minimal sham implementation of AccountManager for testing PostingBuilder.
 class ShamAccountManager extends DefaultAccountManager {
   requestAccountAssignment(identifier: string, _objContext: any) {
     // For test purposes, if the identifier is "fail", simulate an error.
@@ -20,7 +19,6 @@ class ShamAccountManager extends DefaultAccountManager {
   }
 }
 
-// A dummy commit registry that simply records commits for inspection.
 class DummyCommitRegistry extends CommitRegistry {
   public _commits: { messages: string[]; object: any }[] = [];
   commitChange(commit: { messages: string[]; object: any }) {

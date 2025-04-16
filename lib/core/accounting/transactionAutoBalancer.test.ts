@@ -1,19 +1,18 @@
 /// core/accounting/transactionAutoBalancer.test.ts
-import { describe, it, expect, beforeEach } from 'vitest';
-import { TransactionAutoBalancer, TransactionAutoBalanceError } from './transactionAutoBalancer.ts';
-import { Posting, PostingBuilder } from './posting.ts';
-import { CurrencyConversionService } from '../valuation/currencyConversionService.ts';
-import { CurrencyProvider } from '../valuation/currencyProvider.ts';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { ValuationConfiguration } from '../config/valuationConfigs.ts';
-import { Amount } from './amount.ts';
-import { Rational } from '../math/rational.ts';
-import { Ok, None, isNone } from '../types.ts';
-import { AccountManager, DefaultAccountManager, AccountAssignmentError, ACCOUNT_CLOSED } from './accountManager.ts';
-import { BalanceAssertionService } from './balanceAssertionService.ts';
-import { Currency } from '../valuation/currency.ts';
 import { CommitRegistry } from '../data/commitRegistry.ts';
 import { nanoid } from '../legacy/nanoid.ts';
+import { Rational } from '../math/rational.ts';
+import { isNone } from '../types.ts';
+import { Currency } from '../valuation/currency.ts';
+import { CurrencyConversionService } from '../valuation/currencyConversionService.ts';
+import { CurrencyProvider } from '../valuation/currencyProvider.ts';
 import { Account } from './account.ts';
+import { AccountManager, DefaultAccountManager } from './accountManager.ts';
+import { Amount } from './amount.ts';
+import { Posting, PostingBuilder } from './posting.ts';
+import { TransactionAutoBalanceError, TransactionAutoBalancer } from './transactionAutoBalancer.ts';
 
 describe('TransactionAutoBalancer', () => {
   let conversionService: CurrencyConversionService;

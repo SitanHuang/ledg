@@ -59,7 +59,7 @@ export class TransactionBuilder extends LedgObjectBuilder<Transaction> {
 
     for (let i = 0;i < this.postingBuilders.length;i++) {
       const postingBuilder = this.postingBuilders[i];
-      if (!postingBuilder.isBuildable() || postingBuilder.getTransactionID() !== this.id) {
+      if (!isOk(postingBuilder.isBuildable()) || postingBuilder.getTransactionID() !== this.id) {
         return new Error("Transaction contains a Posting that is not buildable.");
       }
     }
@@ -70,7 +70,7 @@ export class TransactionBuilder extends LedgObjectBuilder<Transaction> {
     const result = transactionAutoBalancer.autoBalanceTransaction(this.postingBuilders);
 
     if (result instanceof TransactionAutoBalanceError) {
-      return TransactionAutoBalanceError;
+      return result;
     }
 
     return Ok;
