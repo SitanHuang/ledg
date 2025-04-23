@@ -4,7 +4,12 @@ import { Maybe, Ok, Result, timestamp } from '../types.ts';
 import { nanoid } from "../legacy/nanoid.ts";
 import { CommitRegistry } from "./commitRegistry.ts";
 
-export type Metadata = Record<string, unknown>;
+export interface Metadata {
+  [index: string]: unknown;
+  virt?: boolean;
+  pending?: boolean;
+  event?: string;
+}
 
 export type UUID = string;
 
@@ -12,6 +17,7 @@ export interface LedgObject {
   readonly id: UUID;
   readonly date: timestamp;
   readonly date2: timestamp;
+  readonly description: string;
   readonly source: SourceDescriptor;
   readonly metadata: Metadata;
 }
@@ -19,9 +25,10 @@ export interface LedgObject {
 export abstract class LedgObjectBuilder<T extends LedgObject> {
   protected id?: UUID;
   protected source: SourceDescriptor = NullSourceDescriptor.INSTANCE;
-  protected metadata: Metadata = {};
   public date?: timestamp;
   public date2?: timestamp;
+  public description = "";
+  public metadata: Metadata = {};
 
   protected result?: T;
   protected modificationMessage?: string[];
@@ -72,6 +79,11 @@ export abstract class LedgObjectBuilder<T extends LedgObject> {
     return this;
   }
 
+  withDescription(description: string): this {
+    this.description = description;
+    return this;
+  }
+
   withMetadata(metadata: Metadata): this {
     this.metadata = metadata;
     return this;
@@ -95,9 +107,10 @@ export abstract class LedgObjectBuilder<T extends LedgObject> {
   isBuildable(): Maybe<Error> {
     return (
       this.id != null &&
-      this.date != null &&
-      this.date2 != null &&
+      Number.isInteger(this.date) &&
+      Number.isInteger(this.date2) &&
       this.source != null &&
+      this.description != null &&
       this.metadata != null) ? Ok : new Error("Not a buildable object.");
   }
 

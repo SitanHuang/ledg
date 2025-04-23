@@ -16,6 +16,7 @@ class ShamLedgObjectBuilder extends LedgObjectBuilder<LedgObject> {
       date2: this.date2!,
       source: this.source,
       metadata: this.metadata,
+      description: this.description
     };
   }
 }

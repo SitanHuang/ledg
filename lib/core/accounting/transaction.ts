@@ -11,6 +11,7 @@ export class Transaction implements LedgObject {
     public readonly id: TransactionID,
     public readonly date: timestamp,
     public readonly date2: timestamp,
+    public readonly description: string,
     public readonly postings: Posting[] = [],
     public readonly source: SourceDescriptor,
     public readonly metadata: Metadata = {},
@@ -19,13 +20,36 @@ export class Transaction implements LedgObject {
 
 export class TransactionBuilder extends LedgObjectBuilder<Transaction> {
   protected postingBuilders: PostingBuilder[] = [];
+  public transactionValidationService?: TransactionValidationService;
 
   constructor(
-    public transactionValidationService: TransactionValidationService // stub for transaction-specific validation logic
-  ) { super(); }
+    transactionValidationService?: TransactionValidationService
+  ) {
+    super();
+    this.transactionValidationService = transactionValidationService;
+  }
+
+  /**
+   * Auto-generates transaction ID, if not given, and set modified status with
+   * a message on auto generation.
+   * @returns
+   */
+  override genId(): this {
+    if (this.id) return this;
+
+    super.genId();
+
+    this.setModified("Auto generated transaction ID.");
+
+    return this;
+  }
 
   getPostingBuilders() {
     return this.postingBuilders;
+  }
+
+  attachTransactionValidationService(transactionValidationService: TransactionValidationService) {
+    this.transactionValidationService = transactionValidationService;
   }
 
   /**
@@ -47,11 +71,14 @@ export class TransactionBuilder extends LedgObjectBuilder<Transaction> {
    *
    * @returns Ok if buildable, otherwise an Error explaining the failure.
    */
-  isBuildable(): Maybe<Error> {
+  override isBuildable(): Maybe<Error> {
     const parentBuildable = super.isBuildable();
     if (!isOk(parentBuildable)) {
       return parentBuildable;
     }
+
+    if (!this.transactionValidationService)
+      return new Error("TransactionValidationService is null.");
 
     const validation = this.transactionValidationService.validate(this);
     if (!isOk(validation))
@@ -81,7 +108,7 @@ export class TransactionBuilder extends LedgObjectBuilder<Transaction> {
    *
    * @returns The built Transaction instance wrapped in a Result, or an Error.
    */
-  build(): Result<Transaction, Error> {
+  override build(): Result<Transaction, Error> {
     const buildable = this.isBuildable();
 
     if (!isOk(buildable))
@@ -98,6 +125,7 @@ export class TransactionBuilder extends LedgObjectBuilder<Transaction> {
       this.id!,
       this.date!,
       this.date2!,
+      this.description,
       postings,
       this.source,
       this.metadata,

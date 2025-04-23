@@ -5,12 +5,14 @@ import { TransactionID } from "./types.ts";
 import { LedgObject, LedgObjectBuilder, Metadata, UUID } from "../data/ledgObject.ts";
 import { isOk, Maybe, Ok, Result, timestamp } from "../types.ts";
 import { AccountAssignmentError, AccountManager } from "./accountManager.ts";
+import { TransactionBuilder } from "./transaction.ts";
 
 export class Posting implements LedgObject {
   constructor(
     public readonly id: UUID,
     public readonly date: timestamp,
     public readonly date2: timestamp,
+    public readonly description: string,
     public readonly transactionID: TransactionID,
     public readonly account: Account,
     public readonly amount: Amount | null, // null if empty
@@ -39,6 +41,17 @@ export class PostingBuilder extends LedgObjectBuilder<Posting> {
   }
   public getDate() {
     return this.date;
+  }
+
+  /**
+   * Inherits date, date2, desc, and metadata (shallow copy) from a TransactionBuilder.
+   */
+  fromTransaction(transaction: TransactionBuilder): this {
+    this.date = transaction.date;
+    this.date2 = transaction.date2;
+    this.description = transaction.description;
+    this.metadata = { ...transaction.metadata };
+    return this;
   }
 
   withTransactionID(transactionID: TransactionID): this {
@@ -99,6 +112,7 @@ export class PostingBuilder extends LedgObjectBuilder<Posting> {
       this.id!,
       this.date!,
       this.date2!,
+      this.description,
       this.transactionID!,
       this.account!,
       this.amount!,
