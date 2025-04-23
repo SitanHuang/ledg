@@ -47,6 +47,7 @@ export class InputStreamJournalReader extends JournalReader {
   /** When true, incoming lines are parked in `dripBuffer`. */
   private isPaused = false;
   private dripBuffer: string[] = [];
+  private dripBufferStartInd = 0;
 
   private pendingChildren = 0; // active include readers
   private sourceEnded = false; // did parent stream finish?
@@ -91,7 +92,7 @@ export class InputStreamJournalReader extends JournalReader {
 
     this.rl = createInterface({
       input: this.upstream,
-      crlfDelay: Infinity
+      crlfDelay: Infinity,
     }).pause();
 
     this.rl.on("error", (err: Error) => {
@@ -103,8 +104,8 @@ export class InputStreamJournalReader extends JournalReader {
     this.rl.on('line', this.onLine.bind(this));
 
     this.rl.on("close", () => {
-      this.sourceEnded = true;
       this.flushCurrentTxn();
+      this.sourceEnded = true;
       this.maybeFireEnd();
     });
 
@@ -281,7 +282,7 @@ export class InputStreamJournalReader extends JournalReader {
     // skip spaces to start of desc
     i = end1;
     while (i < LEN && desc[i] === ' ') i++;
-    if (i >= LEN) return desc;
+    if (i > LEN) return desc;
 
     metadata.event = desc.slice(start1, end1);
     return desc.slice(i);
@@ -294,6 +295,7 @@ export class InputStreamJournalReader extends JournalReader {
    */
   private includeFile(includePath: string) {
     this.isPaused = true;
+    this.pendingChildren++;
     this.rl.pause();
 
     const child = new InputStreamJournalReader({
@@ -301,23 +303,29 @@ export class InputStreamJournalReader extends JournalReader {
       sourceModifiable: this.sourceModifiable
     }).forkFrom(this);
 
-    const resumeParent = () => {
-      for (let i = 0, len = this.dripBuffer.length; i < len; ++i) {
-        this.procLine(this.dripBuffer[i]);
-      }
-      this.dripBuffer.length = 0;
-      this.isPaused = false;
-      this.rl.resume();
-    };
-
     child.setOnEnd(() => {
-      resumeParent();
       this.pendingChildren--;
+      this.isPaused = false;
+
+      for (let i = this.dripBufferStartInd, len = this.dripBuffer.length; i < len; ++i) {
+        this.onLine(this.dripBuffer[i]);
+        // we've hit another include in the drip -> just need to hand off
+        // this function to after that include finishes
+        if (this.isPaused) {
+          this.dripBufferStartInd++;
+          return;
+        }
+      }
+
+      this.dripBuffer.length = 0;
+      this.dripBufferStartInd = 0;
+
+      this.rl.resume();
       this.maybeFireEnd();
     });
     child.setOnError((error) => {
       this.haltWithError(this.raiseError(
-        `#include <${includePath}>`,
+        `include ${includePath}`,
         "Error while processing included file",
         error
       ));
@@ -347,12 +355,13 @@ export class InputStreamJournalReader extends JournalReader {
 
   private haltWithError(error: Error) {
     this.isPaused = true;
+    this.pendingChildren = Infinity; // we'll never call onEnd
     this.rl.close();
     this.onError(error);
   }
 
   private maybeFireEnd() {
-    if (this.sourceEnded && this.pendingChildren === 0) {
+    if (this.sourceEnded && this.pendingChildren == 0) {
       this.onEnd();
     }
   }

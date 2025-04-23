@@ -23,7 +23,7 @@ export interface LedgObject {
 }
 
 export abstract class LedgObjectBuilder<T extends LedgObject> {
-  protected id?: UUID;
+  public id?: UUID;
   protected source: SourceDescriptor = NullSourceDescriptor.INSTANCE;
   public date?: timestamp;
   public date2?: timestamp;

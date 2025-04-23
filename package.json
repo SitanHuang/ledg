@@ -3,7 +3,7 @@
   "version": "2.0.0-dev",
   "type": "module",
   "scripts": {
-    "clean": "rimraf out/ types/",
+    "clean": "rimraf out/ types/ ~testout/",
     "lint": "eslint lib",
     "build": "tsc",
     "test": "vitest run --config lib/vitest.config.ts --coverage",

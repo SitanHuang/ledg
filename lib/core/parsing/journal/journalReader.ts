@@ -39,7 +39,7 @@ export abstract class JournalReader {
       };
       this.onError = (error) => {
         resolve(error);
-      }
+      };
     });
   }
 
