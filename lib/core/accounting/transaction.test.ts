@@ -7,12 +7,23 @@ import { CurrencyConversionService } from '../valuation/currencyConversionServic
 import { CurrencyProvider } from '../valuation/currencyProvider.ts';
 import { ValuationPolicy } from '../valuation/policy.ts';
 import { Account } from './account.ts';
-import { DefaultAccountManager } from './accountManager.ts';
+import { AccountAssignmentError, DefaultAccountManager } from './accountManager.ts';
 import { Amount } from './amount.ts';
 import { PostingBuilder } from './posting.ts';
 import { Transaction, TransactionBuilder } from './transaction.ts';
 import { TransactionAutoBalanceError, TransactionAutoBalancer } from './transactionAutoBalancer.ts';
 import { TransactionValidationError, TransactionValidationService } from './transactionValidationService.ts';
+
+class ShamAccountManager extends DefaultAccountManager {
+  requestAccountAssignment(identifier: string, _objContext: any) {
+    // For test purposes, if the identifier is "fail", simulate an error.
+    if (identifier === "fail") {
+      return new AccountAssignmentError("Account assignment failed");
+    }
+    // Otherwise, simulate a successful assignment by returning a new Account.
+    return new Account(identifier);
+  }
+}
 
 describe('TransactionBuilder', () => {
   let conversionService: CurrencyConversionService;
@@ -50,7 +61,8 @@ describe('TransactionBuilder', () => {
       .withDate2(now + 500)
       // Although the transaction ID is later injected, we pre-set one.
       .withTransactionID("tx-001")
-      .withAccount(new Account("acct-1"))
+      .withAccountIdentifier("acct-1")
+      .attachAccountManager(new ShamAccountManager())
       .withAmount(
         Amount.create([
           { currency: new Currency("USD"), value: Rational.fromNumber(100) }
@@ -61,7 +73,8 @@ describe('TransactionBuilder', () => {
     pb2.withDate(now)
       .withDate2(now + 500)
       .withTransactionID("tx-001")
-      .withAccount(new Account("acct-2"))
+      .withAccountIdentifier("acct-2")
+      .attachAccountManager(new ShamAccountManager())
       .withAmount(
         Amount.create([
           { currency: new Currency("USD"), value: Rational.fromNumber(-100) }
@@ -134,7 +147,8 @@ describe('TransactionBuilder', () => {
     const validPb = new PostingBuilder(accountManager);
     validPb.withDate(now)
       .withDate2(now + 500)
-      .withAccount(new Account("acct-valid"))
+      .withAccountIdentifier("acct-valid")
+      .attachAccountManager(new ShamAccountManager())
       .withAmount(
         Amount.create([
           { currency: new Currency("USD"), value: Rational.fromNumber(50) }
@@ -171,7 +185,8 @@ describe('TransactionBuilder', () => {
     const pb1 = new PostingBuilder(accountManager);
     pb1.withDate(now)
       .withDate2(now + 500)
-      .withAccount(new Account("acct-1"))
+      .withAccountIdentifier("acct-1")
+      .attachAccountManager(new ShamAccountManager())
       .genId()
       .withAmount(
         Amount.create([
@@ -184,7 +199,8 @@ describe('TransactionBuilder', () => {
     pb2.withDate(now)
       .withDate2(now + 500)
       .genId()
-      .withAccount(new Account("acct-2"));
+      .withAccountIdentifier("acct-2")
+      .attachAccountManager(new ShamAccountManager())
     // Note: withAmount is not called.
 
     transactionBuilder.appendPostingBuilder(pb1);
@@ -215,13 +231,15 @@ describe('TransactionBuilder', () => {
     const pb1 = new PostingBuilder(accountManager);
     pb1.withDate(now)
       .withDate2(now + 500)
-      .withAccount(new Account("acct-1"));
+      .withAccountIdentifier("acct-1")
+      .attachAccountManager(new ShamAccountManager())
     // Amount not set.
 
     const pb2 = new PostingBuilder(accountManager);
     pb2.withDate(now)
       .withDate2(now + 500)
-      .withAccount(new Account("acct-2"));
+      .withAccountIdentifier("acct-2")
+      .attachAccountManager(new ShamAccountManager())
     // Amount not set.
 
     transactionBuilder.appendPostingBuilder(pb1);
@@ -237,7 +255,8 @@ describe('TransactionBuilder', () => {
     const pb1 = new PostingBuilder(accountManager);
     pb1.withDate(now)
       .withDate2(now + 500)
-      .withAccount(new Account("acct-1"))
+      .withAccountIdentifier("acct-1")
+      .attachAccountManager(new ShamAccountManager())
       .genId()
       .withAmount(
         Amount.create([
@@ -248,7 +267,8 @@ describe('TransactionBuilder', () => {
     const pb2 = new PostingBuilder(accountManager);
     pb2.withDate(now)
       .withDate2(now + 500)
-      .withAccount(new Account("acct-2"))
+      .withAccountIdentifier("acct-2")
+      .attachAccountManager(new ShamAccountManager())
       .genId()
       .withAmount(
         Amount.create([
@@ -264,7 +284,8 @@ describe('TransactionBuilder', () => {
     const pb3 = new PostingBuilder(accountManager);
     pb3.withDate(now)
       .withDate2(now)
-      .withAccount(new Account("acct-2"))
+      .withAccountIdentifier("acct-2")
+      .attachAccountManager(new ShamAccountManager())
       .genId();
 
     transactionBuilder.appendPostingBuilder(pb3);

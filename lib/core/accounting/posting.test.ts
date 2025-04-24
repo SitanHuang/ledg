@@ -47,7 +47,7 @@ describe('PostingBuilder', () => {
       .withSource(dummySource)
       .withMetadata(dummyMetadata)
       .withTransactionID("tx-123")
-      .withAccount(new Account("acct1"))
+      .withAccountIdentifier("acct1")
       .withAmount(
         Amount.create([
           { currency: { id: "USD" }, value: Rational.fromNumber(100) }
@@ -55,7 +55,6 @@ describe('PostingBuilder', () => {
       );
 
     expect(builder.getTransactionID()).toBe("tx-123");
-    expect(builder.getAccount()?.identifier).toBe("acct1");
 
     const result = builder.build();
     if (result instanceof Error) {
@@ -80,7 +79,7 @@ describe('PostingBuilder', () => {
       .withSource(dummySource)
       .withMetadata((null as unknown as Metadata)) // <-- required by LedgObject
       .withTransactionID("asdf")
-      .withAccount(new Account("acct1"))
+      .withAccountIdentifier("acct1")
       .withAmount(
         Amount.create([
           { currency: { id: "USD" }, value: Rational.fromNumber(100) }
@@ -98,7 +97,7 @@ describe('PostingBuilder', () => {
       .withSource(dummySource)
       .withMetadata(dummyMetadata)
       // transactionID not set
-      .withAccount(new Account("acct1"))
+      .withAccountIdentifier("acct1")
       .withAmount(
         Amount.create([
           { currency: { id: "USD" }, value: Rational.fromNumber(100) }
@@ -125,7 +124,7 @@ describe('PostingBuilder', () => {
       );
     const result = builder.build();
     expect(result).toBeInstanceOf(Error);
-    expect((result as Error).message).toBe("Attemping to build a Posting with empty Account.");
+    expect((result as Error).message).toBe("Attemping to build a Posting with empty account identifier.");
   });
 
   it('should fail to build when amount is missing', () => {
@@ -136,22 +135,25 @@ describe('PostingBuilder', () => {
       .withSource(dummySource)
       .withMetadata(dummyMetadata)
       .withTransactionID("tx-123")
-      .withAccount(new Account("acct1"));
+      .withAccountIdentifier("acct1")
     // amount not set
     const result = builder.build();
     expect(result).toBeInstanceOf(Error);
     expect((result as Error).message).toBe("Attemping to build a Posting with empty Amount");
   });
 
-  it('assignAccount should return Ok when assignment is successful', () => {
-    // When a valid account identifier (other than "fail") is provided, assignment succeeds.
-    const result = builder.assignAccount("validAcct");
-    expect(result).toBe(Ok);
-  });
-
   it('assignAccount should return AccountAssignmentError when assignment fails', () => {
     // When the identifier is "fail", the sham account manager returns an error.
-    const result = builder.assignAccount("fail");
+    const result = builder
+      .withDate(1)
+      .withDate2(2)
+      .withSource(dummySource)
+      .withTransactionID("tx-001")
+      .withAmount(Amount.ZERO)
+      .genId()
+      .withAccountIdentifier("fail")
+      .attachAccountManager(new ShamAccountManager())
+      .isBuildable();
     expect(result).toBeInstanceOf(AccountAssignmentError);
     if (result instanceof AccountAssignmentError) {
       expect(result.message).toBe("Account assignment failed");
@@ -167,7 +169,7 @@ describe('PostingBuilder', () => {
       .withSource(dummySource)
       .withMetadata(dummyMetadata)
       .withTransactionID("tx-555")
-      .withAccount(new Account("acct5"))
+      .withAccountIdentifier("acct5")
       .withAmount(
         Amount.create([
           { currency: { id: "USD" }, value: Rational.fromNumber(50) }
@@ -195,7 +197,7 @@ describe('PostingBuilder', () => {
       .withSource(dummySource)
       .withMetadata(dummyMetadata)
       .withTransactionID("tx-666")
-      .withAccount(new Account("acct6"))
+      .withAccountIdentifier("acct6")
       .withAmount(
         Amount.create([
           { currency: { id: "USD" }, value: Rational.fromNumber(75) }

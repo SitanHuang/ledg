@@ -23,18 +23,28 @@ export class Posting implements LedgObject {
 
 export class PostingBuilder extends LedgObjectBuilder<Posting> {
   protected transactionID?: TransactionID;
-  protected account?: Account;
+  protected accountIdentifier?: AccountIdentifier;
   protected amount?: Amount;
+  public accountManager?: AccountManager
 
   constructor(
-    public accountManager: AccountManager
-  ) { super(); }
+    accountManager?: AccountManager
+  ) {
+    super();
+
+    this.accountManager = accountManager;
+  }
+
+  attachAccountManager(accountManager: AccountManager): this {
+    this.accountManager = accountManager;
+    return this;
+  }
 
   public getTransactionID() {
     return this.transactionID;
   }
-  public getAccount() {
-    return this.account;
+  public getAccountIdentifier() {
+    return this.accountIdentifier;
   }
   public getAmount() {
     return this.amount;
@@ -59,23 +69,9 @@ export class PostingBuilder extends LedgObjectBuilder<Posting> {
     return this;
   }
 
-  withAccount(account: Account): this {
-    this.account = account;
+  withAccountIdentifier(account: AccountIdentifier): this {
+    this.accountIdentifier = account;
     return this;
-  }
-
-  /**
-   * Requests and assigns an account using the account manager.
-   *
-   * @param identifier - Identifier used for account assignment.
-   * @returns Ok if assignment is successful; otherwise, an AccountAssignmentError.
-   */
-  assignAccount(identifier: AccountIdentifier): Maybe<AccountAssignmentError> {
-    const result = this.accountManager.requestAccountAssignment(identifier, this);
-    if (result instanceof AccountAssignmentError)
-      return result;
-
-    return Ok;
   }
 
   withAmount(amount: Amount): this {
@@ -83,21 +79,32 @@ export class PostingBuilder extends LedgObjectBuilder<Posting> {
     return this;
   }
 
+  private assignedAccount?: Account;
+
   override isBuildable(): Maybe<Error> {
     const parentBuildable = super.isBuildable();
     if (!isOk(parentBuildable)) {
       return parentBuildable;
     }
 
+    if (!this.accountManager)
+      return new Error("AccountManager is null.");
+
     if (this.transactionID == null) {
       return new Error("Attemping to build a Posting with empty transactionId.");
     }
-    if (this.account == null) {
-      return new Error("Attemping to build a Posting with empty Account.");
+    if (this.accountIdentifier == null) {
+      return new Error("Attemping to build a Posting with empty account identifier.");
     }
     if (this.amount == null) {
       return new Error("Attemping to build a Posting with empty Amount");
     }
+
+    const result = this.accountManager.requestAccountAssignment(this.accountIdentifier, this);
+    if (result instanceof AccountAssignmentError)
+      return result;
+
+    this.assignedAccount = result;
 
     return Ok;
   }
@@ -114,7 +121,7 @@ export class PostingBuilder extends LedgObjectBuilder<Posting> {
       this.date2!,
       this.description,
       this.transactionID!,
-      this.account!,
+      this.assignedAccount!,
       this.amount!,
       this.source,
       this.metadata,

@@ -9,10 +9,19 @@ import { Currency } from '../valuation/currency.ts';
 import { CurrencyConversionService } from '../valuation/currencyConversionService.ts';
 import { CurrencyProvider } from '../valuation/currencyProvider.ts';
 import { Account } from './account.ts';
-import { AccountManager, DefaultAccountManager } from './accountManager.ts';
+import { AccountAssignmentError, AccountManager, DefaultAccountManager } from './accountManager.ts';
 import { Amount } from './amount.ts';
 import { Posting, PostingBuilder } from './posting.ts';
 import { TransactionAutoBalanceError, TransactionAutoBalancer } from './transactionAutoBalancer.ts';
+
+class ShamAccountManager extends DefaultAccountManager {
+  requestAccountAssignment(identifier: string, _objContext: any) {
+    if (identifier === "fail") {
+      return new AccountAssignmentError("Account assignment failed");
+    }
+    return new Account(identifier);
+  }
+}
 
 describe('TransactionAutoBalancer', () => {
   let conversionService: CurrencyConversionService;
@@ -100,7 +109,7 @@ describe('TransactionAutoBalancer', () => {
 
     // Also verify that the posting builder was marked as modified.
     const commitRegister = new CommitRegistry();
-    postingBuilder.withTransactionID(nanoid(8)).withDate(0).withDate2(0).genId().withAccount(new Account("asdf"));
+    postingBuilder.withTransactionID(nanoid(8)).withDate(0).withDate2(0).genId().withAccountIdentifier("asdf").attachAccountManager(new ShamAccountManager());
     expect(postingBuilder.build()).instanceOf(Posting);
     postingBuilder.commitChanges(commitRegister);
     expect(commitRegister.getCurrentCommits()![0].messages[0]).toContain("automatically inferred");
@@ -143,7 +152,7 @@ describe('TransactionAutoBalancer', () => {
 
     // Also verify that the posting builder was marked as modified.
     const commitRegister = new CommitRegistry();
-    postingBuilder.withTransactionID(nanoid(8)).withDate(0).withDate2(0).genId().withAccount(new Account("asdf"));
+    postingBuilder.withTransactionID(nanoid(8)).withDate(0).withDate2(0).genId().withAccountIdentifier("asdf").attachAccountManager(new ShamAccountManager());
     expect(postingBuilder.build()).instanceOf(Posting);
     postingBuilder.commitChanges(commitRegister);
     expect(commitRegister.getCurrentCommits()![0].messages[0]).toContain('converted to "USD"');

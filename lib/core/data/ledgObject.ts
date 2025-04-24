@@ -11,6 +11,30 @@ export interface Metadata {
   event?: string;
 }
 
+/**
+ * Validates whether a key/val pair can be put into Metadata. Returns an error message or null.
+ */
+export function validateMetadataKeyValPair(key: string, val: unknown): string | null {
+  if (key.length == 0)
+    return "Metadata field name cannot be empty.";
+
+  switch (key) {
+    case "virt":
+      if (typeof val !== 'boolean')
+        return "The field `virt` must be of boolean type.";
+      break;
+    case "pending":
+      if (typeof val !== 'boolean')
+        return "The field `pending` must be of boolean type.";
+      break;
+    case "event":
+      if (typeof val !== 'string')
+        return "The field `event` must be of string type.";
+      break;
+  }
+  return null;
+}
+
 export type UUID = string;
 
 export interface LedgObject {
@@ -24,7 +48,7 @@ export interface LedgObject {
 
 export abstract class LedgObjectBuilder<T extends LedgObject> {
   public id?: UUID;
-  protected source: SourceDescriptor = NullSourceDescriptor.INSTANCE;
+  public source: SourceDescriptor = NullSourceDescriptor.INSTANCE;
   public date?: timestamp;
   public date2?: timestamp;
   public description = "";
