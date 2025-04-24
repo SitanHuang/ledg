@@ -34,7 +34,7 @@ export class Journal {
 
     this.accountManager = new DefaultAccountManager();
 
-    this.currencyProvider = new CurrencyProvider();
+    this.currencyProvider = new CurrencyProvider(this.configuration.valuationConfig);
     this.currencyConversionService = new CurrencyConversionService();
 
     this.balanceAssertionService = new BalanceAssertionService();

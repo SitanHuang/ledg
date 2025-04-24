@@ -5,6 +5,7 @@ import { AmountParseError, ValueExpressionEvalError } from '../parseErrors.ts';
 import { Amount } from '../../accounting/amount.ts';
 import { Rational } from '../../math/rational.ts';
 import { unwrap } from '../../types.ts';
+import { ValuationConfiguration } from '../../config/valuationConfigs.ts';
 
 describe('ValueExpressionParser -> round()', () => {
   let parser: ValueExpressionParser;
@@ -12,14 +13,14 @@ describe('ValueExpressionParser -> round()', () => {
 
   beforeEach(() => {
     parser = new ValueExpressionParser();
-    currencyProvider = new CurrencyProvider();
+    currencyProvider = new CurrencyProvider(new ValuationConfiguration());
   });
 
   const r = (num: number) => Rational.fromNumber(num);
 
   beforeEach(() => {
     parser = new ValueExpressionParser();
-    currencyProvider = new CurrencyProvider();
+    currencyProvider = new CurrencyProvider(new ValuationConfiguration());
   });
 
   it('should correctly round a positive amount to specified precision', () => {
@@ -82,7 +83,7 @@ describe('ValueExpressionParser -> round()', () => {
     const result = parser.evaluateValueExpression(expr, currencyProvider) as Amount;
     const entries = result.getEntries();
     expect(entries.length).toBe(1);
-    expect(entries[0].currency.id).toBe(currencyProvider.defaultCurrencyCode);
+    expect(entries[0].currency.id).toBe(currencyProvider.valuationConfig.defaultCurrencyCode);
     expect(entries[0].value.eq(r(1.5))).toBe(true);
   });
 

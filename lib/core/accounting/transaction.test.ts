@@ -39,7 +39,7 @@ describe('TransactionBuilder', () => {
 
   beforeEach(() => {
     conversionService = new CurrencyConversionService();
-    currencyProvider = new CurrencyProvider();
+    currencyProvider = new CurrencyProvider(new ValuationConfiguration());
     valuationConfig = new ValuationConfiguration();
     valuationPolicy = new ValuationPolicy(now);
     validationService = new TransactionValidationService(conversionService, valuationPolicy, valuationConfig);

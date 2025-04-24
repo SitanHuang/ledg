@@ -1,13 +1,16 @@
+import { ValuationConfiguration } from "../config/valuationConfigs.ts";
 import { Currency } from "./currency.ts";
 
 export class CurrencyProvider {
-  public defaultCurrencyCode = '$';
+  constructor(
+    public valuationConfig: ValuationConfiguration
+  ) {}
 
   private currencies = new Map<string, Currency>();
 
   public getOrCreateCurrencyById(code: string): Currency {
     if (!code)
-      code = this.defaultCurrencyCode;
+      code = this.valuationConfig.defaultCurrencyCode;
 
     const currency = this.currencies.get(code);
     if (currency !== undefined)

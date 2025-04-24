@@ -6,6 +6,7 @@ import { Amount } from '../accounting/amount.ts';
 import { CurrencyConversionService } from '../valuation/currencyConversionService.ts';
 import { ValuationPolicy } from '../valuation/policy.ts';
 import { Rational } from '../math/rational.ts';
+import { ValuationConfiguration } from '../config/valuationConfigs.ts';
 
 describe('ValueExpressionParser -> parseAmount part', () => {
   let parser: ValueExpressionParser;
@@ -13,7 +14,7 @@ describe('ValueExpressionParser -> parseAmount part', () => {
 
   beforeEach(() => {
     parser = new ValueExpressionParser();
-    currencyProvider = new CurrencyProvider();
+    currencyProvider = new CurrencyProvider(new ValuationConfiguration());
   });
 
   it('parses a single amount with quantity first and currency second', () => {
@@ -114,7 +115,7 @@ describe('ValueExpressionParser -> parseAmount part', () => {
 
     const entries = (result as Amount).getEntries();
     expect(entries.length).toBe(1);
-    expect(entries[0].currency.id).toBe(currencyProvider.defaultCurrencyCode);
+    expect(entries[0].currency.id).toBe(currencyProvider.valuationConfig.defaultCurrencyCode);
     expect(entries[0].value.eq(100)).toBe(true);
   });
 
@@ -255,7 +256,7 @@ describe('ValueExpressionParser -> evaluateValueExpression part', () => {
 
   beforeEach(() => {
     parser = new ValueExpressionParser();
-    currencyProvider = new CurrencyProvider();
+    currencyProvider = new CurrencyProvider(new ValuationConfiguration());
   });
 
   it('evaluates a single bracketed amount literal', () => {
@@ -444,7 +445,7 @@ describe('ValueExpressionParser -> evaluateValueExpression part', () => {
     const input = '(3 + 5 * 2 + 7) / 3';
     const result = parser.evaluateValueExpression(input, currencyProvider) as Amount;
     const entries = result.getEntries();
-    expect(entries[0].currency.id).toBe(currencyProvider.defaultCurrencyCode);
+    expect(entries[0].currency.id).toBe(currencyProvider.valuationConfig.defaultCurrencyCode);
     expect(entries[0].value.eq(new Rational(20n, 3n))).toBe(true);
     expect((result as Amount).sourceString).toBe(input);
   });

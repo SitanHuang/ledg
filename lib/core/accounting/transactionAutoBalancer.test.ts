@@ -32,7 +32,7 @@ describe('TransactionAutoBalancer', () => {
 
   beforeEach(() => {
     conversionService = new CurrencyConversionService();
-    currencyProvider = new CurrencyProvider();
+    currencyProvider = new CurrencyProvider(new ValuationConfiguration());
     config = new ValuationConfiguration();
     // For tests that do not require conversion, we’ll override autoBalanceTargetCurrency.
     // For tests that need conversion, we will set it to a target currency string.

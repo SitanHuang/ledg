@@ -22,7 +22,7 @@ describe('TransactionValidationService', () => {
 
   beforeEach(() => {
     conversionService = new CurrencyConversionService();
-    currencyProvider = new CurrencyProvider();
+    currencyProvider = new CurrencyProvider(new ValuationConfiguration());
     config = new ValuationConfiguration();
     // Use a zero tolerance by default to catch even the smallest errors.
     config.transactionBalanceTolerance = Rational.ZERO;

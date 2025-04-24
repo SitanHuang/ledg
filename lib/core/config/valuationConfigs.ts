@@ -27,4 +27,9 @@ export class ValuationConfiguration {
    * timestamp - a specified date to use for currency valuation
    */
   public valuationMethod: "date" | "eop" | timestamp = "eop";
+
+  /**
+   * The default currency code when parsing an amount without a currency code.
+   */
+  public defaultCurrencyCode = "$";
 }
