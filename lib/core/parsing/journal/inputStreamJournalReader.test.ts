@@ -4,7 +4,7 @@ import { Readable } from 'node:stream';
 import { describe, expect, it } from 'vitest';
 import { TransactionBuilder } from '../../accounting/transaction.ts';
 import { isOk, Ok } from '../../types.ts';
-import { InputStreamJournalReader } from './inputStreamJournalReader.ts';
+import { InputStreamJournalReader, InputStreamSourceDescriptor } from './inputStreamJournalReader.ts';
 
 async function readAll(reader: InputStreamJournalReader) {
   const txns: TransactionBuilder[] = [];
@@ -28,7 +28,24 @@ describe('InputStreamJournalReader (Empty transactions & events only)', () => {
       '2024-01-01 event kickoff project',
       '2024-01-02 ! event   launch 🚀',                                 // pending + double-space
       '2024-01-03 12:34:56 event  sample #ABCDEFGH',                    // explicit UUID
-      '2024-01-04T01:02:03=2024-02-03T23:59:59 event multi date something'
+      '2024-01-04T01:02:03=2024-02-03T23:59:59 event multi date something',
+      '2024-01-04T01:02:03=2024-02-03T23:a9:59 event multi date something',
+      '2024-01-04T01:02:03=2024-02-03T23:a9:59 event multi date something',
+      '; pure comment',
+      '    ',
+      '',
+      '; pure comment',
+      '; pure comment',
+      '2024-01-04=2024-02-03T23:a9:59 event multi date something', // 11
+      '; pure comment',
+      '',
+      '; pure comment',
+      '  ',
+      '; pure comment',
+      '2024-01-04=2024-02-03T23:a9:59 event multi date something', // 17
+      '; pure comment',
+      '  ; virt:true', // 19
+      '; pure comment',
     ];
 
     const reader = new InputStreamJournalReader({
@@ -38,24 +55,27 @@ describe('InputStreamJournalReader (Empty transactions & events only)', () => {
     });
 
     const txns = await readAll(reader);
-    expect(txns).toHaveLength(4);
+    expect(txns).toHaveLength(8);
 
     // txn #1 – basic event
     expect(txns[0].metadata.event).toBe('kickoff');
     expect(txns[0].description).toBe('project');
     expect(txns[0].metadata.pending).toBeUndefined();
+    expect(txns[0].getIsModified()).toBe(true);
     expect(txns[0].getPostingBuilders().length).toBe(0);
 
     // txn #2 – pending + multiple-space handling
     expect(txns[1].metadata.pending).toBe(true);
     expect(txns[1].metadata.event).toBe('launch');
     expect(txns[1].description).toBe('🚀');
+    expect(txns[1].getIsModified()).toBe(true);
     expect(txns[1].getPostingBuilders().length).toBe(0);
 
     // txn #3 – explicit UUID must be respected and stripped from description
     expect(txns[2].description).toBe('');
     expect(txns[2].metadata.event).toBe('sample');
     expect(txns[2].id).toBe("ABCDEFGH");
+    expect(txns[2].getIsModified()).toBe(false);
     expect(txns[2].getPostingBuilders().length).toBe(0);
 
     // txn #4 – dual-date parsing must succeed exactly
@@ -65,7 +85,30 @@ describe('InputStreamJournalReader (Empty transactions & events only)', () => {
     expect(txns[3].date2).toBe(EXPECT_SECONDARY);
     expect(txns[3].metadata.event).toBe('multi');
     expect(txns[3].description).toBe('date something');
+    expect(txns[3].getIsModified()).toBe(true);
     expect(txns[3].getPostingBuilders().length).toBe(0);
+
+    expect(txns[4].date).toBe(EXPECT_PRIMARY);
+    expect(txns[4].date2).toBe(Date.parse('2024-02-03'));
+    expect(txns[5].date).toBe(EXPECT_PRIMARY);
+    expect(txns[5].date2).toBe(Date.parse('2024-02-03'));
+    expect(txns[6].date).toBe(Date.parse('2024-01-04'));
+    expect(txns[6].date2).toBe(Date.parse('2024-02-03'));
+    let source = (txns[6].source as InputStreamSourceDescriptor);
+    expect(source.sourceText).toBe(src[11]);
+    expect(source.lineStart).toBe(11);
+    expect(source.lineEnd).toBe(11); // ignore all the stuff afterwards
+
+    source = (txns[7].source as InputStreamSourceDescriptor);
+    expect(source.sourceText.split(/\r?\n/)).toEqual([src[17], src[18], src[19]]);
+    expect(source.lineStart).toBe(17);
+    expect(source.lineEnd).toBe(19); // ignore all the stuff afterwards
+
+
+    source = (txns[0].source as InputStreamSourceDescriptor);
+    expect(source.sourceText).toBe(src[0]);
+    expect(source.lineStart).toBe(0);
+    expect(source.lineEnd).toBe(0);
   });
 });
 

@@ -4,7 +4,7 @@ import { createInterface, Interface } from "node:readline";
 import { Readable } from "node:stream";
 import { PostingBuilder } from "../../accounting/posting.ts";
 import { TransactionBuilder } from "../../accounting/transaction.ts";
-import { Metadata } from "../../data/ledgObject.ts";
+import { LedgObject, LedgObjectBuilder, Metadata, validateMetadataKeyValPair } from "../../data/ledgObject.ts";
 import { SourceDescriptor } from "../../data/sourceDescriptor.ts";
 import { isOk, Maybe, Ok } from "../../types.ts";
 import { JournalReader } from "./journalReader.ts";
@@ -119,6 +119,7 @@ export class InputStreamJournalReader extends JournalReader {
   private currentTxnLines: string[] = [];
   private currentPosting: PostingBuilder | null = null;
   private currentPostingLine = 0;
+  private currentPostingLines: string[] = []
   private lastMeaningfulLine = 0;
   private currentLine = '';
 
@@ -139,13 +140,39 @@ export class InputStreamJournalReader extends JournalReader {
     this.lineCount++;
     this.currentLine = line;
 
-    if (line.startsWith("include ")) {
+    const trimmedLine = line.trim();
+
+    if (trimmedLine.length == 0 || line.startsWith(';')) {
+      // pass down
+    } else if (trimmedLine.startsWith("include ")) {
+      this.flushCurrentTxn();
       this.includeFile(resolve(dirname(this.originalFilePath), line.substring(8)));
       return Ok;
+    } else if (line[4] == '-' && line[7] == '-') { // start transaction
+      return this.parseTransaction();
+    } else if (this.currentPosting && line.startsWith("  ;")) { // posting metadata
+      this.currentTxnLines.push(line);
+      this.currentPostingLines.push(line);
+
+      // TODO: parse date
+
+      return this.parseMetadata(this.currentPosting);
+    } else if (this.currentTxn && line.startsWith("  ;")) { // transaction metadata
+      this.currentTxnLines.push(line);
+
+      return this.parseMetadata(this.currentTxn);
+    } else if (this.currentTxn && line.startsWith("  ")) { // posting
+      return this.parsePosting();
+    } else {
+      return this.raiseError(line, "Unknown directive.");
     }
 
-    if (line[4] == '-' && line[7] == '-') { // start transaction
-      this.parseTransaction();
+    if (this.currentTxn) {
+      this.currentTxnLines.push(line);
+    }
+
+    if (this.currentPosting) {
+      this.currentPostingLines.push(line);
     }
 
     return Ok;
@@ -154,10 +181,11 @@ export class InputStreamJournalReader extends JournalReader {
   private flushCurrentTxn() {
     if (!this.currentTxn) return;
 
-    // TODO: also flush current posting
+    const trimEnd = this.lastMeaningfulLine - this.currentTxnLine;
+    const finalText = this.currentTxnLines.slice(0, trimEnd + 1).join(this.detectedDelimiter);
 
     this.currentTxn.withSource(new InputStreamSourceDescriptor(
-      this.currentTxnLines.join(this.detectedDelimiter),
+      finalText,
       this.originalFilePath,
       this.currentTxnLine, this.lastMeaningfulLine,
       this.sourceModifiable
@@ -169,9 +197,54 @@ export class InputStreamJournalReader extends JournalReader {
     }
 
     this.currentTxn = null;
+    this.currentPosting = null;
   }
 
-  private parseTransaction() {
+  private parsePosting(): Maybe {
+    const line = this.currentLine;
+
+    const splits = line.substring(2).split('\t');
+    if (splits.length < 2) {
+      return this.raiseError(line, "Malformed posting syntax.");
+    }
+
+    const posting = this.currentPosting = new PostingBuilder();
+    const metadata: Metadata = {};
+
+    this.lastMeaningfulLine = this.currentTxnLine = this.lineCount;
+    this.currentTxnLines.push(line);
+    this.currentPostingLines = [line];
+
+    // stub
+
+    return Ok;
+  }
+
+  private parseMetadata<T extends LedgObject>(obj: LedgObjectBuilder<T>): Maybe {
+    this.lastMeaningfulLine = this.lineCount;
+    let line = this.currentLine;
+
+    let colonIndex = line.indexOf(':');
+    if (colonIndex < 0) {
+      colonIndex = line.length;
+      line += ':""';
+    }
+
+    try {
+      const key = line.substring(3, colonIndex);
+      const val = JSON.parse(line.substring(colonIndex + 1)) as unknown;
+      const errMsg = validateMetadataKeyValPair(key, val);
+      if (errMsg)
+        return this.raiseError(this.currentLine, errMsg);
+      obj.metadata[key] = val;
+    } catch (e) {
+      return e as Error;
+    }
+
+    return Ok;
+  }
+
+  private parseTransaction(): Maybe {
     this.flushCurrentTxn();
 
     const line = this.currentLine;
@@ -259,6 +332,8 @@ export class InputStreamJournalReader extends JournalReader {
     }
 
     txn.withDate(timestamp).withDate2(timestamp2).withDescription(desc.trim()).withMetadata(metadata);
+
+    return Ok;
   }
 
   /**
@@ -325,7 +400,7 @@ export class InputStreamJournalReader extends JournalReader {
     });
     child.setOnError((error) => {
       this.haltWithError(this.raiseError(
-        `include ${includePath}`,
+        this.currentLine,
         "Error while processing included file",
         error
       ));
