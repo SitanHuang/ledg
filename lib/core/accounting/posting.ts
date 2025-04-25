@@ -25,6 +25,7 @@ export class PostingBuilder extends LedgObjectBuilder<Posting> {
   protected transactionID?: TransactionID;
   protected accountIdentifier?: AccountIdentifier;
   protected amount?: Amount;
+  protected amountString?: string;
   public accountManager?: AccountManager
 
   constructor(
@@ -71,6 +72,11 @@ export class PostingBuilder extends LedgObjectBuilder<Posting> {
 
   withAccountIdentifier(account: AccountIdentifier): this {
     this.accountIdentifier = account;
+    return this;
+  }
+
+  withAmountString(amountString: string): this {
+    this.amountString = amountString;
     return this;
   }
 

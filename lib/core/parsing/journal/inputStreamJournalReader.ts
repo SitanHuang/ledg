@@ -146,7 +146,7 @@ export class InputStreamJournalReader extends JournalReader {
       // pass down
     } else if (trimmedLine.startsWith("include ")) {
       this.flushCurrentTxn();
-      this.includeFile(resolve(dirname(this.originalFilePath), line.substring(8)));
+      this.includeFile(resolve(dirname(this.originalFilePath), line.substring(8).trim()));
       return Ok;
     } else if (line[4] == '-' && line[7] == '-') { // start transaction
       return this.parseTransaction();
@@ -154,15 +154,21 @@ export class InputStreamJournalReader extends JournalReader {
       this.currentTxnLines.push(line);
       this.currentPostingLines.push(line);
 
-      // TODO: parse date
+      const inner = line.substring(3).trim();
+      const firstChar = inner.charCodeAt(0);
 
-      return this.parseMetadata(this.currentPosting);
+      // Metadata keys must not start with digit/equal sign: if it is, it's a date
+      if ((firstChar >= 48 && firstChar <= 57) || firstChar === 61) {
+        return this.parsePostingDate(this.currentPosting, inner);
+      } else {
+        return this.parseMetadata(this.currentPosting);
+      }
     } else if (this.currentTxn && line.startsWith("  ;")) { // transaction metadata
       this.currentTxnLines.push(line);
 
       return this.parseMetadata(this.currentTxn);
-    } else if (this.currentTxn && line.startsWith("  ")) { // posting
-      return this.parsePosting();
+    } else if (this.currentTxn && line.startsWith("  ")) { // start posting
+      return this.parsePosting(this.currentTxn);
     } else {
       return this.raiseError(line, "Unknown directive.");
     }
@@ -200,7 +206,62 @@ export class InputStreamJournalReader extends JournalReader {
     this.currentPosting = null;
   }
 
-  private parsePosting(): Maybe {
+  private parsePostingDate(posting: PostingBuilder, inner: string): Maybe {
+    this.lastMeaningfulLine = this.lineCount;
+
+    // inner may be:
+    //   YYYY-MM-DD[T..] or YYYY-MM-DD[T..]=YYYY-MM-DD[T..]
+    //   or           =YYYY-MM-DD[T..]  (only aux override)
+
+    // Case 1: only auxiliary date override
+    if (inner.startsWith('=')) {
+      const ts2 = Date.parse(inner.substring(1));
+
+      if (isNaN(ts2)) {
+        return this.raiseError(this.currentLine, "Auxiliary date is not a valid ISO date.");
+      }
+
+      posting.withDate2(ts2);
+      return Ok;
+    }
+
+    // Case 2: primary (and maybe aux) override
+    // parse primary
+    let ts1: number;
+    let primaryLen: number;
+    if (inner.charCodeAt(13) === 0x3A && inner.charCodeAt(16) === 0x3A) {
+      ts1 = Date.parse(inner.substring(0, 19));
+      primaryLen = 19;
+    } else {
+      ts1 = Date.parse(inner.substring(0, 10));
+      primaryLen = 10;
+    }
+
+    if (isNaN(ts1)) {
+      return this.raiseError(this.currentLine, "Primary date is not a valid ISO date.");
+    }
+
+    posting.withDate(ts1);
+
+    // if there's an '=' right after the primary
+    if (inner[primaryLen] === '=') {
+      const start2 = primaryLen + 1;
+      const ts2 = Date.parse(inner.substring(start2));
+
+      if (isNaN(ts2)) {
+        return this.raiseError(this.currentLine, "Auxiliary date is not a valid ISO date.");
+      }
+
+      posting.withDate2(ts2);
+    } else if (inner.length > primaryLen) {
+      return this.raiseError(this.currentLine, "Invalid date syntax.");
+    }
+
+    return Ok;
+  }
+
+
+  private parsePosting(currentTxn: TransactionBuilder): Maybe {
     const line = this.currentLine;
 
     const splits = line.substring(2).split('\t');
@@ -208,14 +269,47 @@ export class InputStreamJournalReader extends JournalReader {
       return this.raiseError(line, "Malformed posting syntax.");
     }
 
-    const posting = this.currentPosting = new PostingBuilder();
-    const metadata: Metadata = {};
+    const posting = this.currentPosting = new PostingBuilder()
+      .fromTransaction(currentTxn); // inherit properties & metadata
+    const metadata: Metadata = posting.metadata;
 
-    this.lastMeaningfulLine = this.currentTxnLine = this.lineCount;
+    this.lastMeaningfulLine = this.currentPostingLine = this.lineCount;
     this.currentTxnLines.push(line);
     this.currentPostingLines = [line];
 
-    // stub
+    const desc = splits[0];
+    let accId = splits[1].trim();
+    const amntString: string | undefined = splits[2]?.trim();
+
+    const firstOpen = accId.indexOf('[');
+    const firstClose = accId.indexOf(']');
+
+    // Bracket notation: [Account Identifier] = virtual posting
+    if (firstOpen > -1 || firstClose > -1) {
+      if (!(
+        firstOpen === 0 &&
+        accId.lastIndexOf('[') === 0 && // no second '['
+        firstClose === accId.length - 1 &&
+        accId.endsWith(']') // no second ']'
+      )) {
+        return this.raiseError(line, "Invalid bracket syntax.");
+      }
+
+      accId = accId.substring(1, accId.length - 1).trim(); // remove brackets
+      metadata.virt = true; // set to virtual
+    }
+
+    if (!accId.length) {
+      return this.raiseError(line, "Empty account identifier.");
+    }
+
+    posting.withAccountIdentifier(accId).withDescription(desc.trim());
+
+    if (amntString) {
+      posting.withAmountString(amntString);
+    }
+
+    currentTxn.appendPostingBuilder(posting);
 
     return Ok;
   }
@@ -301,7 +395,7 @@ export class InputStreamJournalReader extends JournalReader {
     }
 
     if (isNaN(timestamp2)) {
-      return this.raiseError(line, "Auxiliary date is a valid ISO date.");
+      return this.raiseError(line, "Auxiliary date is not a valid ISO date.");
     }
 
     let descEnd = line.length;
@@ -316,7 +410,7 @@ export class InputStreamJournalReader extends JournalReader {
       descEnd = lastNonEmptyInd - 8;
       txn.withId(line.substring(lastNonEmptyInd - 7, lastNonEmptyInd + 1));
     } else {
-      // Auto gen
+      // Auto gen so that PostingBuilder gets assigned a transaction ID immediately
       txn.genId();
     }
 
@@ -385,7 +479,7 @@ export class InputStreamJournalReader extends JournalReader {
       for (let i = this.dripBufferStartInd, len = this.dripBuffer.length; i < len; ++i) {
         this.onLine(this.dripBuffer[i]);
         // we've hit another include in the drip -> just need to hand off
-        // this function to after that include finishes
+        // this function to the end callback of the other child reader
         if (this.isPaused) {
           this.dripBufferStartInd++;
           return;
@@ -432,6 +526,7 @@ export class InputStreamJournalReader extends JournalReader {
     this.isPaused = true;
     this.pendingChildren = Infinity; // we'll never call onEnd
     this.rl.close();
+    this.upstream.destroy();
     this.onError(error);
   }
 

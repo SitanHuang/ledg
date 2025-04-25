@@ -18,6 +18,12 @@ export function validateMetadataKeyValPair(key: string, val: unknown): string | 
   if (key.length == 0)
     return "Metadata field name cannot be empty.";
 
+  const firstChar = key.charCodeAt(0);
+  if (firstChar >= 48 && firstChar <= 57)
+    return "Metadata field name cannot start with a digit.";
+  if (firstChar === 61)
+    return "Metadata field name cannot start with equal sign.";
+
   switch (key) {
     case "virt":
       if (typeof val !== 'boolean')
