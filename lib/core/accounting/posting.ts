@@ -50,10 +50,9 @@ export class PostingBuilder extends LedgObjectBuilder<Posting> {
   public getAmount() {
     return this.amount;
   }
-  public getDate() {
-    return this.date;
+  public getAmountString() {
+    return this.amountString;
   }
-
   /**
    * Inherits date, date2, desc, and metadata (shallow copy) from a TransactionBuilder.
    */

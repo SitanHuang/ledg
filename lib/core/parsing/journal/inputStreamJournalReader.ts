@@ -28,7 +28,8 @@ export class InputStreamJournalReaderParseError extends Error {
     public readonly message: string,
     public readonly cause?: Error
   ) {
-    super(`Error in "${filePath}" Line ${line}: ${message || cause?.message} (source: \`${source}\`)`);
+    super();
+    this.message = `Error in "${filePath}" Line ${line}: ${message || cause?.message} (source: \`${source}\`)`;
   }
 }
 
@@ -161,13 +162,15 @@ export class InputStreamJournalReader extends JournalReader {
       if ((firstChar >= 48 && firstChar <= 57) || firstChar === 61) {
         return this.parsePostingDate(this.currentPosting, inner);
       } else {
-        return this.parseMetadata(this.currentPosting);
+        return this.parseMetadata(this.currentPosting, inner);
       }
     } else if (this.currentTxn && line.startsWith("  ;")) { // transaction metadata
       this.currentTxnLines.push(line);
 
-      return this.parseMetadata(this.currentTxn);
+      return this.parseMetadata(this.currentTxn, line.substring(3).trim());
     } else if (this.currentTxn && line.startsWith("  ")) { // start posting
+      this.flushCurrentPosting();
+
       return this.parsePosting(this.currentTxn);
     } else {
       return this.raiseError(line, "Unknown directive.");
@@ -184,8 +187,26 @@ export class InputStreamJournalReader extends JournalReader {
     return Ok;
   }
 
+  private flushCurrentPosting() {
+    if (!this.currentPosting) return;
+
+    const trimEnd = this.lastMeaningfulLine - this.currentPostingLine;
+    const finalText = this.currentPostingLines.slice(0, trimEnd + 1).join(this.detectedDelimiter);
+
+    this.currentPosting.withSource(new InputStreamSourceDescriptor(
+      finalText,
+      this.originalFilePath,
+      this.currentPostingLine, this.lastMeaningfulLine,
+      this.sourceModifiable
+    ));
+
+    this.currentPosting = null;
+  }
+
   private flushCurrentTxn() {
     if (!this.currentTxn) return;
+
+    this.flushCurrentPosting();
 
     const trimEnd = this.lastMeaningfulLine - this.currentTxnLine;
     const finalText = this.currentTxnLines.slice(0, trimEnd + 1).join(this.detectedDelimiter);
@@ -203,7 +224,6 @@ export class InputStreamJournalReader extends JournalReader {
     }
 
     this.currentTxn = null;
-    this.currentPosting = null;
   }
 
   private parsePostingDate(posting: PostingBuilder, inner: string): Maybe {
@@ -314,19 +334,18 @@ export class InputStreamJournalReader extends JournalReader {
     return Ok;
   }
 
-  private parseMetadata<T extends LedgObject>(obj: LedgObjectBuilder<T>): Maybe {
+  private parseMetadata<T extends LedgObject>(obj: LedgObjectBuilder<T>, inner: string): Maybe {
     this.lastMeaningfulLine = this.lineCount;
-    let line = this.currentLine;
 
-    let colonIndex = line.indexOf(':');
+    let colonIndex = inner.indexOf(':');
     if (colonIndex < 0) {
-      colonIndex = line.length;
-      line += ':""';
+      colonIndex = inner.length;
+      inner += ':""';
     }
 
     try {
-      const key = line.substring(3, colonIndex);
-      const val = JSON.parse(line.substring(colonIndex + 1)) as unknown;
+      const key = inner.substring(0, colonIndex);
+      const val = JSON.parse(inner.substring(colonIndex + 1)) as unknown;
       const errMsg = validateMetadataKeyValPair(key, val);
       if (errMsg)
         return this.raiseError(this.currentLine, errMsg);

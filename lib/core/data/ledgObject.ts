@@ -85,6 +85,13 @@ export abstract class LedgObjectBuilder<T extends LedgObject> {
     return this;
   }
 
+  public getDate() {
+    return this.date;
+  }
+  public getDate2() {
+    return this.date2;
+  }
+
   /**
    * Checks if the object has been modified.
    *
