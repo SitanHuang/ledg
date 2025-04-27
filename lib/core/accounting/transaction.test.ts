@@ -42,7 +42,7 @@ describe('TransactionBuilder', () => {
     currencyProvider = new CurrencyProvider(new ValuationConfiguration());
     valuationConfig = new ValuationConfiguration();
     valuationPolicy = new ValuationPolicy(now);
-    validationService = new TransactionValidationService(conversionService, valuationPolicy, valuationConfig);
+    validationService = new TransactionValidationService(conversionService, valuationConfig, valuationPolicy);
     autoBalancer = new TransactionAutoBalancer(conversionService, currencyProvider, valuationConfig);
     accountManager = new DefaultAccountManager();
 

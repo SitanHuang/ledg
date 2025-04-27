@@ -12,8 +12,8 @@ export class TransactionValidationService {
 
   constructor(
     public readonly currencyConversionService: CurrencyConversionService,
-    public readonly valuationPolicy: ValuationPolicy,
     public readonly valuationConfig: ValuationConfiguration,
+    public readonly valuationPolicy?: ValuationPolicy,
   ) {}
 
   /**
@@ -38,8 +38,14 @@ export class TransactionValidationService {
 
     const tolerance = this.valuationConfig.transactionBalanceTolerance;
 
-    if (!sum.isZero(this.currencyConversionService, this.valuationPolicy, tolerance)) {
-      return new TransactionValidationError(`The transaction balance of [${sum.toString()}] is not zero (tolerance=${tolerance.toFractionString()}).`);
+    if (!Number.isFinite(transactionBuilder.date) || !Number.isFinite(transactionBuilder.date2)) {
+      return new TransactionValidationError(`The transaction balance of [${sum.toString()}] is not zero (tolerance=${tolerance.toFractionString()}), evaluated at transaction primary date.`);
+    }
+
+    const valuationPolicy = this.valuationPolicy ?? new ValuationPolicy(transactionBuilder.date!);
+
+    if (!sum.isZero(this.currencyConversionService, valuationPolicy, tolerance)) {
+      return new TransactionValidationError(`The transaction balance of [${sum.toString()}] is not zero (tolerance=${tolerance.toFractionString()}), evaluated at transaction primary date.`);
     }
 
     return Ok;

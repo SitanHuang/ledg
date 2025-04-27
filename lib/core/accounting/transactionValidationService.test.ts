@@ -28,7 +28,7 @@ describe('TransactionValidationService', () => {
     config.transactionBalanceTolerance = Rational.ZERO;
     // The valuation date is arbitrary for testing.
     valuationPolicy = new ValuationPolicy(1000);
-    validationService = new TransactionValidationService(conversionService, valuationPolicy, config);
+    validationService = new TransactionValidationService(conversionService, config, valuationPolicy);
     accountManager = new DefaultAccountManager();
   });
 
