@@ -5,6 +5,7 @@ import { LedgObject, LedgObjectBuilder, Metadata } from "../data/ledgObject.ts";
 import { isOk, Maybe, Ok, Result, timestamp } from "../types.ts";
 import { TransactionAutoBalanceError, TransactionAutoBalancer } from "./transactionAutoBalancer.ts";
 import { TransactionValidationService } from "./transactionValidationService.ts";
+import { AccountIdentifier } from "./account.ts";
 
 export class Transaction implements LedgObject {
   constructor(
@@ -15,11 +16,14 @@ export class Transaction implements LedgObject {
     public readonly postings: Posting[] = [],
     public readonly source: SourceDescriptor,
     public readonly metadata: Metadata = {},
+    // Below is only for "open xxxx" directives
+    public readonly accountOpened: AccountIdentifier | undefined = undefined,
   ) {}
 };
 
 export class TransactionBuilder extends LedgObjectBuilder<Transaction> {
   protected postingBuilders: PostingBuilder[] = [];
+  public accountOpened: AccountIdentifier | undefined = undefined;
   public transactionValidationService?: TransactionValidationService;
 
   constructor(
@@ -27,6 +31,11 @@ export class TransactionBuilder extends LedgObjectBuilder<Transaction> {
   ) {
     super();
     this.transactionValidationService = transactionValidationService;
+  }
+
+  withAccountOpened(accountOpened: AccountIdentifier): this {
+    this.accountOpened = accountOpened;
+    return this;
   }
 
   /**
@@ -76,6 +85,9 @@ export class TransactionBuilder extends LedgObjectBuilder<Transaction> {
     if (!isOk(parentBuildable)) {
       return parentBuildable;
     }
+
+    if (this.accountOpened?.length == 0)
+      return new Error("Account name to be opened cannot be empty.");
 
     if (!this.transactionValidationService)
       return new Error("TransactionValidationService is null.");

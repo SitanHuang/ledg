@@ -26,7 +26,7 @@ describe('InputStreamJournalReader (Empty transactions & events only)', () => {
   it('parses event-only transactions with pending flag, dual-date, CRLF, explicit UUID', async () => {
     const src = [
       '2024-01-01 event kickoff project',
-      '2024-01-02 ! event   launch 🚀',                                 // pending + double-space
+      '2024-01-02   ! event   launch 🚀',                                 // pending + double-space
       '2024-01-03 12:34:56 event  sample #ABCDEFGH',                    // explicit UUID
       '2024-01-04T01:02:03=2024-02-03T23:59:59 event multi date something',
       '2024-01-04T01:02:03=2024-02-03T23:a9:59 event multi date something',
@@ -42,10 +42,11 @@ describe('InputStreamJournalReader (Empty transactions & events only)', () => {
       '; pure comment',
       '  ',
       '; pure comment',
-      '2024-01-04=2024-02-03T23:a9:59 event multi date something', // 17
+      '2024-01-04=2024-02-03T23:a9:59   event multi date something', // 17
       '; pure comment',
       '  ; virt:true', // 19
       '; pure comment',
+      '2025-01-01   open    Expense.asdf   #zzffddee'
     ];
 
     const reader = new InputStreamJournalReader({
@@ -55,7 +56,7 @@ describe('InputStreamJournalReader (Empty transactions & events only)', () => {
     });
 
     const txns = await readAll(reader);
-    expect(txns).toHaveLength(8);
+    expect(txns).toHaveLength(9);
 
     // txn #1 – basic event
     expect(txns[0].metadata.event).toBe('kickoff');
@@ -104,11 +105,21 @@ describe('InputStreamJournalReader (Empty transactions & events only)', () => {
     expect(source.lineStart).toBe(17);
     expect(source.lineEnd).toBe(19); // ignore all the stuff afterwards
 
-
     source = (txns[0].source as InputStreamSourceDescriptor);
     expect(source.sourceText).toBe(src[0]);
     expect(source.lineStart).toBe(0);
     expect(source.lineEnd).toBe(0);
+
+    expect(txns[0].accountOpened).toBeUndefined();
+    expect(txns[1].accountOpened).toBeUndefined();
+    expect(txns[2].accountOpened).toBeUndefined();
+    expect(txns[3].accountOpened).toBeUndefined();
+    expect(txns[4].accountOpened).toBeUndefined();
+    expect(txns[5].accountOpened).toBeUndefined();
+    expect(txns[6].accountOpened).toBeUndefined();
+    expect(txns[7].accountOpened).toBeUndefined();
+    expect(txns[8].accountOpened).toEqual("Expense.asdf");
+    expect(txns[8].id).toEqual("zzffddee");
   });
 });
 
@@ -250,7 +261,7 @@ describe('Posting parsing', () => {
       '',
       '  TestPost\tAssets:Cash',
       '; fff',
-      '  ; 2025-05-01 01:32:12',
+      '  ; ! 2025-05-01 01:32:12',
       '; asdf',
       '',
       '; asdf',
@@ -267,8 +278,15 @@ describe('Posting parsing', () => {
 
     const [p1] = t1.getPostingBuilders();
     expect(p1.getDate()).toBe(Date.parse('2025-05-01 01:32:12'));
+
+    expect(p1.metadata.pending).toBe(true);
+    expect(t1.metadata.pending).toBeUndefined();
+
     const [p2] = t2.getPostingBuilders();
     expect(p2.getDate()).toBe(Date.parse('2025-05-01'));
+
+    expect(p2.metadata.pending).toBeUndefined();
+    expect(t2.metadata.pending).toBeUndefined();
 
     expect(p2.getDate2()).toBe(Date.parse('2025-02-01')); // retain txn date2
 
@@ -539,6 +557,34 @@ describe('Include handling (additional scenarios)', () => {
 
     const txns = await readAll(new InputStreamJournalReader({ filePath: files.main, sourceModifiable: false }));
     expect(txns.map(t => t.description)).toEqual(['parentBefore', 'flushChild', 'parentAfter']);
+  });
+});
+
+describe('Open directive parsing', () => {
+  it('parses open directives', async () => {
+    const src = [
+      '2025-10-02 open Expense.Adf',
+      '  ; amount:42',
+      '  \tExpense.Adf',
+      '2025-10-02 open Expense.Adf #asfdsdff'
+    ];
+    const [txn, t2] = await readAll(new InputStreamJournalReader({ filePath: 'memory://meta-num', readStream: Readable.from([src.join('\n')]), sourceModifiable: false }));
+    expect(txn.accountOpened).toStrictEqual("Expense.Adf");
+    expect(txn.date).toStrictEqual(Date.parse("2025-10-02"));
+    expect(txn.date2).toStrictEqual(Date.parse("2025-10-02"));
+    expect(txn.metadata.amount).toStrictEqual(42);
+    expect(txn.getPostingBuilders()[0].getAccountIdentifier()).toStrictEqual("Expense.Adf");
+    expect(t2.id).toStrictEqual("asfdsdff");
+  });
+  it('throws on date2', async () => {
+    const src = [
+      '2025-10-02=2025-10-02 open Expense.Adf',
+      '  ; amount:42',
+      '  \tExpense.Adf'
+    ];
+    await expect(async () => {
+      await readAll(new InputStreamJournalReader({ filePath: 'memory://meta-invalid', readStream: Readable.from([src.join('\n')]), sourceModifiable: false }));
+    }).rejects.toThrow(/auxiliary/i);
   });
 });
 

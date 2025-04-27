@@ -161,6 +161,18 @@ export class InputStreamJournalReader extends JournalReader {
       const inner = line.substring(3).trim();
       const firstChar = inner.charCodeAt(0);
 
+      //  desc\tExpense\t1USD
+      //   ; ! 2025-01-01
+      // Override pending status
+      if (inner.startsWith('! ')) {
+        let firstNonZeroInd = 2;
+        while (inner[firstNonZeroInd] == ' ') firstNonZeroInd++;
+
+        this.currentPosting.metadata.pending = true;
+
+        return this.parsePostingDate(this.currentPosting, inner.substring(firstNonZeroInd));
+      }
+
       // Metadata keys must not start with digit/equal sign: if it is, it's a date
       if ((firstChar >= 48 && firstChar <= 57) || firstChar === 61) {
         return this.parsePostingDate(this.currentPosting, inner);
@@ -436,15 +448,27 @@ export class InputStreamJournalReader extends JournalReader {
       txn.genId();
     }
 
-    let desc = line.substring(date2End + 1, descEnd);
+    // Ignore whitespace between date and description
+    let descInd = date2End + 1;
+    while (descInd < descEnd && line[descInd] == ' ') descInd++;
 
-    if (desc.startsWith("! ")) {
-      metadata.pending = true;
-      desc = desc.substring(2);
-    }
+    let desc = line.substring(descInd, descEnd);
 
-    if (desc.startsWith("event")) {
-      desc = this.parseEventDescription(desc, metadata);
+    if (desc.startsWith("open ")) {
+      if (date2End !== date1End) {
+        return new Error("Account opening directives cannot have an auxiliary date.");
+      }
+
+      txn.withAccountOpened(desc.substring(5).trim());
+    } else {
+      if (desc.startsWith("! ")) {
+        metadata.pending = true;
+        desc = desc.substring(2);
+      }
+
+      if (desc.startsWith("event")) {
+        desc = this.parseEventDescription(desc, metadata);
+      }
     }
 
     txn.withDate(timestamp).withDate2(timestamp2).withDescription(desc.trim()).withMetadata(metadata);

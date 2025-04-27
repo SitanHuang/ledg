@@ -23,6 +23,8 @@ export function validateMetadataKeyValPair(key: string, val: unknown): string | 
     return "Metadata field name cannot start with a digit.";
   if (firstChar === 61)
     return "Metadata field name cannot start with equal sign.";
+  if (firstChar === 33)
+    return "Metadata field name cannot start with exclamation mark.";
 
   switch (key) {
     case "virt":
