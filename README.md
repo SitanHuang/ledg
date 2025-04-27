@@ -1,4 +1,6 @@
 
+## 🚧 2025 Update: ledg is actively being rewritten in the [ledg2](https://github.com/SitanHuang/ledg/tree/ledg2) branch. v1.0 is under maintenance mode.
+
 ## ledg
 
 - [About](#about)
