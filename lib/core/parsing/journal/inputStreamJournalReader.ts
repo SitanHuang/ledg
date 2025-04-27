@@ -73,6 +73,10 @@ export class InputStreamJournalReader extends JournalReader {
     this.sourceModifiable = sourceModifiable;
   }
 
+  static fromString(src: string): InputStreamJournalReader {
+    return new InputStreamJournalReader({ filePath: 'memory://unknown', readStream: Readable.from([src]), sourceModifiable: false });
+  }
+
   override begin(): void {
     try {
       this.upstream = this.upstream ?? createReadStream(this.originalFilePath);
@@ -235,7 +239,7 @@ export class InputStreamJournalReader extends JournalReader {
 
     const result = this.onData(this.currentTxn);
     if (!isOk(result)) {
-      return this.raiseError(this.currentLine, "Error commiting TransactionBuilder.", result); // re-throw error
+      return this.haltWithError(this.raiseError(this.currentLine, "Error commiting TransactionBuilder.", result)); // re-throw error
     }
 
     this.currentTxn = null;

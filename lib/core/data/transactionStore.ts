@@ -24,6 +24,8 @@ export abstract class TransactionStore {
 
   abstract iterateAll(callback: IteratorCallback<void>): void;
 
+  abstract size(): number;
+
   getTransactionById(id: TransactionID): Transaction | undefined {
     let transaction: Transaction | undefined;
     this.iterateAll((x) => {
@@ -42,7 +44,7 @@ export class DefaultTransactionStore extends TransactionStore {
   private readonly transactions: Transaction[] = [];
   private readonly transactionMap = new Map<TransactionID, Transaction>();
 
-  insertTransaction(transaction: Transaction): Maybe<TransactionStoreError> {
+  override insertTransaction(transaction: Transaction): Maybe<TransactionStoreError> {
     if (this.getTransactionById(transaction.id))
       return new DuplicateUUIDError(`Cannot insert transaction with duplicate UUID: ${transaction.id}`);
 
@@ -52,7 +54,7 @@ export class DefaultTransactionStore extends TransactionStore {
     return Ok;
   }
 
-  iterateAll(callback: IteratorCallback<void>) {
+  override iterateAll(callback: IteratorCallback<void>) {
     for (let i = 0;i < this.transactions.length;i++) {
       if (callback(this.transactions[i]) == IteratorStop) {
         return;
@@ -60,7 +62,11 @@ export class DefaultTransactionStore extends TransactionStore {
     }
   }
 
-  getTransactionById(id: TransactionID): Transaction | undefined {
+  override getTransactionById(id: TransactionID): Transaction | undefined {
     return this.transactionMap.get(id);
+  }
+
+  override size() {
+    return this.transactions.length;
   }
 }

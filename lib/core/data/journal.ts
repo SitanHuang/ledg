@@ -7,6 +7,8 @@ import { DefaultTransactionStore, TransactionStore } from "./transactionStore.ts
 import { TransactionAutoBalancer } from "../accounting/transactionAutoBalancer.ts";
 import { Configuration } from "../config/config.ts";
 import { CommitRegistry } from "./commitRegistry.ts";
+import { ValueExpressionParser } from "../parsing/valueExpressionParser.ts";
+import { TransactionValidationService } from "../accounting/transactionValidationService.ts";
 
 export class Journal {
 
@@ -19,12 +21,16 @@ export class Journal {
 
   balanceAssertionService: BalanceAssertionService;
   transactionAutoBalancer: TransactionAutoBalancer;
+  transactionValidationService: TransactionValidationService;
+
+  valueExpressionParser: ValueExpressionParser;
 
   transactionStore: TransactionStore;
 
   configuration: Configuration = new Configuration();
 
-  create() {
+
+  static create() {
     return new Journal();
   }
 
@@ -43,7 +49,13 @@ export class Journal {
       this.currencyProvider,
       this.configuration.valuationConfig
     );
+    this.transactionValidationService = new TransactionValidationService(
+      this.currencyConversionService,
+      this.configuration.valuationConfig
+    )
 
     this.transactionStore = new DefaultTransactionStore();
+
+    this.valueExpressionParser = new ValueExpressionParser();
   }
 }

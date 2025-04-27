@@ -86,7 +86,7 @@ export class TransactionBuilder extends LedgObjectBuilder<Transaction> {
       return parentBuildable;
     }
 
-    if (this.accountOpened?.length == 0)
+    if (this.accountOpened?.length === 0)
       return new Error("Account name to be opened cannot be empty.");
 
     if (!this.transactionValidationService)
@@ -98,8 +98,11 @@ export class TransactionBuilder extends LedgObjectBuilder<Transaction> {
 
     for (let i = 0;i < this.postingBuilders.length;i++) {
       const postingBuilder = this.postingBuilders[i];
-      if (!isOk(postingBuilder.isBuildable()) || postingBuilder.getTransactionID() !== this.id) {
-        return new Error("Transaction contains a Posting that is not buildable.");
+      const buildResult = postingBuilder.isBuildable();
+      if (!isOk(buildResult) || postingBuilder.getTransactionID() !== this.id) {
+        const error = new Error("Transaction contains a Posting that is not buildable.");
+        error.cause = buildResult;
+        return error;
       }
     }
     return Ok;

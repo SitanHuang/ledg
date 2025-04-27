@@ -42,15 +42,12 @@ export abstract class JournalReader {
       };
     });
   }
+  public promisifyAndBegin(): Promise<Maybe> {
+    const promise = this.promisify();
+    this.begin();
+    return promise;
+  }
 
   abstract begin(): void;
-
-  // parse() {
-  //   this.readStream.on('data', );
-  // }
-
-  // protected readData(chunk) {
-
-  // }
 
 }
