@@ -22,7 +22,7 @@ export abstract class TransactionStore {
 
   abstract insertTransaction(transaction: Transaction): Maybe<TransactionStoreError>;
 
-  abstract iterateAll(callback: IteratorCallback<unknown>): void;
+  abstract iterateAll(callback: IteratorCallback<void>): void;
 
   getTransactionById(id: TransactionID): Transaction | undefined {
     let transaction: Transaction | undefined;

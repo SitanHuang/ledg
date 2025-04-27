@@ -100,7 +100,7 @@ describe('InputStreamJournalReader (Empty transactions & events only)', () => {
     expect(source.lineEnd).toBe(11); // ignore all the stuff afterwards
 
     source = (txns[7].source as InputStreamSourceDescriptor);
-    expect(source.sourceText.split(/\r?\n/)).toEqual([src[17], src[18], src[19]]);
+    expect(source.sourceText).toEqual([src[17], src[18], src[19]].join("\r\n"));
     expect(source.lineStart).toBe(17);
     expect(source.lineEnd).toBe(19); // ignore all the stuff afterwards
 
@@ -690,25 +690,28 @@ describe('InputStreamJournalReader (multi-line postings and sourceDescriptor)', 
     const firstPostingSource = (pbuilders[0].source as InputStreamSourceDescriptor);
     expect(firstPostingSource.lineStart).toBe(2);
     expect(firstPostingSource.lineEnd).toBe(4);
-    expect(firstPostingSource.sourceText.split(/\r?\n/)).toEqual(srcLines.slice(2, 5));
+    expect(firstPostingSource.sourceText).toEqual(srcLines.slice(2, 5).join("\n"));
+    expect(firstPostingSource.sourceText.includes("\r")).toBe(false);
 
     // Check source descriptor for second posting spans only its line 4
     const secondPostingSource = (pbuilders[1].source as InputStreamSourceDescriptor);
     expect(secondPostingSource.lineStart).toBe(6);
     expect(secondPostingSource.lineEnd).toBe(6);
     expect(secondPostingSource.sourceText).toBe(srcLines[6]);
+    expect(secondPostingSource.sourceText.includes("\r")).toBe(false);
 
     // Check transaction-level source spans its own lines (0 through 5)
     const txnSource = (first.source as InputStreamSourceDescriptor);
     expect(txnSource.lineStart).toBe(0);
     expect(txnSource.lineEnd).toBe(6);
     expect(txnSource.sourceText.split(/\r?\n/)).toEqual(srcLines.slice(0, 7));
+    expect(txnSource.sourceText.includes("\r")).toBe(false);
   });
 
   it('handles nested includes with postings and preserves correct line numbering', async () => {
     // Setup files in memory-like structure
     const dir = '~testout/InputStreamJournalReader.MultiInclude/';
-    mkdirSync(dir);
+    mkdirSync(dir, { recursive: true });
     const mainPath = join(dir, 'main.ledg');
     const incPath = join(dir, 'inc.ledg');
 

@@ -1,7 +1,7 @@
-import { closeSync, createReadStream, openSync, readSync } from "node:fs";
+import { createReadStream } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { createInterface, Interface } from "node:readline";
-import { Readable } from "node:stream";
+import { Readable, Transform } from "node:stream";
 import { PostingBuilder } from "../../accounting/posting.ts";
 import { TransactionBuilder } from "../../accounting/transaction.ts";
 import { LedgObject, LedgObjectBuilder, Metadata, validateMetadataKeyValPair } from "../../data/ledgObject.ts";
@@ -74,8 +74,6 @@ export class InputStreamJournalReader extends JournalReader {
   }
 
   override begin(): void {
-    this.detectedDelimiter = InputStreamJournalReader.sniffDelimiter(this.originalFilePath);
-
     try {
       this.upstream = this.upstream ?? createReadStream(this.originalFilePath);
     } catch (err) {
@@ -91,8 +89,13 @@ export class InputStreamJournalReader extends JournalReader {
       );
     });
 
+    // Man-in-the-middel delimiter sniffer
+    const sniffer = new DelimiterSniffer((d) => { this.detectedDelimiter = d; });
+
+    const snifferOut = this.upstream.pipe(sniffer);
+
     this.rl = createInterface({
-      input: this.upstream,
+      input: snifferOut,
       crlfDelay: Infinity,
     }).pause();
 
@@ -522,22 +525,11 @@ export class InputStreamJournalReader extends JournalReader {
     child.begin();
   }
 
-  private static sniffDelimiter(filePath: string, bytes = 64 * 1024): LINE_ENDING {
-    let fd: number | undefined;
-    try {
-      fd = openSync(filePath, "r");
-      const buf = Buffer.allocUnsafe(bytes);
-      const n = readSync(fd, buf, 0, bytes, 0);
-      const txt = buf.subarray(0, n).toString("utf8");
-
-      if (txt.includes("\r\n")) return "\r\n";
-      if (txt.includes("\n")) return "\n";
-      if (txt.includes("\r")) return "\r";
-    } catch {
-      /* ignore – will fall back to '\n' */
-    } finally {
-      if (fd !== undefined) closeSync(fd);
-    }
+  private static sniffDelimiterFromBuffer(buf: Buffer): LINE_ENDING {
+    const txt = buf.toString("utf8");
+    if (txt.includes("\r\n")) return "\r\n";
+    if (txt.includes("\n")) return "\n";
+    if (txt.includes("\r")) return "\r";
     return "\n";
   }
 
@@ -557,5 +549,26 @@ export class InputStreamJournalReader extends JournalReader {
 
   private raiseError(line: string, message?: string, cause?: Error) {
     return new InputStreamJournalReaderParseError(this.originalFilePath, line, this.lineCount, message ?? cause?.message ?? '', cause);
+  }
+}
+
+class DelimiterSniffer extends Transform {
+  private detected = false;
+
+  constructor(private readonly onDetect: (d: LINE_ENDING) => void) { super(); }
+
+  override _transform(chunk: Buffer, _enc: BufferEncoding, cb: () => void) {
+    if (!this.detected) {
+      const s = chunk.toString("utf8");
+      let d: LINE_ENDING | null = null;
+      if (s.includes("\r\n")) d = "\r\n";
+      else if (s.includes("\n")) d = "\n";
+      else if (s.includes("\r")) d = "\r";
+      if (d) { this.detected = true; this.onDetect(d); }
+    }
+
+    this.push(chunk);
+
+    cb();
   }
 }
