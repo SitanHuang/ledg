@@ -18,12 +18,15 @@ export class Transaction implements LedgObject {
     public readonly metadata: Metadata = {},
     // Below is only for "open xxxx" directives
     public readonly accountOpened: AccountIdentifier | undefined = undefined,
+    // Below is only for "close xxxx" directives
+    public readonly accountClosed: AccountIdentifier | undefined = undefined,
   ) {}
 };
 
 export class TransactionBuilder extends LedgObjectBuilder<Transaction> {
   protected postingBuilders: PostingBuilder[] = [];
   public accountOpened: AccountIdentifier | undefined = undefined;
+  public accountClosed: AccountIdentifier | undefined = undefined;
   public transactionValidationService?: TransactionValidationService;
 
   constructor(
@@ -35,6 +38,10 @@ export class TransactionBuilder extends LedgObjectBuilder<Transaction> {
 
   withAccountOpened(accountOpened: AccountIdentifier): this {
     this.accountOpened = accountOpened;
+    return this;
+  }
+  withAccountClosed(accountClosed: AccountIdentifier): this {
+    this.accountClosed = accountClosed;
     return this;
   }
 
@@ -88,6 +95,13 @@ export class TransactionBuilder extends LedgObjectBuilder<Transaction> {
 
     if (this.accountOpened?.length === 0)
       return new Error("Account name to be opened cannot be empty.");
+    if (this.accountClosed?.length === 0)
+      return new Error("Account name to be closed cannot be empty.");
+    if (this.accountClosed && this.accountOpened)
+      return new Error("Transaction cannot open and close accounts at the same time.");
+
+    if ((this.accountClosed || this.accountOpened) && this.date !== this.date2)
+      return new Error("Account open/close directives cannot have an auxiliary date.");
 
     if (!this.transactionValidationService)
       return new Error("TransactionValidationService is null.");
@@ -144,6 +158,8 @@ export class TransactionBuilder extends LedgObjectBuilder<Transaction> {
       postings,
       this.source,
       this.metadata,
+      this.accountOpened,
+      this.accountClosed,
     );
   }
 }

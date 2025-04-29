@@ -230,6 +230,17 @@ export class Amount {
   }
 
   /**
+   * Returns a precise, fractional value and the currency id.
+   */
+  public toFractionString(): string {
+    const parts: string[] = [];
+    for (const { currency, value } of this.amounts.values()) {
+      parts.push(`${value.toFractionString()} ${currency.id}`);
+    }
+    return parts.join(", ");
+  }
+
+  /**
    * Rounds the underlying rational values of every currency to the given number
    * of decimal places. Returns a new Amount with the rounded values.
    */

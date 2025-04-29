@@ -464,6 +464,12 @@ export class InputStreamJournalReader extends JournalReader {
       }
 
       txn.withAccountOpened(desc.substring(5).trim());
+    } else if (desc.startsWith("close ")) {
+      if (date2End !== date1End) {
+        return new Error("Account closing directives cannot have an auxiliary date.");
+      }
+
+      txn.withAccountClosed(desc.substring(5).trim());
     } else {
       if (desc.startsWith("! ")) {
         metadata.pending = true;

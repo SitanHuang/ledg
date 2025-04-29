@@ -11,6 +11,7 @@ import { Option, Ok, None, OkType } from '../types.ts';
 import { Account } from '../accounting/account.ts';
 import { BalanceAssertionService } from '../accounting/balanceAssertionService.ts';
 import { LedgObject } from '../data/ledgObject.ts';
+import { DefaultTransactionStore } from '../data/transactionStore.ts';
 
 // ShamAccountManager overrides closeAccount to simply add a close event based
 // solely on time-based validation. We'll test closeAccount with
@@ -40,7 +41,7 @@ class ShamAccountManager extends DefaultAccountManager {
 
 describe('AccountManager', () => {
   let accountManager: ShamAccountManager;
-  const dummyBalanceService = new BalanceAssertionService();
+  const dummyBalanceService = new BalanceAssertionService(new DefaultTransactionStore());
 
   beforeEach(() => {
     accountManager = new ShamAccountManager();

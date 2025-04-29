@@ -19,13 +19,14 @@ export class Journal {
   currencyProvider: CurrencyProvider;
   currencyConversionService: CurrencyConversionService;
 
+  transactionStore: TransactionStore;
+
   balanceAssertionService: BalanceAssertionService;
   transactionAutoBalancer: TransactionAutoBalancer;
   transactionValidationService: TransactionValidationService;
 
   valueExpressionParser: ValueExpressionParser;
 
-  transactionStore: TransactionStore;
 
   configuration: Configuration = new Configuration();
 
@@ -43,7 +44,9 @@ export class Journal {
     this.currencyProvider = new CurrencyProvider(this.configuration.valuationConfig);
     this.currencyConversionService = new CurrencyConversionService();
 
-    this.balanceAssertionService = new BalanceAssertionService();
+    this.transactionStore = new DefaultTransactionStore();
+
+    this.balanceAssertionService = new BalanceAssertionService(this.transactionStore);
     this.transactionAutoBalancer = new TransactionAutoBalancer(
       this.currencyConversionService,
       this.currencyProvider,
@@ -52,9 +55,7 @@ export class Journal {
     this.transactionValidationService = new TransactionValidationService(
       this.currencyConversionService,
       this.configuration.valuationConfig
-    )
-
-    this.transactionStore = new DefaultTransactionStore();
+    );
 
     this.valueExpressionParser = new ValueExpressionParser();
   }

@@ -14,6 +14,8 @@ export interface AccountAssignableObject {
   date2?: timestamp;
 }
 
+export class AccountClosureAssertionError extends Error { }
+
 /**
  * The AccountManager's primary purpose is to track an account's life cycle:
  *   UNOPENED -> OPENED -> CLOSED -> REOPENED -> CLOSED -> OPEN
@@ -46,7 +48,7 @@ export abstract class AccountManager {
     identifier: AccountIdentifier,
     time: timestamp,
     balanceAssertionService: BalanceAssertionService
-  ): Option<OkType>;
+  ): Result<Option<OkType>, AccountClosureAssertionError>;
 
   getOrOpenAccount(identifier: AccountIdentifier, time: timestamp): Account {
     this.openAccount(identifier, time);
@@ -131,12 +133,12 @@ export class DefaultAccountManager extends AccountManager {
     this.accounts = new Map();
   }
 
-  getAccount(identifier: AccountIdentifier): Option<Account> {
+  override getAccount(identifier: AccountIdentifier): Option<Account> {
     const entry = this.accounts.get(identifier);
     return entry ? entry.account : None;
   }
 
-  openAccount(identifier: AccountIdentifier, time: timestamp): Option<OkType> {
+  override openAccount(identifier: AccountIdentifier, time: timestamp): Option<OkType> {
     const entry = this.accounts.get(identifier);
     if (!entry) {
       // Create new account and record open event.
@@ -165,18 +167,50 @@ export class DefaultAccountManager extends AccountManager {
     return Ok;
   }
 
-  closeAccount(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _identifier: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _time: number,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _balanceAssertionService: BalanceAssertionService
-  ): Option<OkType> {
-    throw new Error("Unimplemented.");
+  override closeAccount(
+    identifier: AccountIdentifier,
+    time: timestamp,
+    balanceAssertionService: BalanceAssertionService,
+  ): Result<Option<OkType>, AccountClosureAssertionError> {
+    const entry = this.accounts.get(identifier);
+    if (!entry) return None; // never opened
+
+    const events = entry.events;
+    const n = events.length;
+
+    if (n === 1) { // fast path: single-event account
+      const ev = events[0];
+
+      // account must already be open and the close must be after the open
+      if (ev.type !== "open" || time <= ev.time) {
+        return None;
+      }
+
+      const balance = balanceAssertionService.assertAccountStrictlyZero(entry.account, time);
+
+      // balance must be *strictly* zero at the moment of closure
+      if (balance !== true) {
+        return new AccountClosureAssertionError(`Account "${identifier}" cannot be closed due to non-strictly-zero balance of ${balance.toFractionString()}.`);
+      }
+
+      events.push({ time, type: "close" });
+      return Ok;
+    }
+
+    const status = this.getStatusAt(events, time);
+    if (status !== ACCOUNT_OPEN){
+      return None; // closed / unopened / coincident
+    }
+
+    if (!balanceAssertionService.assertAccountStrictlyZero(entry.account, time)) {
+      return new AccountClosureAssertionError(`Account "${identifier} cannot be closed due to non-strictly-zero balance."`);
+    }
+
+    events.push({ time, type: "close" });
+    return Ok;
   }
 
-  getAccountStatusByDateRange(identifier: AccountIdentifier, from: timestamp, to?: timestamp): AccountStatus {
+  override getAccountStatusByDateRange(identifier: AccountIdentifier, from: timestamp, to?: timestamp): AccountStatus {
     const entry = this.accounts.get(identifier);
     if (!entry) {
       return ACCOUNT_UNOPEN;

@@ -4,10 +4,11 @@ import { TransactionValidationService } from "../accounting/transactionValidatio
 import { CommitRegistry } from "../data/commitRegistry.ts";
 import { TransactionStore } from "../data/transactionStore.ts";
 import { AccountManager, Amount, Transaction, TransactionBuilder } from "../namespace.ts";
-import { Maybe, isOk, isSome } from "../types.ts";
+import { Maybe, isNone, isOk, isSome } from "../types.ts";
 import { TransactionProcessor } from "./transactionProcessor.ts";
 import { ValueExpressionParser } from "../parsing/valueExpressionParser.ts";
 import { Journal } from "../data/journal.ts";
+import { BalanceAssertionService } from "../accounting/balanceAssertionService.ts";
 
 export class DefaultTransactionPipeline extends TransactionProcessor {
   constructor(
@@ -18,6 +19,7 @@ export class DefaultTransactionPipeline extends TransactionProcessor {
     private readonly commitRegistry: CommitRegistry,
     private readonly store: TransactionStore,
     private readonly currencyProvider: CurrencyProvider,
+    private readonly balanceAssertionService: BalanceAssertionService,
   ) { super(); }
 
   static fromJournal(journal: Journal): DefaultTransactionPipeline {
@@ -28,12 +30,17 @@ export class DefaultTransactionPipeline extends TransactionProcessor {
       journal.accountManager,
       journal.commitRegistry,
       journal.transactionStore,
-      journal.currencyProvider
+      journal.currencyProvider,
+      journal.balanceAssertionService,
     );
   }
 
   override process(builder: TransactionBuilder): Maybe<Error> {
     builder.attachTransactionValidationService(this.validator);
+
+    if (builder.accountOpened && builder.accountClosed) {
+      return new Error("A transaction cannot open and close accounts at the same time.");
+    }
 
     for (const pb of builder.getPostingBuilders()) {
       pb.attachAccountManager(this.accountManager);
@@ -79,6 +86,32 @@ export class DefaultTransactionPipeline extends TransactionProcessor {
 
     builder.commitChanges(this.commitRegistry);
 
-    return this.store.insertTransaction(txn);
+    if (builder.accountClosed) {
+      if (typeof builder.date === 'undefined') {
+        return new Error("Account name to be opened cannot be empty.");
+      }
+
+      // We need to insert transaction first in case any postings inside this
+      // transaction are required to balance the account to zero
+      const result = this.store.insertTransaction(txn);
+
+      if (!isOk(result)) {
+        return result;
+      }
+
+      const result2 = this.accountManager.closeAccount(builder.accountClosed, builder.date, this.balanceAssertionService);
+
+      if (result2 instanceof Error) {
+        return result2;
+      }
+
+      if (isNone(result2)) {
+        return new Error("Account cannot be closed at this time in history.");
+      }
+
+      return result2;
+    } else {
+      return this.store.insertTransaction(txn);
+    }
   }
 }

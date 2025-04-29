@@ -15,7 +15,7 @@ export class Posting implements LedgObject {
     public readonly description: string,
     public readonly transactionID: TransactionID,
     public readonly account: Account,
-    public readonly amount: Amount | null, // null if empty
+    public readonly amount: Amount,
     public readonly source: SourceDescriptor,
     public readonly metadata: Metadata = {},
   ) {}
