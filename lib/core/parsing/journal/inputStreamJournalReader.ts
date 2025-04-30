@@ -239,10 +239,11 @@ export class InputStreamJournalReader extends JournalReader {
 
     const result = this.onData(this.currentTxn);
     if (!isOk(result)) {
-      return this.haltWithError(this.raiseError(this.currentLine, "Error commiting TransactionBuilder.", result)); // re-throw error
+      return this.haltWithError(this.raiseError(finalText, "Error commiting TransactionBuilder.", result)); // re-throw error
     }
 
     this.currentTxn = null;
+    this.currentPosting = null;
   }
 
   private parsePostingDate(posting: PostingBuilder, inner: string): Maybe {
@@ -532,12 +533,15 @@ export class InputStreamJournalReader extends JournalReader {
       this.pendingChildren--;
       this.isPaused = false;
 
-      for (let i = this.dripBufferStartInd, len = this.dripBuffer.length; i < len; ++i) {
+      const len = this.dripBuffer.length;
+
+      for (let i = this.dripBufferStartInd; i < len; i++) {
         this.onLine(this.dripBuffer[i]);
+
         // we've hit another include in the drip -> just need to hand off
         // this function to the end callback of the other child reader
         if (this.isPaused) {
-          this.dripBufferStartInd++;
+          this.dripBufferStartInd = i + 1;
           return;
         }
       }

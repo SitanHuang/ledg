@@ -135,15 +135,15 @@ describe('InputStreamJournalReader (include only)', () => {
       inc2: join(dir, 'inc2.ledg')
     };
 
-    writeFileSync(files.inc1a, '2024-01-01 event inside inc1a\n');
+    writeFileSync(files.inc1a, '2024-01-01 event inside inc1a #aaaaaaac\n');
     writeFileSync(files.inc1, `
 include inc1a.ledg
-2024-01-01 event inside inc1`);
-    writeFileSync(files.inc2, '2024-01-05 event inc2 event\n');
+2024-01-01 event inside inc1 #aaaaaaaa`);
+    writeFileSync(files.inc2, '2024-01-05 event inc2 event #aaaaaaab\n');
     writeFileSync(files.main, `
 include inc1.ledg
 include inc2.ledg
-2024-01-10 event main after include\n`);
+2024-01-10 event main after include #aaaaaaad\n`);
 
     try {
       const reader = new InputStreamJournalReader({
@@ -189,7 +189,12 @@ include inc2.ledg
 
     writeFileSync(files.inc, '2024-01-09 txn inc\n');
     writeFileSync(files.main, [
+      '',
+      '',
       'include inc.ledg',
+      '',
+      '; asdf',
+      '', // these lines used to cause extra includes bug
       'include inc.ledg',
       '2024-01-10 txn main\n'
     ].join('\n'));
