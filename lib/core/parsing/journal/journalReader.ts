@@ -33,6 +33,7 @@ export abstract class JournalReader {
     this.onError = parentReader.onError;
     this.onEnd = parentReader.onEnd;
     this.onData = parentReader.onData;
+    this.onPricing = parentReader.onPricing;
     return this;
   }
 

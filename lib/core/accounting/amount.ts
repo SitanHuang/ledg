@@ -204,7 +204,7 @@ export class Amount {
     valuationPolicy: ValuationPolicy,
     tolerance: Rational = Rational.ZERO,
     targetCurrency?: Currency
-  ): true | Error | Rational {
+  ): true | Error | Amount {
     let target: Currency | undefined = targetCurrency;
     if (!target) {
       // If no target is given, choose the first nonzero currency.
@@ -227,7 +227,9 @@ export class Amount {
 
     const total: Rational = convertedOpt;
     const absTotal = total.lt(Rational.ZERO) ? total.times(Rational.NEGATIVE_ONE) : total;
-    return absTotal.lte(tolerance) || absTotal;
+    return absTotal.lte(tolerance) || Amount.create([
+      { currency: target, value: absTotal },
+    ]);
   }
 
   /**

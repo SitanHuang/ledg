@@ -23,8 +23,8 @@ export class JournalReaderAdapter {
 
   constructor(
     private readonly reader: JournalReader,
-    private readonly txnProcessor?: TransactionProcessor,
-    private readonly priceDirectiveProcessor?: PriceDirectiveProcessor,
+    private readonly txnProcessor: TransactionProcessor,
+    private readonly priceDirectiveProcessor: PriceDirectiveProcessor,
   ) { }
 
   begin(): void {
@@ -32,11 +32,9 @@ export class JournalReaderAdapter {
       .setOnError(err => this.onError(err))
       .setOnEnd(() => this.onEnd());
 
-    if (this.txnProcessor)
-      this.reader.setOnData(this.txnProcessor.processTransaction.bind(this.txnProcessor));
+    this.reader.setOnData(this.txnProcessor.processTransaction.bind(this.txnProcessor));
 
-    if (this.priceDirectiveProcessor)
-      this.reader.setOnPricing(this.priceDirectiveProcessor.processPriceDirective.bind(this.priceDirectiveProcessor));
+    this.reader.setOnPricing(this.priceDirectiveProcessor.processPriceDirective.bind(this.priceDirectiveProcessor));
 
     this.reader.begin();
   }

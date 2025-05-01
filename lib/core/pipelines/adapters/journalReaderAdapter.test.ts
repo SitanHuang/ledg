@@ -11,7 +11,7 @@ async function parseSrc(src: string[], journal?: Journal) {
 
   const journalReader = InputStreamJournalReader.fromString(src.join("\r"));
   const transactionPipeline = DefaultTransactionPipeline.fromJournal(journal);
-  const journalReaderAdapter = new JournalReaderAdapter(journalReader, transactionPipeline);
+  const journalReaderAdapter = new JournalReaderAdapter(journalReader, transactionPipeline, transactionPipeline);
 
   return await journalReaderAdapter.promisifyAndBegin();
 }

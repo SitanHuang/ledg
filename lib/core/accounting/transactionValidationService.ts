@@ -52,7 +52,7 @@ export class TransactionValidationService {
 
       error.cause = result;
 
-      if (result instanceof Rational) {
+      if (result instanceof Amount) {
         error.cause = new Error(`Unresolved balance of: ${result.toString()} = ${result.toFractionString()}`);
       }
       return error;
