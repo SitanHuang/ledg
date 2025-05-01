@@ -5,6 +5,7 @@ import { PostingBuilder } from "./posting.ts";
 import { TransactionBuilder } from "./transaction.ts";
 import { ValuationPolicy } from "../valuation/policy.ts";
 import { ValuationConfiguration } from "../config/valuationConfigs.ts";
+import { Rational } from "../math/rational.ts";
 
 export class TransactionValidationError extends Error {}
 
@@ -39,13 +40,22 @@ export class TransactionValidationService {
     const tolerance = this.valuationConfig.transactionBalanceTolerance;
 
     if (!Number.isFinite(transactionBuilder.date) || !Number.isFinite(transactionBuilder.date2)) {
-      return new TransactionValidationError(`The transaction balance of [${sum.toString()}] is not zero (tolerance=${tolerance.toFractionString()}), evaluated at transaction primary date.`);
+      return new TransactionValidationError(`TransactionBuilder requires date and date2.`);
     }
 
     const valuationPolicy = this.valuationPolicy ?? new ValuationPolicy(transactionBuilder.date!);
 
-    if (!sum.isZero(this.currencyConversionService, valuationPolicy, tolerance)) {
-      return new TransactionValidationError(`The transaction balance of [${sum.toString()}] is not zero (tolerance=${tolerance.toFractionString()}), evaluated at transaction primary date.`);
+    const result = sum.isZeroDescriptive(this.currencyConversionService, valuationPolicy, tolerance);
+
+    if (result !== true) {
+      const error = new TransactionValidationError(`The transaction balance of [${sum.toString()}] is not zero (tolerance=${tolerance.toFractionString()}), evaluated at transaction primary date.`);
+
+      error.cause = result;
+
+      if (result instanceof Rational) {
+        error.cause = new Error(`Unresolved balance of: ${result.toString()} = ${result.toFractionString()}`);
+      }
+      return error;
     }
 
     return Ok;

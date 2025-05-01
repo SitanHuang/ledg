@@ -80,8 +80,8 @@ describe('InputStreamJournalReader (Empty transactions & events only)', () => {
     expect(txns[2].getPostingBuilders().length).toBe(0);
 
     // txn #4 – dual-date parsing must succeed exactly
-    const EXPECT_PRIMARY = Date.parse('2024-01-04T01:02:03');
-    const EXPECT_SECONDARY = Date.parse('2024-02-03T23:59:59');
+    const EXPECT_PRIMARY = Date.parse('2024-01-04T01:02:03Z');
+    const EXPECT_SECONDARY = Date.parse('2024-02-03T23:59:59Z');
     expect(txns[3].date).toBe(EXPECT_PRIMARY);
     expect(txns[3].date2).toBe(EXPECT_SECONDARY);
     expect(txns[3].metadata.event).toBe('multi');
@@ -90,11 +90,11 @@ describe('InputStreamJournalReader (Empty transactions & events only)', () => {
     expect(txns[3].getPostingBuilders().length).toBe(0);
 
     expect(txns[4].date).toBe(EXPECT_PRIMARY);
-    expect(txns[4].date2).toBe(Date.parse('2024-02-03'));
+    expect(txns[4].date2).toBe(Date.parse('2024-02-03Z'));
     expect(txns[5].date).toBe(EXPECT_PRIMARY);
-    expect(txns[5].date2).toBe(Date.parse('2024-02-03'));
-    expect(txns[6].date).toBe(Date.parse('2024-01-04'));
-    expect(txns[6].date2).toBe(Date.parse('2024-02-03'));
+    expect(txns[5].date2).toBe(Date.parse('2024-02-03Z'));
+    expect(txns[6].date).toBe(Date.parse('2024-01-04Z'));
+    expect(txns[6].date2).toBe(Date.parse('2024-02-03Z'));
     let source = (txns[6].source as InputStreamSourceDescriptor);
     expect(source.sourceText).toBe(src[11]);
     expect(source.lineStart).toBe(11);
@@ -327,21 +327,21 @@ describe('Posting parsing', () => {
     }));
 
     const [p1] = t1.getPostingBuilders();
-    expect(p1.getDate()).toBe(Date.parse('2025-05-01 01:32:12'));
+    expect(p1.getDate()).toBe(Date.parse('2025-05-01 01:32:12Z'));
 
     expect(p1.metadata.pending).toBe(true);
     expect(t1.metadata.pending).toBeUndefined();
 
     const [p2] = t2.getPostingBuilders();
-    expect(p2.getDate()).toBe(Date.parse('2025-05-01'));
+    expect(p2.getDate()).toBe(Date.parse('2025-05-01Z'));
 
     expect(p2.metadata.pending).toBeUndefined();
     expect(t2.metadata.pending).toBeUndefined();
 
-    expect(p2.getDate2()).toBe(Date.parse('2025-02-01')); // retain txn date2
+    expect(p2.getDate2()).toBe(Date.parse('2025-02-01Z')); // retain txn date2
 
     expect(t2.getDate2()).toBe(t2.getDate());
-    expect(t2.getDate2()).toBe(Date.parse('2025-02-01'));
+    expect(t2.getDate2()).toBe(Date.parse('2025-02-01Z'));
   });
 
   it('overrides auxiliary date only', async () => {
@@ -361,13 +361,13 @@ describe('Posting parsing', () => {
     }));
 
     const [p] = txn.getPostingBuilders();
-    expect(p.getDate2()).toBe(Date.parse('2025-03-02'));
+    expect(p.getDate2()).toBe(Date.parse('2025-03-02Z'));
     // primary date should remain that of the transaction
-    expect(p.getDate()).toBe(Date.parse('2025-02-02'));
+    expect(p.getDate()).toBe(Date.parse('2025-02-02Z'));
 
     expect(t2.getDate2()).toBe(t2.getDate());
-    expect(t2.getDate2()).toBe(Date.parse('2025-02-02'));
-    expect(t2.getPostingBuilders()[0].getDate2()).toBe(Date.parse('2025-03-02 03:12:11'));
+    expect(t2.getDate2()).toBe(Date.parse('2025-02-02Z'));
+    expect(t2.getPostingBuilders()[0].getDate2()).toBe(Date.parse('2025-03-02 03:12:11Z'));
   });
 
   it('overrides both primary and auxiliary dates', async () => {
@@ -384,8 +384,8 @@ describe('Posting parsing', () => {
     }));
 
     const [p] = txn.getPostingBuilders();
-    expect(p.getDate()).toBe(Date.parse('2025-04-01'));
-    expect(p.getDate2()).toBe(Date.parse('2025-05-01 01:32:12'));
+    expect(p.getDate()).toBe(Date.parse('2025-04-01Z'));
+    expect(p.getDate2()).toBe(Date.parse('2025-05-01 01:32:12Z'));
   });
 
   it('handles a transaction with multiple postings', async () => {

@@ -238,10 +238,11 @@ export class InputStreamJournalReader extends JournalReader {
       return this.raiseError(this.currentLine, "Malformed pricing directive.");
     }
 
-    const date: timestamp = Date.parse(match[2] ? (match[1] + match[2]) : match[1]);
+    const dateStr = match[2] ? (match[1] + match[2]) : match[1];
+    const date: timestamp = Date.parse(dateStr + 'Z');
 
     if (isNaN(date)) {
-      return this.raiseError(this.currentLine, "Auxiliary date is not a valid ISO date.");
+      return this.raiseError(this.currentLine, `Date "${dateStr}" is not a valid ISO date.`);
     }
 
     const cur1 = match[3];
@@ -286,7 +287,7 @@ export class InputStreamJournalReader extends JournalReader {
 
     // Case 1: only auxiliary date override
     if (inner.startsWith('=')) {
-      const ts2 = Date.parse(inner.substring(1));
+      const ts2 = Date.parse(inner.substring(1) + 'Z');
 
       if (isNaN(ts2)) {
         return this.raiseError(this.currentLine, "Auxiliary date is not a valid ISO date.");
@@ -301,10 +302,10 @@ export class InputStreamJournalReader extends JournalReader {
     let ts1: number;
     let primaryLen: number;
     if (inner.charCodeAt(13) === 0x3A && inner.charCodeAt(16) === 0x3A) {
-      ts1 = Date.parse(inner.substring(0, 19));
+      ts1 = Date.parse(inner.substring(0, 19) + 'Z');
       primaryLen = 19;
     } else {
-      ts1 = Date.parse(inner.substring(0, 10));
+      ts1 = Date.parse(inner.substring(0, 10) + 'Z');
       primaryLen = 10;
     }
 
@@ -317,7 +318,7 @@ export class InputStreamJournalReader extends JournalReader {
     // if there's an '=' right after the primary
     if (inner[primaryLen] === '=') {
       const start2 = primaryLen + 1;
-      const ts2 = Date.parse(inner.substring(start2));
+      const ts2 = Date.parse(inner.substring(start2) + 'Z');
 
       if (isNaN(ts2)) {
         return this.raiseError(this.currentLine, "Auxiliary date is not a valid ISO date.");
@@ -434,12 +435,12 @@ export class InputStreamJournalReader extends JournalReader {
     let date1End = 0;
     let timestamp = NaN;
     if (line[13] == ':' && line[16] == ':') {
-      timestamp = Date.parse(line.substring(0, 19));
+      timestamp = Date.parse(line.substring(0, 19) + 'Z');
       date1End = 19;
     }
 
     if (isNaN(timestamp)) { // fall back to date only
-      timestamp = Date.parse(line.substring(0, 10));
+      timestamp = Date.parse(line.substring(0, 10) + 'Z');
       date1End = 10;
     }
 
@@ -452,12 +453,12 @@ export class InputStreamJournalReader extends JournalReader {
     let timestamp2 = NaN;
     if (line[date1End] == '=') {
       if (line[date1End + 1 + 13] == ':' && line[date1End + 1 + 16] == ':') {
-        timestamp2 = Date.parse(line.substring(date1End + 1, date1End + 1 + 19));
+        timestamp2 = Date.parse(line.substring(date1End + 1, date1End + 1 + 19) + 'Z');
         date2End = date1End + 1 + 19;
       }
 
       if (isNaN(timestamp2)) { // fall back to date only
-        timestamp2 = Date.parse(line.substring(date1End + 1, date1End + 1 + 10));
+        timestamp2 = Date.parse(line.substring(date1End + 1, date1End + 1 + 10) + 'Z');
         date2End = date1End + 1 + 10;
       }
     } else {

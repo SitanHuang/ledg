@@ -24,13 +24,13 @@ export type Token = {
 };
 
 export class ValueExpressionParser {
-  private static readonly QUANTITY_PATTERN = '[+-]?(\\d+\\.?\\d*|\\.\\d+)';
-  private static readonly CURRENCY_PATTERN = '[^\\d\\s,*.\\/@]+';
+  public static readonly QUANTITY_PATTERN = '[+-]?(\\d+\\.?\\d*|\\.\\d+)';
+  public static readonly CURRENCY_PATTERN = '[^\\d\\s,*.\\/@]+';
 
-  private static readonly QUANTITY_REGEX = new RegExp(`^${ValueExpressionParser.QUANTITY_PATTERN}`);
-  private static readonly CURRENCY_REGEX = new RegExp(`^${ValueExpressionParser.CURRENCY_PATTERN}`);
-  private static readonly QUANTITY_REGEX_FULL = new RegExp(`^${ValueExpressionParser.QUANTITY_PATTERN}$`);
-  private static readonly CURRENCY_REGEX_FULL = new RegExp(`^${ValueExpressionParser.CURRENCY_PATTERN}$`);
+  public static readonly QUANTITY_REGEX = new RegExp(`^${ValueExpressionParser.QUANTITY_PATTERN}`);
+  public static readonly CURRENCY_REGEX = new RegExp(`^${ValueExpressionParser.CURRENCY_PATTERN}`);
+  public static readonly QUANTITY_REGEX_FULL = new RegExp(`^${ValueExpressionParser.QUANTITY_PATTERN}$`);
+  public static readonly CURRENCY_REGEX_FULL = new RegExp(`^${ValueExpressionParser.CURRENCY_PATTERN}$`);
 
   /**
    * Evaluate a value expression string. A value expression string currently supports:

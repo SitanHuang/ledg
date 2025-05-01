@@ -1,6 +1,7 @@
 import { Maybe, Ok } from "../../types.ts";
 import { JournalReader } from "../../parsing/journal/journalReader.ts";
 import { TransactionProcessor } from "../transactionProcessor.ts";
+import { PriceDirectiveProcessor } from "../priceDirectiveProcessor.ts";
 
 export type JournalReaderAdapterErrorHandler = (e: Error) => void;
 export type JournalReaderAdapterEndHandler = () => void;
@@ -22,14 +23,20 @@ export class JournalReaderAdapter {
 
   constructor(
     private readonly reader: JournalReader,
-    private readonly processor: TransactionProcessor,
+    private readonly txnProcessor?: TransactionProcessor,
+    private readonly priceDirectiveProcessor?: PriceDirectiveProcessor,
   ) { }
 
   begin(): void {
     this.reader
-      .setOnData(b => this.processor.process(b))
       .setOnError(err => this.onError(err))
       .setOnEnd(() => this.onEnd());
+
+    if (this.txnProcessor)
+      this.reader.setOnData(this.txnProcessor.processTransaction.bind(this.txnProcessor));
+
+    if (this.priceDirectiveProcessor)
+      this.reader.setOnPricing(this.priceDirectiveProcessor.processPriceDirective.bind(this.priceDirectiveProcessor));
 
     this.reader.begin();
   }

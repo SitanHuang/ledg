@@ -199,6 +199,37 @@ export class Amount {
     return absTotal.lte(tolerance);
   }
 
+  public isZeroDescriptive(
+    provider: CurrencyConversionService,
+    valuationPolicy: ValuationPolicy,
+    tolerance: Rational = Rational.ZERO,
+    targetCurrency?: Currency
+  ): true | Error | Rational {
+    let target: Currency | undefined = targetCurrency;
+    if (!target) {
+      // If no target is given, choose the first nonzero currency.
+      for (const { currency, value } of this.amounts.values()) {
+        if (!value.isZero()) {
+          target = currency;
+          break;
+        }
+      }
+      // If there is no nonzero entry, the Amount is zero.
+      if (!target) {
+        return true;
+      }
+    }
+    const convertedOpt = this.convertTo(target, provider, valuationPolicy);
+    if (isNone(convertedOpt)) {
+      // If any conversion fails, we cannot conclude the amount is zero.
+      return new Error(`Conversion to "${target.id}" failed.`);
+    }
+
+    const total: Rational = convertedOpt;
+    const absTotal = total.lt(Rational.ZERO) ? total.times(Rational.NEGATIVE_ONE) : total;
+    return absTotal.lte(tolerance) || absTotal;
+  }
+
   /**
    * Returns true only if all amounts zero strictly zero.
    */
