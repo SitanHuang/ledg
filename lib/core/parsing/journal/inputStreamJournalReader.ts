@@ -159,30 +159,7 @@ export class InputStreamJournalReader extends JournalReader {
     } else if (line[4] == '-' && line[7] == '-') { // start transaction
       return this.parseTransaction();
     } else if (this.currentPosting && line.startsWith("  ;")) { // posting metadata
-      this.currentTxnLines.push(line);
-      this.currentPostingLines.push(line);
-
-      const inner = line.substring(3).trim();
-      const firstChar = inner.charCodeAt(0);
-
-      //  desc\tExpense\t1USD
-      //   ; ! 2025-01-01
-      // Override pending status
-      if (inner.startsWith('! ')) {
-        let firstNonZeroInd = 2;
-        while (inner[firstNonZeroInd] == ' ') firstNonZeroInd++;
-
-        this.currentPosting.metadata.pending = true;
-
-        return this.parsePostingDate(this.currentPosting, inner.substring(firstNonZeroInd));
-      }
-
-      // Metadata keys must not start with digit/equal sign: if it is, it's a date
-      if ((firstChar >= 48 && firstChar <= 57) || firstChar === 61) {
-        return this.parsePostingDate(this.currentPosting, inner);
-      } else {
-        return this.parseMetadata(this.currentPosting, inner);
-      }
+      return this.parsePostingMetadata(this.currentPosting, line);
     } else if (this.currentTxn && line.startsWith("  ;")) { // transaction metadata
       this.currentTxnLines.push(line);
 
@@ -244,6 +221,33 @@ export class InputStreamJournalReader extends JournalReader {
 
     this.currentTxn = null;
     this.currentPosting = null;
+  }
+
+  private parsePostingMetadata(currentPosting: PostingBuilder, line: string) {
+    this.currentTxnLines.push(line);
+    this.currentPostingLines.push(line);
+
+    const inner = line.substring(3).trim();
+    const firstChar = inner.charCodeAt(0);
+
+    //  desc\tExpense\t1USD
+    //   ; ! 2025-01-01
+    // Override pending status
+    if (inner.startsWith('! ')) {
+      let firstNonZeroInd = 2;
+      while (inner[firstNonZeroInd] == ' ') firstNonZeroInd++;
+
+      currentPosting.metadata.pending = true;
+
+      return this.parsePostingDate(currentPosting, inner.substring(firstNonZeroInd));
+    }
+
+    // Metadata keys must not start with digit/equal sign: if it is, it's a date
+    if ((firstChar >= 48 && firstChar <= 57) || firstChar === 61) {
+      return this.parsePostingDate(currentPosting, inner);
+    } else {
+      return this.parseMetadata(currentPosting, inner);
+    }
   }
 
   private parsePostingDate(posting: PostingBuilder, inner: string): Maybe {
@@ -561,14 +565,6 @@ export class InputStreamJournalReader extends JournalReader {
     });
 
     child.begin();
-  }
-
-  private static sniffDelimiterFromBuffer(buf: Buffer): LINE_ENDING {
-    const txt = buf.toString("utf8");
-    if (txt.includes("\r\n")) return "\r\n";
-    if (txt.includes("\n")) return "\n";
-    if (txt.includes("\r")) return "\r";
-    return "\n";
   }
 
   private haltWithError(error: Error) {

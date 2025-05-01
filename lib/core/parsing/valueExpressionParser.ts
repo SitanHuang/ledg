@@ -119,7 +119,10 @@ export class ValueExpressionParser {
    * decimal. Leading zero before the decimal point is optional.
    *
    * A <currency> is any non-numeric string that does not contain period, comma, brackets, forward slash, or at-sign.
-   * Multiple entries may be separated by commas.
+   * Multiple entries may be separated by commas; more formally:
+   *
+   *   currency-code := "" | non-empty-string
+   *     where non-empty-string := 1*<CHAR> where CHAR ∉ { 0–9, whitespace, ',', '*', '.', '/', '@' }
    *
    * Note: Ambiguous '+/-' signs are interpreted as part of the numeric quantities. If these signs were
    * intended as arithmetic operators, the parser will emit an error.

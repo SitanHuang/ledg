@@ -1,16 +1,17 @@
 import { TransactionBuilder } from "../../accounting/transaction.ts";
-import { Maybe, Ok } from "../../types.ts";
+import { Rational } from "../../math/rational.ts";
+import { Maybe, Ok, timestamp } from "../../types.ts";
 
 export type JournalReadStreamErrorHandler = (error: Error) => void;
 export type JournalReadStreamEndHandler = () => void;
 export type JournalReadStreamDataHandler = (data: TransactionBuilder) => Maybe;
+export type JournalReadStreamPricingHandler = (cur1: string, cur2: string, date: timestamp, rate: Rational) => Maybe;
 
 export abstract class JournalReader {
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  public onEnd: JournalReadStreamEndHandler = () => {};
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  public onError: JournalReadStreamErrorHandler = () => {};
+  public onEnd: JournalReadStreamEndHandler = () => undefined;
+  public onError: JournalReadStreamErrorHandler = () => undefined;
   public onData: JournalReadStreamDataHandler = () => Ok;
+  public onPricing: JournalReadStreamPricingHandler = () => Ok;
 
   setOnError(handler: JournalReadStreamErrorHandler) {
     this.onError = handler;
@@ -22,6 +23,10 @@ export abstract class JournalReader {
   }
   setOnData(handler: JournalReadStreamDataHandler) {
     this.onData = handler;
+    return this;
+  }
+  setOnPricing(handler: JournalReadStreamPricingHandler) {
+    this.onPricing = handler;
     return this;
   }
 
