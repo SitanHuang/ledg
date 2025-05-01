@@ -6,7 +6,7 @@ import { PostingBuilder } from "../../accounting/posting.ts";
 import { TransactionBuilder } from "../../accounting/transaction.ts";
 import { LedgObject, LedgObjectBuilder, Metadata, validateMetadataKeyValPair } from "../../data/ledgObject.ts";
 import { SourceDescriptor } from "../../data/sourceDescriptor.ts";
-import { isOk, Maybe, Ok } from "../../types.ts";
+import { isOk, Maybe, Ok, timestamp } from "../../types.ts";
 import { JournalReader } from "./journalReader.ts";
 
 export class InputStreamSourceDescriptor implements SourceDescriptor {
@@ -152,10 +152,6 @@ export class InputStreamJournalReader extends JournalReader {
 
     if (trimmedLine.length == 0 || line.startsWith(';')) {
       // pass down
-    } else if (trimmedLine.startsWith("include ")) {
-      this.flushCurrentTxn();
-      this.includeFile(resolve(dirname(this.originalFilePath), line.substring(8).trim()));
-      return Ok;
     } else if (line[4] == '-' && line[7] == '-') { // start transaction
       return this.parseTransaction();
     } else if (this.currentPosting && line.startsWith("  ;")) { // posting metadata
@@ -168,6 +164,15 @@ export class InputStreamJournalReader extends JournalReader {
       this.flushCurrentPosting();
 
       return this.parsePosting(this.currentTxn);
+    } else if (line.startsWith("P ")) {
+      this.flushCurrentTxn();
+
+      return this.parsePricing(trimmedLine);
+    } else if (line.startsWith("include ")) {
+      this.flushCurrentTxn();
+
+      this.includeFile(resolve(dirname(this.originalFilePath), line.substring(8).trim()));
+      return Ok;
     } else {
       return this.raiseError(line, "Unknown directive.");
     }
@@ -223,7 +228,28 @@ export class InputStreamJournalReader extends JournalReader {
     this.currentPosting = null;
   }
 
-  private parsePostingMetadata(currentPosting: PostingBuilder, line: string) {
+  private static readonly PRICE_REGEX = /^P\s+(\d{4}-\d{2}-\d{2})([T ]\d{2}:\d{2}:\d{2})?\s+([^\d\s,*./@]+)\s+(.+)$/;
+
+  private parsePricing(trimmedLine: string): Maybe {
+    const match = InputStreamJournalReader.PRICE_REGEX.exec(trimmedLine);
+
+    if (match?.length !== 5) {
+      return this.raiseError(this.currentLine, "Malformed pricing directive.");
+    }
+
+    const date: timestamp = Date.parse(match[2] ? (match[1] + match[2]) : match[1]);
+
+    if (isNaN(date)) {
+      return this.raiseError(this.currentLine, "Auxiliary date is not a valid ISO date.");
+    }
+
+    const cur1 = match[3];
+    const valueExpr = match[4];
+
+    return this.onPricing(date, cur1, valueExpr);
+  }
+
+  private parsePostingMetadata(currentPosting: PostingBuilder, line: string): Maybe {
     this.currentTxnLines.push(line);
     this.currentPostingLines.push(line);
 

@@ -1,11 +1,10 @@
 import { TransactionBuilder } from "../../accounting/transaction.ts";
-import { Rational } from "../../math/rational.ts";
 import { Maybe, Ok, timestamp } from "../../types.ts";
 
 export type JournalReadStreamErrorHandler = (error: Error) => void;
 export type JournalReadStreamEndHandler = () => void;
 export type JournalReadStreamDataHandler = (data: TransactionBuilder) => Maybe;
-export type JournalReadStreamPricingHandler = (cur1: string, cur2: string, date: timestamp, rate: Rational) => Maybe;
+export type JournalReadStreamPricingHandler = (date: timestamp, cur1: string, rateExpr: string) => Maybe;
 
 export abstract class JournalReader {
   public onEnd: JournalReadStreamEndHandler = () => undefined;

@@ -20,5 +20,8 @@
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.29.0",
     "vitest": "^3.0.9"
+  },
+  "dependencies": {
+    "glob": "^11.0.2"
   }
 }
