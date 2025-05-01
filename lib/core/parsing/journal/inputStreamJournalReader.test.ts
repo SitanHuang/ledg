@@ -123,7 +123,7 @@ describe('InputStreamJournalReader (Empty transactions & events only)', () => {
   });
 });
 
-describe('InputStreamJournalReader (include only)', () => {
+describe('InputStreamJournalReader (include directives)', () => {
   it('walks nested #include tree in DFS order without losing parent lines', async () => {
     const dir = "~testout/InputStreamJournalReader.1/";
     mkdirSync(dir, { recursive: true });
@@ -215,6 +215,51 @@ include inc2.ledg
     writeFileSync(path, `include no-such-file.ledg\n`);
     await expect(async () => {
       const reader = new InputStreamJournalReader({ filePath: path, sourceModifiable: false });
+      await readAll(reader);
+    }).rejects.toThrow();
+  });
+
+  it('expands a glob pattern (*.ledg) lexicographically and walks it in DFS order', async () => {
+    const dir = '~testout/InputStreamJournalReader.glob1/';
+    mkdirSync(dir, { recursive: true });
+
+    const files = {
+      main: join(dir, 'main.ledg'),
+      inc1: join(dir, 'inc1.ledg'),
+      inc2: join(dir, 'inc2.ledg'),
+      zzz: join(dir, 'zzz.ledg'),
+    };
+
+    writeFileSync(files.inc1, '2024-01-01 txn inc1 #aaaaaaaa\n');
+    writeFileSync(files.inc2, '2024-01-02 txn inc2 #aaaaaaab\n');
+    writeFileSync(files.zzz, '2024-01-02 txn inc2 #aaaaaaab\n');
+    writeFileSync(
+      files.main,
+      `
+include ./**/inc*.ledg
+2024-01-03 txn main #aaaaaaac
+`
+    );
+
+    const reader = new InputStreamJournalReader({ filePath: files.main, sourceModifiable: false });
+    const txns = await readAll(reader);
+
+    expect(txns.map(t => t.description)).toEqual([
+      'txn inc1',
+      'txn inc2',
+      'txn main',
+    ]);
+  });
+
+  it('throws when a glob pattern matches no files', async () => {
+    const dir = '~testout/InputStreamJournalReader.glob2/';
+    mkdirSync(dir, { recursive: true });
+
+    const main = join(dir, 'main.ledg');
+    writeFileSync(main, 'include does-not-exist*.ledg\n');
+
+    await expect(async () => {
+      const reader = new InputStreamJournalReader({ filePath: main, sourceModifiable: false });
       await readAll(reader);
     }).rejects.toThrow();
   });

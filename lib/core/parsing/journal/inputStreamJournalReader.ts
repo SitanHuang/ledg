@@ -1,3 +1,4 @@
+import { globSync } from "glob";
 import { createReadStream } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { createInterface, Interface } from "node:readline";
@@ -171,7 +172,7 @@ export class InputStreamJournalReader extends JournalReader {
     } else if (line.startsWith("include ")) {
       this.flushCurrentTxn();
 
-      this.includeFile(resolve(dirname(this.originalFilePath), line.substring(8).trim()));
+      this.includeFile(line.substring(8).trim());
       return Ok;
     } else {
       return this.raiseError(line, "Unknown directive.");
@@ -549,48 +550,76 @@ export class InputStreamJournalReader extends JournalReader {
    * resume.  Any lines emitted after `rl.pause()` are parked in `dripBuffer`
    * and replayed in FIFO order before resuming the parent stream.
    */
-  private includeFile(includePath: string) {
+  private includeFile(includePath: string): void {
+    const pattern = resolve(dirname(this.originalFilePath), includePath);
+    const paths = globSync(pattern, {
+      nodir: true,
+      // glob paths must not include "\" due to the need for escaping glob
+      // patterns; if we're on windows, we make exception for this and accept
+      // the limitation that the user can never match a file with "*" etc. in
+      // its name
+      windowsPathsNoEscape: process.platform === "win32",
+    }).sort(); // we sort lexicographically
+
+    if (paths.length === 0) {
+      this.haltWithError(this.raiseError(
+        this.currentLine,
+        `Include pattern "${includePath}" matched no files.`
+      ));
+      return;
+    }
+
+    // Treat the whole sequence as one logical child
     this.isPaused = true;
     this.pendingChildren++;
     this.rl.pause();
 
-    const child = new InputStreamJournalReader({
-      filePath: includePath,
-      sourceModifiable: this.sourceModifiable
-    }).forkFrom(this);
+    const processNext = () => {
+      if (paths.length === 0) {
+        this.pendingChildren--;
+        this.isPaused = false;
 
-    child.setOnEnd(() => {
-      this.pendingChildren--;
-      this.isPaused = false;
+        const len = this.dripBuffer.length;
 
-      const len = this.dripBuffer.length;
+        for (let i = this.dripBufferStartInd; i < len; i++) {
+          this.onLine(this.dripBuffer[i]);
 
-      for (let i = this.dripBufferStartInd; i < len; i++) {
-        this.onLine(this.dripBuffer[i]);
-
-        // we've hit another include in the drip -> just need to hand off
-        // this function to the end callback of the other child reader
-        if (this.isPaused) {
-          this.dripBufferStartInd = i + 1;
-          return;
+          // we've hit another include in the drip -> just need to hand off
+          // this function to the end callback of the other child reader
+          if (this.isPaused) {
+            this.dripBufferStartInd = i + 1;
+            return;
+          }
         }
+
+        this.dripBuffer.length = 0;
+        this.dripBufferStartInd = 0;
+
+        this.rl.resume();
+        this.maybeFireEnd();
+        return;
       }
 
-      this.dripBuffer.length = 0;
-      this.dripBufferStartInd = 0;
+      // start next child
+      const nextPath = paths.shift()!;
+      const child = new InputStreamJournalReader({
+        filePath: nextPath,
+        sourceModifiable: this.sourceModifiable,
+      }).forkFrom(this);
 
-      this.rl.resume();
-      this.maybeFireEnd();
-    });
-    child.setOnError((error) => {
-      this.haltWithError(this.raiseError(
-        this.currentLine,
-        "Error while processing included file",
-        error
-      ));
-    });
+      child.setOnEnd(processNext);
+      child.setOnError((error) => {
+        this.haltWithError(this.raiseError(
+          this.currentLine,
+          `Error while processing included file "${nextPath}"`,
+          error
+        ));
+      });
 
-    child.begin();
+      child.begin();
+    };
+
+    processNext();
   }
 
   private haltWithError(error: Error) {
