@@ -3,6 +3,7 @@ import { BoundPosting, Posting } from "../../accounting/posting.ts";
 import { LedgObject } from "../../data/ledgObject.ts";
 import { timestamp } from "../../types.ts";
 import { AccountGlob } from "./accountGlob.ts";
+import { Query } from "./query.ts";
 import { QueryEngineExecutor } from "./queryEngineExecutor.ts";
 
 export type ModifierQuery = RegExp | false;
@@ -82,7 +83,7 @@ export class QueryEngine {
         ? target === undefined
         : modQuery.exec(target?.toString() ?? '') !== null; // `g` / `y` flags cause hysterisis of `test()`, must use `exec`
 
-    const query = {
+    const query: Query = {
       acceptLedgObject: (ledgObject: LedgObject): boolean => {
         const date = useDate == 'date' ? ledgObject.date : ledgObject.date2;
 
