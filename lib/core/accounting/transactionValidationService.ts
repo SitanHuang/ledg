@@ -1,11 +1,10 @@
-import { CurrencyConversionService } from "../valuation/currencyConversionService.ts";
+import { ValuationConfiguration } from "../config/valuationConfigs.ts";
 import { Maybe, Ok } from "../types.ts";
+import { CurrencyConversionService } from "../valuation/currencyConversionService.ts";
+import { ValuationPolicy } from "../valuation/policy.ts";
 import { Amount } from "./amount.ts";
 import { PostingBuilder } from "./posting.ts";
 import { TransactionBuilder } from "./transaction.ts";
-import { ValuationPolicy } from "../valuation/policy.ts";
-import { ValuationConfiguration } from "../config/valuationConfigs.ts";
-import { Rational } from "../math/rational.ts";
 
 export class TransactionValidationError extends Error {}
 

@@ -1,5 +1,5 @@
-import { timestamp } from "../types.ts";
 import { TransactionStore } from "../data/transactionStore.ts";
+import { timestamp } from "../types.ts";
 import { Account } from "./account.ts";
 import { Amount } from "./amount.ts";
 

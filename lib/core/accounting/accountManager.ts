@@ -1,4 +1,4 @@
-import { isNone, Option, Result, timestamp, OkType, unwrap, None, Ok } from "../types.ts";
+import { isNone, None, Ok, OkType, Option, Result, timestamp, unwrap } from "../types.ts";
 import { Account, AccountIdentifier } from "./account.ts";
 import { BalanceAssertionService } from "./balanceAssertionService.ts";
 
