@@ -95,7 +95,7 @@ export class AccountGlob {
 
         case '.': rx += '[^.]*?\\.'; break; // literal dot
 
-        default: rx += '[^.]*?' + quot(c); // ordinary literal
+        default: rx += '[^.]*?' + c; // regex literal
       }
     }
     rx += '[^.]*?$';
