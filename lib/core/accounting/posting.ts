@@ -5,7 +5,7 @@ import { TransactionID } from "./types.ts";
 import { LedgObject, LedgObjectBuilder, Metadata, UUID } from "../data/ledgObject.ts";
 import { isOk, Maybe, Ok, Result, timestamp } from "../types.ts";
 import { AccountAssignmentError, AccountManager } from "./accountManager.ts";
-import { TransactionBuilder } from "./transaction.ts";
+import { Transaction, TransactionBuilder } from "./transaction.ts";
 
 export class Posting implements LedgObject {
   constructor(
@@ -19,6 +19,28 @@ export class Posting implements LedgObject {
     public readonly source: SourceDescriptor,
     public readonly metadata: Metadata = {},
   ) {}
+}
+
+export class BoundPosting extends Posting {
+  public readonly transaction: Transaction;
+  constructor(
+    posting: Posting,
+    transaction: Transaction,
+  ) {
+    super(
+      posting.id,
+      posting.date,
+      posting.date2,
+      posting.description,
+      posting.transactionID,
+      posting.account,
+      posting.amount,
+      posting.source,
+      posting.metadata
+    );
+
+    this.transaction = transaction;
+  }
 }
 
 export class PostingBuilder extends LedgObjectBuilder<Posting> {

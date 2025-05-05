@@ -120,6 +120,8 @@ describe('TransactionBuilder', () => {
       expect(result.postings.length).toBe(2);
       expect(result.postings[0].account.identifier).toBe("acct-1");
       expect(result.postings[1].account.identifier).toBe("acct-2");
+      expect(result.postings[0].transaction).toBe(result);
+      expect(result.postings[1].transaction).toBe(result);
     }
   });
 

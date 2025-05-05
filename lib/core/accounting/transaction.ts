@@ -1,5 +1,5 @@
 import { SourceDescriptor } from "../data/sourceDescriptor.ts";
-import { Posting, PostingBuilder } from "./posting.ts";
+import { BoundPosting, Posting, PostingBuilder } from "./posting.ts";
 import { TransactionID } from "./types.ts";
 import { LedgObject, LedgObjectBuilder, Metadata } from "../data/ledgObject.ts";
 import { isOk, Maybe, Ok, Result, timestamp } from "../types.ts";
@@ -13,7 +13,7 @@ export class Transaction implements LedgObject {
     public readonly date: timestamp,
     public readonly date2: timestamp,
     public readonly description: string,
-    public readonly postings: Posting[] = [],
+    public readonly postings: BoundPosting[] = [],
     public readonly source: SourceDescriptor,
     public readonly metadata: Metadata = {},
     // Below is only for "open xxxx" directives
@@ -150,16 +150,22 @@ export class TransactionBuilder extends LedgObjectBuilder<Transaction> {
       postings[i] = this.postingBuilders[i].build() as Posting;
     }
 
-    return this.result = new Transaction(
+    this.result = new Transaction(
       this.id!,
       this.date!,
       this.date2!,
       this.description,
-      postings,
+      (postings as BoundPosting[]), // force it but we make sure it's right type later
       this.source,
       this.metadata,
       this.accountOpened,
       this.accountClosed,
     );
+
+    for (let i = 0; i < postings.length; i++) {
+      postings[i] = new BoundPosting(postings[i], this.result);
+    }
+
+    return this.result;
   }
 }

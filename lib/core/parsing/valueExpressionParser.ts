@@ -211,6 +211,11 @@ export class ValueExpressionParser {
 
 }
 
+const WHITESPACE_RGX = /\s/;
+const DIGIT_RGX = /[0-9.]/;
+const IDENTIFIER_RGX = /[A-Za-z_]/;
+const IDENTIFIER2_RGX = /[A-Za-z0-9_]/;
+
 /**
  * Tokenizes the input string into an array of tokens.
  */
@@ -221,7 +226,7 @@ function tokenize(input: string): Token[] {
   while (i < len) {
     const ch = input[i];
     // Skip whitespace
-    if (/\s/.test(ch)) {
+    if (WHITESPACE_RGX.test(ch)) {
       i++;
       continue;
     }
@@ -259,9 +264,9 @@ function tokenize(input: string): Token[] {
       continue;
     }
     // Number literal (digits and decimal point)
-    if (/[0-9.]/.test(ch)) {
+    if (DIGIT_RGX.test(ch)) {
       let numStr = "";
-      while (i < len && /[0-9.]/.test(input[i])) {
+      while (i < len && DIGIT_RGX.test(input[i])) {
         numStr += input[i];
         i++;
       }
@@ -293,9 +298,9 @@ function tokenize(input: string): Token[] {
       continue;
     }
     // Identifier (for function names)
-    if (/[A-Za-z_]/.test(ch)) {
+    if (IDENTIFIER_RGX.test(ch)) {
       let ident = "";
-      while (i < len && /[A-Za-z0-9_]/.test(input[i])) {
+      while (i < len && IDENTIFIER2_RGX.test(input[i])) {
         ident += input[i];
         i++;
       }

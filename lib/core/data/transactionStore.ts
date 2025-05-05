@@ -8,7 +8,7 @@ import { LedgObject } from "./ledgObject.ts";
 export class TransactionStoreError extends Error {};
 export class DuplicateUUIDError extends TransactionStoreError {};
 
-export type IteratorFlowControl = "stop" | "continue";
+export type IteratorFlowControl = "stop" | "continue" | undefined; // undefined is same as stop
 export const IteratorStop: IteratorFlowControl = "stop";
 export const IteratorContinue: IteratorFlowControl = "continue";
 
@@ -40,6 +40,10 @@ export abstract class TransactionStore {
       }
     });
     return transaction;
+  }
+
+  getTransactionByPosting(posting: Posting): Transaction {
+    return this.getTransactionById(posting.transactionID)!;
   }
 }
 
@@ -100,6 +104,10 @@ export class DefaultTransactionStore extends TransactionStore {
 
   override getTransactionById(id: TransactionID): Transaction | undefined {
     return this.transactionIdMap.get(id);
+  }
+
+  override getTransactionByPosting(posting: Posting): Transaction {
+    return this.getTransactionById(posting.transactionID)!;
   }
 
   override size() {

@@ -30,6 +30,8 @@ export class AccountClosureAssertionError extends Error { }
  * Co-incident events are illegal.
  */
 export abstract class AccountManager {
+  abstract getAccountsList(): readonly Account[];
+
   abstract getAccount(identifier: AccountIdentifier): Option<Account>;
 
   /**
@@ -123,14 +125,19 @@ interface DefaultAccountRecord {
 }
 
 export class DefaultAccountManager extends AccountManager {
-
   // For each account identifier, store the Account instance and a timeline of events.
   // Each event is an object: { time, type } where type is "open" or "close".
   protected accounts: Map<AccountIdentifier, { account: Account; events: DefaultAccountRecord[] }>;
+  protected knownAccounts: Account[];
 
   constructor() {
     super();
     this.accounts = new Map();
+    this.knownAccounts = [];
+  }
+
+  override getAccountsList(): readonly Account[] {
+    return this.knownAccounts;
   }
 
   override getAccount(identifier: AccountIdentifier): Option<Account> {
@@ -143,8 +150,10 @@ export class DefaultAccountManager extends AccountManager {
     if (!entry) {
       // Create new account and record open event.
       const account = new Account(identifier);
-      // For performance we store a single event for most cases.
+
       this.accounts.set(identifier, { account, events: [{ time: time, type: "open" }] });
+
+      this.knownAccounts.push(account);
       return Ok;
     }
 
