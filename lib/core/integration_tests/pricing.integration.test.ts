@@ -109,4 +109,20 @@ include inc2.ledg
 
       expect(await readAll(files.main)).toBe(Ok);
     });
+
+  it('throws error before calling commit (race condition fix)', async () => {
+      let journal = Journal.create();
+      let src = [
+        '2025-01-01 open Equity.OpeningBalance',
+        'P 2040-01-01 USD 3CNY',
+        '2040-01-01 00:00:00 open Asset.Checking.BoA #ffddaazz',
+        '  ;test:1',
+        '  \tEquity.OpeningBalance\tCNY -1',
+        '  \tAsset.Checking.BoA\t [1 USD] / 3', // 0.333
+        '2040-01-01 00:00:01=2040-01-01 00:00:02 close  Asset.Checking.BoA   #ffddaaz2',
+        '  \tAsset.Checking.BoA\t -1 * [1 EUR] / 3',
+        '  \tEquity.OpeningBalance',
+      ];
+      expect(getErrorMessages(await parseSrc(src, journal))).toMatch("Account closing directives cannot have an auxiliary date");
+    });
 });

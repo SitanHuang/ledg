@@ -493,13 +493,13 @@ export class InputStreamJournalReader extends JournalReader {
 
     if (desc.startsWith("open ")) {
       if (date2End !== date1End) {
-        return new Error("Account opening directives cannot have an auxiliary date.");
+        return this.raiseError(line, "Account opening directives cannot have an auxiliary date.");
       }
 
       txn.withAccountOpened(desc.substring(5).trim());
     } else if (desc.startsWith("close ")) {
       if (date2End !== date1End) {
-        return new Error("Account closing directives cannot have an auxiliary date.");
+        return this.raiseError(line, "Account closing directives cannot have an auxiliary date.");
       }
 
       txn.withAccountClosed(desc.substring(5).trim());
@@ -626,6 +626,11 @@ export class InputStreamJournalReader extends JournalReader {
   private haltWithError(error: Error) {
     this.isPaused = true;
     this.pendingChildren = Infinity; // we'll never call onEnd
+
+    // we will stop committing immediately
+    this.onData = () => Ok;
+    this.onPricing = () => Ok;
+
     this.rl.close();
     this.upstream.destroy();
     this.onError(error);
