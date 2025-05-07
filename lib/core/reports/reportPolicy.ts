@@ -116,11 +116,11 @@ function addToDate(
   return nd;
 }
 
-function monthsBetween(a: Date, b: Date): number {
-  return (b.getUTCFullYear() - a.getUTCFullYear()) * 12 + // year
-    (b.getUTCMonth() - a.getUTCMonth()) // month
-    - (b.getUTCDate() < a.getUTCDate() ? 1 : 0); // if end's day is before start’s day, it isn't a full month yet
-}
+// function monthsBetween(a: Date, b: Date): number {
+//   return (b.getUTCFullYear() - a.getUTCFullYear()) * 12 + // year
+//     (b.getUTCMonth() - a.getUTCMonth()) // month
+//     - (b.getUTCDate() < a.getUTCDate() ? 1 : 0); // if end's day is before start’s day, it isn't a full month yet
+// }
 
 const MS_PER_DAY = 86_400_000;
 
@@ -167,6 +167,9 @@ class PeriodCalculator {
 }
 
 class PeriodIndexer {
+  /**
+   * Sorted periods.
+   */
   private readonly periods: readonly Period[];
   private readonly intv: ReportPeriodInterval;
   private readonly baseDate: Date;
@@ -179,6 +182,13 @@ class PeriodIndexer {
     this.baseDate = new Date(periods[0].from);
     this.msPerDayIntv = intv.dayInterval * MS_PER_DAY;
     this.totalMonthsIntv = intv.yearInterval * 12 + intv.monthInterval;
+
+    // this is needed for binary search
+    for (let i = 1;i < periods.length;i++) {
+      if (periods[i].from <= periods[i - 1].from || periods[i].to <= periods[i - 1].to) {
+        throw new Error("Report periods must be increasing.")
+      }
+    }
   }
 
   /**
@@ -189,36 +199,49 @@ class PeriodIndexer {
       return -1;
     }
 
-    // Fast path – uniform *day* intervals
+    // Fast, O(1) path - uniform *day* intervals; experimentally proven to be
+    // faster than binary search at all period lengths
     if (this.intv.dayInterval > 0 && this.totalMonthsIntv === 0) {
       const idx = Math.floor((ts - this.periods[0].from) / this.msPerDayIntv);
       return idx < this.periods.length && this.periods[idx].contains(ts) ? idx : -1;
     }
 
-    // Fast path – uniform month/year intervals (no day component)
-    if (this.intv.dayInterval === 0 && this.totalMonthsIntv > 0) {
-      const tsDate = new Date(ts);
-      const mDiff = monthsBetween(this.baseDate, tsDate);
-      const idx = Math.floor(mDiff / this.totalMonthsIntv);
-      return idx < this.periods.length && this.periods[idx].contains(ts) ? idx : -1;
-    }
+    // if (this.periods.length > 131072) { // 131072 is experimentally proven lmao
+    //   // O(1) path - uniform month/year intervals (no day component)
+    //   if (this.intv.dayInterval === 0 && this.totalMonthsIntv > 0) {
+    //     const tsDate = new Date(ts);
+    //     const mDiff = monthsBetween(this.baseDate, tsDate);
+    //     const idx = Math.floor(mDiff / this.totalMonthsIntv);
+    //     return idx < this.periods.length && this.periods[idx].contains(ts) ? idx : -1;
+    //   }
+    // }
 
-    // Mixed interval fallback – array scan is still O(1) in practice since
-    // period counts are modest, but we guard by constant‑time map build
-    // (period start -> idx) to keep worst‑case O(1) look‑ups.
+    // Mixed interval fallback - O(log(n))
     return this.mapFallback(ts);
   }
 
-  private _lazyMap?: Map<number, number>;
-  private mapFallback(ts: timestamp): number {
-    if (!this._lazyMap) {
-      this._lazyMap = new Map<number, number>();
-      this.periods.forEach((p, idx) => this._lazyMap!.set(p.from, idx));
+  /**
+   * Binary search over periods.
+   */
+  private mapFallback(ts: number): number {
+    const periods = this.periods;
+    let lo = 0;
+    let hi = periods.length - 1;
+
+    while (lo <= hi) {
+      // unsigned right-shift is a fast way to floor((lo + hi) / 2)
+      const mid = (lo + hi) >>> 1;
+      const p = periods[mid];
+
+      if (ts < p.from) {
+        hi = mid - 1;
+      } else if (ts >= p.to) {
+        lo = mid + 1;
+      } else {
+        return mid;
+      }
     }
-    // Step size 1 here because mixed intervals are rare and small.
-    for (const [start, idx] of this._lazyMap) {
-      if (ts >= start && ts < this.periods[idx].to) return idx;
-    }
+
     return -1;
   }
 }
