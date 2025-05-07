@@ -36,8 +36,9 @@ export class ReportPolicy extends QueryPolicy {
     return this;
   }
 
-  withReportPeriodInterval(dayInterval: timestamp, monthInterval: timestamp, yearInterval: timestamp) {
+  withReportPeriodInterval(dayInterval: timestamp, monthInterval: timestamp, yearInterval: timestamp): this {
     this.reportPeriodInterval = new ReportPeriodInterval(dayInterval, monthInterval, yearInterval);
+    return this;
   }
 
   private _periods?: Period[];
@@ -116,8 +117,9 @@ function addToDate(
 }
 
 function monthsBetween(a: Date, b: Date): number {
-  return (b.getUTCFullYear() - a.getUTCFullYear()) * 12 +
-    (b.getUTCMonth() - a.getUTCMonth());
+  return (b.getUTCFullYear() - a.getUTCFullYear()) * 12 + // year
+    (b.getUTCMonth() - a.getUTCMonth()) // month
+    - (b.getUTCDate() < a.getUTCDate() ? 1 : 0); // if end's day is before start’s day, it isn't a full month yet
 }
 
 const MS_PER_DAY = 86_400_000;
