@@ -17,9 +17,12 @@ export class TransactionValidationService {
   ) {}
 
   /**
-   * Validates a transactionBuilder for final formulation into a Transaction object.
-   *
-   * At this point, the autobalancing has already been done.
+   * Validates a transactionBuilder for final formulation into a Transaction object:
+   *   1. Transaction postings must contain **defined** amounts. (At this point,
+   *      the autobalancing has already been done.)
+   *   2. Transaction must balance to zero, within the balance tolerance set by
+   *      `valuationConfig`, by converting currencies at the **primary date** of
+   *      the **transaction**.
    */
   validate(transactionBuilder: TransactionBuilder): Maybe<TransactionValidationError> {
     const postingBuilders: PostingBuilder[] = transactionBuilder.getPostingBuilders();
