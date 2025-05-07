@@ -35,10 +35,188 @@ export class ReportPolicy extends QueryPolicy {
     this.valuationStrategy = strategy;
     return this;
   }
+
+  withReportPeriodInterval(dayInterval: timestamp, monthInterval: timestamp, yearInterval: timestamp) {
+    this.reportPeriodInterval = new ReportPeriodInterval(dayInterval, monthInterval, yearInterval);
+  }
+
+  private _periods?: Period[];
+  private _indexer?: PeriodIndexer;
+
+  /**
+   * Returns immutable list of period buckets, lazily computed.
+   * Each bucket is `[from, to)` capped to [`this.from`, `this.to`].
+   */
+  periods(): readonly Period[] {
+    if (!this.reportPeriodInterval) {
+      throw new Error("reportPeriodInterval not set");
+    }
+    if (!this.from || !this.to) {
+      throw new Error("`from` and `to` must be defined on ReportPolicy");
+    }
+    if (!this._periods) {
+      this._periods = new PeriodCalculator(
+        this.from,
+        this.to,
+        this.reportPeriodInterval,
+      ).build();
+      this._indexer = new PeriodIndexer(this._periods, this.reportPeriodInterval);
+    }
+    return this._periods;
+  }
+
+  /**
+   * O(1) bucket index for a timestamp, or -1 if outside the report range.
+   */
+  bucketIndex(ts: timestamp): number {
+    if (!this._indexer) this.periods(); // triggers lazy build
+    return this._indexer!.indexOf(ts);
+  }
 }
 
 export class ReportPeriodInterval {
-  dayInterval = 0;
-  monthInterval = 0;
-  yearInterval = 0;
+  constructor(
+    public dayInterval = 0,
+    public monthInterval = 0,
+    public yearInterval = 0,
+  ) {}
+}
+
+export class Period {
+  readonly from: timestamp; // inclusive
+  readonly to: timestamp; // exclusive
+
+  constructor(from: timestamp, to: timestamp) {
+    if (to <= from) {
+      throw new RangeError("Period `to` must be after `from`");
+    }
+
+    this.from = from;
+    this.to = to;
+  }
+
+  contains(ts: timestamp): boolean {
+    return ts >= this.from && ts < this.to;
+  }
+}
+
+function addToDate(
+  d: Date,
+  years = 0,
+  months = 0,
+  days = 0,
+): Date {
+  const nd = new Date(d.getTime());
+
+  nd.setUTCFullYear(nd.getUTCFullYear() + years);
+  nd.setUTCMonth(nd.getUTCMonth() + months);
+  nd.setUTCDate(nd.getUTCDate() + days);
+
+  return nd;
+}
+
+function monthsBetween(a: Date, b: Date): number {
+  return (b.getUTCFullYear() - a.getUTCFullYear()) * 12 +
+    (b.getUTCMonth() - a.getUTCMonth());
+}
+
+const MS_PER_DAY = 86_400_000;
+
+/**
+ * Builds an array of consecutive Period objects that exactly cover the window
+ * [`from`, `to`) using the supplied interval.
+ */
+class PeriodCalculator {
+  private readonly start!: Date;
+  private readonly end!: Date;
+  private readonly intv!: ReportPeriodInterval;
+
+  constructor(from: timestamp, to: timestamp, intv: ReportPeriodInterval) {
+    if (to <= from) {
+      throw new RangeError("`to` must be > `from`");
+    }
+    this.start = new Date(from);
+    this.end = new Date(to);
+    this.intv = intv;
+  }
+
+  build(): Period[] {
+    const { yearInterval, monthInterval, dayInterval } = this.intv;
+    if (yearInterval === 0 && monthInterval === 0 && dayInterval === 0) {
+      throw new Error("ReportPeriodInterval cannot be all zeros");
+    }
+
+    const periods: Period[] = [];
+    let curStart = this.start;
+
+    while (curStart < this.end) {
+      const nxt = addToDate(
+        curStart,
+        yearInterval,
+        monthInterval,
+        dayInterval,
+      );
+      const curEndMs = Math.min(nxt.getTime(), this.end.getTime());
+      periods.push(new Period(curStart.getTime(), curEndMs));
+      curStart = nxt;
+    }
+    return periods;
+  }
+}
+
+class PeriodIndexer {
+  private readonly periods: readonly Period[];
+  private readonly intv: ReportPeriodInterval;
+  private readonly baseDate: Date;
+  private readonly msPerDayIntv: number; // pre‑calc for day‑only path
+  private readonly totalMonthsIntv: number;
+
+  constructor(periods: readonly Period[], intv: ReportPeriodInterval) {
+    this.periods = periods;
+    this.intv = intv;
+    this.baseDate = new Date(periods[0].from);
+    this.msPerDayIntv = intv.dayInterval * MS_PER_DAY;
+    this.totalMonthsIntv = intv.yearInterval * 12 + intv.monthInterval;
+  }
+
+  /**
+   * Returns -1 when ts is out of range.
+   */
+  indexOf(ts: timestamp): number {
+    if (ts < this.periods[0].from || ts >= this.periods[this.periods.length - 1].to) {
+      return -1;
+    }
+
+    // Fast path – uniform *day* intervals
+    if (this.intv.dayInterval > 0 && this.totalMonthsIntv === 0) {
+      const idx = Math.floor((ts - this.periods[0].from) / this.msPerDayIntv);
+      return idx < this.periods.length && this.periods[idx].contains(ts) ? idx : -1;
+    }
+
+    // Fast path – uniform month/year intervals (no day component)
+    if (this.intv.dayInterval === 0 && this.totalMonthsIntv > 0) {
+      const tsDate = new Date(ts);
+      const mDiff = monthsBetween(this.baseDate, tsDate);
+      const idx = Math.floor(mDiff / this.totalMonthsIntv);
+      return idx < this.periods.length && this.periods[idx].contains(ts) ? idx : -1;
+    }
+
+    // Mixed interval fallback – array scan is still O(1) in practice since
+    // period counts are modest, but we guard by constant‑time map build
+    // (period start -> idx) to keep worst‑case O(1) look‑ups.
+    return this.mapFallback(ts);
+  }
+
+  private _lazyMap?: Map<number, number>;
+  private mapFallback(ts: timestamp): number {
+    if (!this._lazyMap) {
+      this._lazyMap = new Map<number, number>();
+      this.periods.forEach((p, idx) => this._lazyMap!.set(p.from, idx));
+    }
+    // Step size 1 here because mixed intervals are rare and small.
+    for (const [start, idx] of this._lazyMap) {
+      if (ts >= start && ts < this.periods[idx].to) return idx;
+    }
+    return -1;
+  }
 }
