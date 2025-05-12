@@ -3,7 +3,6 @@ import { Posting } from "../accounting/posting.ts";
 import { Transaction } from "../accounting/transaction.ts";
 import { TransactionID } from "../accounting/types.ts";
 import { Maybe, Ok } from "../types.ts";
-import { LedgObject } from "./ledgObject.ts";
 
 export class TransactionStoreError extends Error {};
 export class DuplicateUUIDError extends TransactionStoreError {};
@@ -13,7 +12,7 @@ export const IteratorStop: IteratorFlowControl = "stop";
 export const IteratorContinue: IteratorFlowControl = "continue";
 
 export type IteratorReturnValue<T> = IteratorFlowControl | T;
-export type IteratorCallback<O extends LedgObject, T> = (obj: O) => IteratorReturnValue<T>;
+export type IteratorCallback<O extends object, T> = (obj: O) => IteratorReturnValue<T>;
 
 /**
  * The transaction store implements insertion, deletion, update, and iteration

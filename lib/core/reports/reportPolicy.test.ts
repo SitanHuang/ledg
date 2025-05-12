@@ -5,15 +5,15 @@ const ts = (isoDate: string): number => Date.parse(`${isoDate}T00:00:00Z`);
 
 function buildPolicy(from: string, to: string, intv: ReportPeriodInterval): ReportPolicy {
   return new ReportPolicy()
-    .withFrom(ts(from))
-    .withTo(ts(to))
+    .withReportFrom(ts(from))
+    .withReportTo(ts(to))
     .withReportPeriodInterval(intv.dayInterval, intv.monthInterval, intv.yearInterval);
 }
 
 
 describe('ReportPolicy - validations', () => {
   it('throws if period interval not set before calling periods()', () => {
-    const rp = new ReportPolicy().withFrom(ts('2024-01-01')).withTo(ts('2024-01-31'));
+    const rp = new ReportPolicy().withReportFrom(ts('2024-01-01')).withReportTo(ts('2024-01-31'));
     expect(() => rp.periods()).toThrow(/reportPeriodInterval not set/);
   });
 
@@ -25,8 +25,8 @@ describe('ReportPolicy - validations', () => {
 
   it('throws if interval is all zeros', () => {
     const rp = new ReportPolicy()
-      .withFrom(ts('2024-01-01'))
-      .withTo(ts('2024-01-10'))
+      .withReportFrom(ts('2024-01-01'))
+      .withReportTo(ts('2024-01-10'))
       .withReportPeriodInterval(0, 0, 0);
     expect(() => rp.periods()).toThrow(/cannot be all zeros/);
   });
@@ -35,8 +35,8 @@ describe('ReportPolicy - validations', () => {
     // to === from
     expect(() =>
       new ReportPolicy()
-        .withFrom(ts('2024-01-01'))
-        .withTo(ts('2024-01-01'))
+        .withReportFrom(ts('2024-01-01'))
+        .withReportTo(ts('2024-01-01'))
         .withReportPeriodInterval(1, 0, 0)
         .periods(),
     ).toThrow(/`to` must be > `from`/);
@@ -44,8 +44,8 @@ describe('ReportPolicy - validations', () => {
     // to < from
     expect(() =>
       new ReportPolicy()
-        .withFrom(ts('2024-02-01'))
-        .withTo(ts('2024-01-01'))
+        .withReportFrom(ts('2024-02-01'))
+        .withReportTo(ts('2024-01-01'))
         .withReportPeriodInterval(1, 0, 0)
         .periods(),
     ).toThrow(/`to` must be > `from`/);

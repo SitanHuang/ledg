@@ -1,9 +1,11 @@
+import { Account } from "../../accounting/account.ts";
 import { Posting } from "../../accounting/posting.ts";
 import { Journal } from "../../data/journal.ts";
 import { IteratorCallback } from "../../data/transactionStore.ts";
 import { Query } from "./query.ts";
 
 export type PostingAcceptor = IteratorCallback<Posting, void>;
+export type AccountAcceptor = IteratorCallback<Account, void>;
 
 export class QueryEngineExecutor {
   constructor(
@@ -34,5 +36,13 @@ export class QueryEngineExecutor {
         }
       });
     }
+  }
+
+  queryAccounts(journal: Journal): Account[] {
+    const acceptAccount = this.query.acceptAccount;
+
+    return journal.accountManager.getAccountsList().filter(account => {
+      return acceptAccount(account);
+    });
   }
 }

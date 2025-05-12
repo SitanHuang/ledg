@@ -2,17 +2,22 @@ import { timestamp } from "../types.ts";
 import { Currency } from "../valuation/currency.ts";
 import { QueryPolicy } from "./query/queryPolicy.ts";
 
-/**
- * Valuation strategy that amount conversions should occur.
- *   - eop - at End of Reporting Period
- *   - txnDate - at the primary date of the transaction (since
- *     TransactionValidationService mandates that the transaction must balance
- *     at transaction primary date)
- *   - `timestamp` - any custom valuation date
- */
 export type ValuationStrategy = "eop" | "txnDate" | timestamp;
 
 export class ReportPolicy extends QueryPolicy {
+  /**
+   * Inclusive, min date. Can NOT be plus/minus infinity. This differs from
+   * QueryPolicy.from, which is the low-level filtering for postings, as the
+   * report's starting period date.
+   */
+  reportFrom?: timestamp;
+  /**
+   * Exclusive, max date. Can NOT be plus/minus infinity. This differs from
+   * QueryPolicy.to, which is the low-level filtering for postings, as the
+   * report's ending period date.
+   */
+  reportTo?: timestamp;
+
   /**
    * The period interval within the `from` -> `to` window.
    */
@@ -24,7 +29,41 @@ export class ReportPolicy extends QueryPolicy {
    */
   valuationCurrency?: Currency;
 
+  /**
+   * Valuation strategy that amount conversions should occur.
+   *   - eop - at End of Reporting Period
+   *   - txnDate - at the primary date of the transaction (since
+   *     TransactionValidationService mandates that the transaction must balance
+   *     at transaction primary date)
+   *   - `timestamp` - any custom valuation date
+   */
   valuationStrategy: ValuationStrategy = "txnDate";
+
+  /**
+   * A cumulative report aggregates the sum of each period from all periods
+   * before it.
+   */
+  cumulative = false;
+
+  /**
+   * Accumulates sub-account totals to their parents.
+   */
+  sumParent = false;
+
+  /**
+   * Maximum depth of account levels displayed.
+   */
+  maxDepth?: number;
+
+  /**
+   * Hides any entries with zero amounts, regardless of account status.
+   */
+  hideZero = false;
+
+  /**
+   * Enables account tree view.
+   */
+  tree = false;
 
   withValutionCurrency(currency: Currency): this {
     this.valuationCurrency = currency;
@@ -41,24 +80,44 @@ export class ReportPolicy extends QueryPolicy {
     return this;
   }
 
+  withSumParent(sumParent: boolean): this {
+    this.sumParent = sumParent;
+    return this;
+  }
+
+  withMaxDepth(maxDepth: number): this {
+    this.maxDepth = maxDepth;
+    return this;
+  }
+
+  withReportFrom(reportFrom: timestamp): this {
+    this.reportFrom = reportFrom;
+    return this;
+  }
+
+  withReportTo(reportTo: timestamp): this {
+    this.reportTo = reportTo;
+    return this;
+  }
+
   private _periods?: Period[];
   private _indexer?: PeriodIndexer;
 
   /**
    * Returns immutable list of period buckets, lazily computed.
-   * Each bucket is `[from, to)` capped to [`this.from`, `this.to`].
+   * Each bucket is `[from, to)` capped to [`this.reportFrom`, `this.reportTo`].
    */
   periods(): readonly Period[] {
     if (!this.reportPeriodInterval) {
       throw new Error("reportPeriodInterval not set");
     }
-    if (!this.from || !this.to) {
+    if (!this.reportFrom || !this.reportTo) {
       throw new Error("`from` and `to` must be defined on ReportPolicy");
     }
     if (!this._periods) {
       this._periods = new PeriodCalculator(
-        this.from,
-        this.to,
+        this.reportFrom,
+        this.reportTo,
         this.reportPeriodInterval,
       ).build();
       this._indexer = new PeriodIndexer(this._periods, this.reportPeriodInterval);

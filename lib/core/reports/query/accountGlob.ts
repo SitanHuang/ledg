@@ -93,12 +93,12 @@ export class AccountGlob {
             break;
           }
 
-        case '.': rx += '[^.]*?\\.'; break; // literal dot
+        case Account.DELIMITER: rx += '[^' + Account.DELIMITER + ']*?\\' + Account.DELIMITER; break; // literal dot
 
-        default: rx += '[^.]*?' + c; // regex literal
+        default: rx += '[^' + Account.DELIMITER + ']*?' + c; // regex literal
       }
     }
-    rx += '[^.]*?$';
+    rx += '[^' + Account.DELIMITER + ']*?$';
     this.compiledPattern = new RegExp(rx, 'i');
   }
 

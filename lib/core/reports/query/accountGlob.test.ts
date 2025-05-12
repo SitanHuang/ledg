@@ -1,8 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { AccountGlob } from './accountGlob.ts';
-
-// Minimal stub for Account with identifier property
-class Account { constructor(public identifier: string) { } }
+import { Account } from '../../accounting/account.ts';
 
 // Helper to apply glob against an account identifier
 function match(pattern: string, identifier: string): boolean {
