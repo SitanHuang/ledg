@@ -5,11 +5,11 @@ export type ModifierQuery = RegExp | false;
 
 export class QueryPolicy {
   /**
-   * Inclusive, min date.
+   * Inclusive, min date. Can be plus/minus infinity.
    */
   from?: timestamp;
   /**
-   * Exclusive, max date.
+   * Exclusive, max date. Can be plus/minus infinity.
    */
   to?: timestamp;
   /**

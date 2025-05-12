@@ -67,6 +67,22 @@ describe.sequential('Integration: QueryEngineExecutor', () => {
 
     expect(sumQuery(journal, QueryEngine.create(new QueryPolicy()
       .withAccount("ast..boa")
+      .withFrom(-Infinity)
+      .withTo(Infinity)
+      .withUseDate('date'))).isStrictlyZero()).toBe(true);
+
+    expect(sumQuery(journal, QueryEngine.create(new QueryPolicy()
+      .withAccount("et.obal")
+      .withFrom(-Infinity)
+      .withTo(Infinity)
+      .withUseDate('date')))
+      .minus(Amount.create([
+        { currency: journal.currencyProvider.getOrCreateCurrencyById("CNY"), value: new Rational(-2n, 1n) },
+        { currency: journal.currencyProvider.getOrCreateCurrencyById("EUR"), value: new Rational(1n, 3n) },
+      ])).isStrictlyZero()).toBe(true);
+
+    expect(sumQuery(journal, QueryEngine.create(new QueryPolicy()
+      .withAccount("ast..boa")
       .withFrom(Date.parse('2040-01-01 00:00:00Z'))
       .withTo(Date.parse('2040-01-01 00:00:02Z'))
       .withUseDate('date'))).toFractionString()).toMatch("2 / 3 USD");
