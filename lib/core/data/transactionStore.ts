@@ -1,5 +1,5 @@
 import { Account, AccountIdentifier } from "../accounting/account.ts";
-import { Posting } from "../accounting/posting.ts";
+import { BoundPosting } from "../accounting/posting.ts";
 import { Transaction } from "../accounting/transaction.ts";
 import { TransactionID } from "../accounting/types.ts";
 import { Maybe, Ok } from "../types.ts";
@@ -28,7 +28,7 @@ export abstract class TransactionStore {
 
   abstract size(): number;
 
-  abstract iteratePostingsByAccount(account: Account, callback: IteratorCallback<Posting, void>): void;
+  abstract iteratePostingsByAccount(account: Account, callback: IteratorCallback<BoundPosting, void>): void;
 
   getTransactionById(id: TransactionID): Transaction | undefined {
     let transaction: Transaction | undefined;
@@ -41,7 +41,7 @@ export abstract class TransactionStore {
     return transaction;
   }
 
-  getTransactionByPosting(posting: Posting): Transaction {
+  getTransactionByPosting(posting: BoundPosting): Transaction {
     return this.getTransactionById(posting.transactionID)!;
   }
 }
@@ -50,7 +50,7 @@ export class DefaultTransactionStore extends TransactionStore {
   // using for i loop is the fastest V8 iteration method
   private readonly transactions: Transaction[] = [];
   private readonly transactionIdMap = new Map<TransactionID, Transaction>();
-  private readonly transactionAccountIdMap = new Map<AccountIdentifier, Posting[]>();
+  private readonly transactionAccountIdMap = new Map<AccountIdentifier, BoundPosting[]>();
 
   override insertTransaction(transaction: Transaction): Maybe<TransactionStoreError> {
     if (this.getTransactionById(transaction.id))
@@ -61,7 +61,7 @@ export class DefaultTransactionStore extends TransactionStore {
     // cache transactonId to Transaction
     this.transactionIdMap.set(transaction.id, transaction);
 
-    // cache accountId to Posting[]
+    // cache accountId to BoundPosting[]
     const postings = transaction.postings;
     for (let i = 0;i < postings.length;i++) {
       const posting = postings[i];
@@ -88,7 +88,7 @@ export class DefaultTransactionStore extends TransactionStore {
     }
   }
 
-  override iteratePostingsByAccount(account: Account, callback: IteratorCallback<Posting, void>): void {
+  override iteratePostingsByAccount(account: Account, callback: IteratorCallback<BoundPosting, void>): void {
     const postings = this.transactionAccountIdMap.get(account.identifier);
 
     if (!postings) return;
@@ -105,7 +105,7 @@ export class DefaultTransactionStore extends TransactionStore {
     return this.transactionIdMap.get(id);
   }
 
-  override getTransactionByPosting(posting: Posting): Transaction {
+  override getTransactionByPosting(posting: BoundPosting): Transaction {
     return this.getTransactionById(posting.transactionID)!;
   }
 

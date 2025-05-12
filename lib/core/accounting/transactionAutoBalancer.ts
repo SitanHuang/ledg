@@ -12,6 +12,8 @@ export class TransactionAutoBalancer {
     public valuationConfig: ValuationConfiguration
   ) {}
 
+  private readonly valuationPolicy = new ValuationPolicy(0);
+
   /**
    * Automatically balances transaction postings by calculating the inferred amount
    * for the posting without a specified amount.
@@ -60,7 +62,9 @@ export class TransactionAutoBalancer {
       return new TransactionAutoBalanceError("Attempting to auto balance a posting without date attribute.");
     }
 
-    const result = balance.convertTo(currency, this.currencyConversionService, new ValuationPolicy(valuationDate));
+    this.valuationPolicy.valuationDate = valuationDate;
+
+    const result = balance.convertTo(currency, this.currencyConversionService, this.valuationPolicy);
     if (isNone(result)) {
       return new TransactionAutoBalanceError(`Unable to convert inferred amount to the request currency "${currency.id}".`);
     }

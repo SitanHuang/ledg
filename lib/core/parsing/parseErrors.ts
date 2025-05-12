@@ -1,12 +1,11 @@
+import { SourceableError } from "../errors.ts";
+
 /**
  * A base error type for all parsing errors.
  */
-export abstract class ParseError extends Error {
-  public readonly sourceString: string;
-
+export abstract class ParseError extends SourceableError {
   constructor(message: string, sourceString: string) {
-    super(message);
-    this.sourceString = sourceString;
+    super(message, sourceString);
     Object.setPrototypeOf(this, new.target.prototype);
   }
 }

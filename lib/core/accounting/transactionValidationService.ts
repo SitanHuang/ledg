@@ -16,6 +16,8 @@ export class TransactionValidationService {
     public readonly valuationPolicy?: ValuationPolicy,
   ) {}
 
+  private readonly _valuationPolicy = new ValuationPolicy(0);
+
   /**
    * Validates a transactionBuilder for final formulation into a Transaction object:
    *   1. Transaction postings must contain **defined** amounts. (At this point,
@@ -45,7 +47,7 @@ export class TransactionValidationService {
       return new TransactionValidationError(`TransactionBuilder requires date and date2.`);
     }
 
-    const valuationPolicy = this.valuationPolicy ?? new ValuationPolicy(transactionBuilder.date!);
+    const valuationPolicy = this.valuationPolicy ?? this._valuationPolicy.withValuationDate(transactionBuilder.date!);
 
     const result = sum.isZeroDescriptive(this.currencyConversionService, valuationPolicy, tolerance);
 
