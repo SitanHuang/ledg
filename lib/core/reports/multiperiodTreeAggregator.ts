@@ -1,6 +1,7 @@
 import { Account, AccountIdentifier } from "../accounting/account.ts";
 import { Amount } from "../accounting/amount.ts";
 import { Journal } from "../data/journal.ts";
+import { Rational } from "../math/rational.ts";
 // import { SourceableError } from "../errors.ts";
 import { isNone, Result, timestamp } from "../types.ts";
 import { ValuationPolicy } from "../valuation/policy.ts";
@@ -37,6 +38,10 @@ export class MultiperiodTreeAggregator {
 
     if (this.reportPolicy.hideZero) {
       this.rootTreeItem.pruneZeros();
+    }
+
+    if (this.reportPolicy.inversion) {
+      this.rootTreeItem.invert();
     }
 
     return this;
@@ -426,6 +431,17 @@ export class MultiperiodTreeItem {
     } else {
       // flat mode ⇒ keep only when self has data (root survives regardless)
       return !selfIsZero || this.depth === 0;
+    }
+  }
+
+  invert() {
+    this.baselineAmount = this.baselineAmount.times(Rational.NEGATIVE_ONE);
+    for (let i = 0; i < this.additiveSums.length; i++) {
+      this.additiveSums[i] = this.additiveSums[i].times(Rational.NEGATIVE_ONE);
+    }
+
+    for (const child of this.children.values()) {
+      child.invert();
     }
   }
 

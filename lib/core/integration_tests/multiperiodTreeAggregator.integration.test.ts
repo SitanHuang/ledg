@@ -97,7 +97,7 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
           .withReportTo(Date.parse("2020-01-01Z"))
           .withAccount("\\v^income|expense")
           .withReportPeriodInterval(0, 6, 0)
-      )).toMatch([
+      )).toEqual([
         '"Account","Depth","2019-01-01T00:00:00.000Z => 2019-07-01T00:00:00.000Z","2019-07-01T00:00:00.000Z => 2020-01-01T00:00:00.000Z"',
       ].join("\n"));
 
@@ -109,7 +109,7 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
           .withAccount("\\v^income|expense")
           .withReportPeriodInterval(0, 6, 0)
         , 10
-      )).toMatch([
+      )).toEqual([
         '"Account","Depth","2022-01-01T00:00:00.000Z => 2022-07-01T00:00:00.000Z","2022-07-01T00:00:00.000Z => 2023-01-01T00:00:00.000Z"',
         '"expense.a","1","-2.4011111 $",""',
         '"expense.c","1","",""',
@@ -128,7 +128,7 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
           .withAccount("\\v^income|expense")
           .withReportPeriodInterval(0, 6, 0)
         , 10
-      )).toMatch([
+      )).toEqual([
         '"Account","Depth","2022-01-01T00:00:00.001Z => 2022-07-01T00:00:00.001Z","2022-07-01T00:00:00.001Z => 2023-01-01T00:00:00.000Z"',
         '"expense.c","1","",""',
       ].join("\n"));
@@ -140,7 +140,7 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
           .withReportTo(Date.parse("2020-01-01T00:00:01Z"))
           .withAccount("\\v^income|expense")
           .withReportPeriodInterval(0, 6, 0)
-      )).toMatch([
+      )).toEqual([
         '"Account","Depth","2019-01-01T00:00:01.000Z => 2019-07-01T00:00:01.000Z","2019-07-01T00:00:01.000Z => 2020-01-01T00:00:01.000Z"',
         '"expense.a","1","",""',
         '"expense.c","1","",""',
@@ -158,7 +158,7 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
           .withAccount("\\v^income|expense")
           .withReportPeriodInterval(0, 0, 10)
         , 10
-      )).toMatch([
+      )).toEqual([
         '"Account","Depth","2019-01-01T00:00:01.000Z => 2029-01-01T00:00:01.000Z"',
         '"expense.a","1",""',
         '"expense.c","1","3.0 r"',
@@ -183,7 +183,7 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
           .withValutionCurrency(journal.currencyProvider.getOrCreateCurrencyById("r"))
           .withValutionStrategy("txnDate")
         , 10
-      )).toMatch([
+      )).toEqual([
         '"Account","Depth","2021-01-01T00:00:00.000Z => 2021-02-01T00:00:00.000Z","2021-02-01T00:00:00.000Z => 2021-03-01T00:00:00.000Z"',
         '"expense.a","1","0.9009009009 r","0.0 r"',
         '"income.z","1","-0.9009009009 r","0.0 r"',
@@ -200,7 +200,7 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
           .withValutionCurrency(journal.currencyProvider.getOrCreateCurrencyById("$"))
           .withValutionStrategy("txnDate")
         , 10
-      )).toMatch([
+      )).toEqual([
         '"Account","Depth","2021-01-01T00:00:00.000Z => 2021-07-01T00:00:00.000Z","2021-07-01T00:00:00.000Z => 2022-01-01T00:00:00.000Z"',
         '"expense.c","1","0.0 $","6.66 $"',
       ].join("\n"));
@@ -217,7 +217,7 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
           .withValutionStrategy("txnDate")
           .withUseDate("date2")
         , 10
-      )).toMatch([
+      )).toEqual([
         '"Account","Depth","2021-01-01T00:00:00.000Z => 2021-07-01T00:00:00.000Z","2021-07-01T00:00:00.000Z => 2022-01-01T00:00:00.000Z"',
         '"expense.c","1","6.66 $","0.0 $"',
       ].join("\n"));
@@ -234,7 +234,7 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
           .withValutionStrategy(Date.parse('2021-01-01Z'))
           .withUseDate("date2")
         , 10
-      )).toMatch([
+      )).toEqual([
         '"Account","Depth","2021-01-01T00:00:00.000Z => 2021-07-01T00:00:00.000Z","2021-07-01T00:00:00.000Z => 2022-01-01T00:00:00.000Z"',
         '"expense.c","1","3.33 $","0.0 $"',
       ].join("\n"));
@@ -253,7 +253,7 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
           .withValutionCurrency(journal.currencyProvider.getOrCreateCurrencyById("r"))
           .withValutionStrategy(Date.parse('3000-01-01Z'))
         , 1
-      )).toMatch([
+      )).toEqual([
         '"Account","Depth","2021-01-01T00:00:00.000Z => 2021-02-01T00:00:00.000Z","2021-02-01T00:00:00.000Z => 2021-03-01T00:00:00.000Z"',
         '"expense.a","1","0.2 r","0.0 r"',
         '"income.z","1","-0.2 r","0.0 r"',
@@ -271,7 +271,7 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
           .withValutionStrategy(Date.parse('2020-01-01Z'))
           .withUseDate("date2")
         , 10
-      )).toMatch([
+      )).toEqual([
         '"Account","Depth","2021-01-01T00:00:00.000Z => 2021-07-01T00:00:00.000Z","2021-07-01T00:00:00.000Z => 2022-01-01T00:00:00.000Z"',
         '"expense.c","1","3.0 r","0.0 $"',
       ].join("\n"));
@@ -288,7 +288,7 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
           .withHideZero(true)
           .withMaxDepth(2)
         , 0
-      )).toMatch([
+      )).toEqual([
         '"Account","Depth","2021-01-01T00:00:00.000Z => 2021-02-01T00:00:00.000Z","2021-02-01T00:00:00.000Z => 2021-03-01T00:00:00.000Z"',
         '"expense.a","1","1 $","1 $"',
         '"income.b","1","","-1 $"',
@@ -305,7 +305,7 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
           .withHideZero(true)
           .withMaxDepth(1)
         , 0
-      )).toMatch([
+      )).toEqual([
         '"Account","Depth","2021-01-01T00:00:00.000Z => 2021-02-01T00:00:00.000Z","2021-02-01T00:00:00.000Z => 2021-03-01T00:00:00.000Z"',
         '"expense","1","1 $","1 $"',
         '"income","1","-1 $","-2 $"',
@@ -324,7 +324,7 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
           .withMaxDepth(1)
           .withSumParent(true)
         , 0
-      )).toMatch([
+      )).toEqual([
         '"Account","Depth","2021-01-01T00:00:00.000Z => 2021-02-01T00:00:00.000Z","2021-02-01T00:00:00.000Z => 2021-03-01T00:00:00.000Z"',
         '"expense","1","1 $","1 $"',
         '"income","1","-1 $","-2 $"',
@@ -341,7 +341,7 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
           .withMaxDepth(2)
           .withSumParent(true)
         , 0
-      )).toMatch([
+      )).toEqual([
         '"Account","Depth","2021-01-01T00:00:00.000Z => 2021-02-01T00:00:00.000Z","2021-02-01T00:00:00.000Z => 2021-03-01T00:00:00.000Z"',
         '"expense","1","1 $","1 $"',
         '"expense.a","1","1 $","1 $"',
@@ -371,7 +371,7 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
             .withHideZero(true),
           10,
         ),
-      ).toMatch(expected);
+      ).toEqual(expected);
 
       // minDepth = 1 (no sumParent / tree, so should be identical)
       expect(
@@ -386,7 +386,7 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
             .withMinDepth(1),
           10,
         ),
-      ).toMatch(expected);
+      ).toEqual(expected);
 
       // minDepth = 2 (still identical)
       expect(
@@ -401,7 +401,7 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
             .withMinDepth(2),
           10,
         ),
-      ).toMatch(expected);
+      ).toEqual(expected);
     });
 
     it('should respect minDepth with sumParent=true', async () => {
@@ -416,7 +416,7 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
           .withMinDepth(2)
           .withSumParent(true)
         , 10
-      )).toMatch([
+      )).toEqual([
         '"Account","Depth","2021-01-01T00:00:00.000Z => 2021-02-01T00:00:00.000Z","2021-02-01T00:00:00.000Z => 2021-03-01T00:00:00.000Z"',
         '"expense.a","1","1.0 $","1.4011111 $"',
         '"income.b","1","","-1.0 $"',
@@ -435,7 +435,7 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
           .withSumParent(true)
           .withMinDepth(1)
         , 10
-      )).toMatch([
+      )).toEqual([
         '"Account","Depth","2021-01-01T00:00:00.000Z => 2021-02-01T00:00:00.000Z","2021-02-01T00:00:00.000Z => 2021-03-01T00:00:00.000Z"',
         '"expense","1","1.0 $","1.4011111 $"',
         '"expense.a","1","1.0 $","1.4011111 $"',
@@ -459,7 +459,7 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
           .withMinDepth(1)
           .withMaxDepth(1)
         , 10
-      )).toMatch([
+      )).toEqual([
         '"Account","Depth","2021-01-01T00:00:00.000Z => 2021-02-01T00:00:00.000Z","2021-02-01T00:00:00.000Z => 2021-03-01T00:00:00.000Z"',
         '"expense","1","1.0 $","1.4011111 $"',
         '"income","1","-1.0 $","-1.5011111 $"',
@@ -476,7 +476,7 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
           .withMinDepth(1)
           .withMaxDepth(1)
         , 10
-      )).toMatch([
+      )).toEqual([
         '"Account","Depth","2021-01-01T00:00:00.000Z => 2021-02-01T00:00:00.000Z","2021-02-01T00:00:00.000Z => 2021-03-01T00:00:00.000Z"',
         '"expense","1","1.0 $","1.4011111 $"',
         '"income","1","-1.0 $","-1.5011111 $"',
@@ -496,7 +496,7 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
             .withSumParent(true),
           10,
         ),
-      ).toMatch(
+      ).toEqual(
         [
           '"Account","Depth","2021-01-01T00:00:00.000Z => 2021-02-01T00:00:00.000Z","2021-02-01T00:00:00.000Z => 2021-03-01T00:00:00.000Z"',
           '"expense","1","1.0 $","1.4011111 $"',
@@ -524,7 +524,7 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
             .withMaxDepth(2),
           10,
         ),
-      ).toMatch(
+      ).toEqual(
         [
           '"Account","Depth","2021-01-01T00:00:00.000Z => 2021-02-01T00:00:00.000Z","2021-02-01T00:00:00.000Z => 2021-03-01T00:00:00.000Z"',
           '"expense","1","1.0 $","1.4011111 $"',
@@ -551,7 +551,7 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
             .withMaxDepth(3),
           10,
         ),
-      ).toMatch(
+      ).toEqual(
         [
           '"Account","Depth","2021-01-01T00:00:00.000Z => 2021-02-01T00:00:00.000Z","2021-02-01T00:00:00.000Z => 2021-03-01T00:00:00.000Z"',
           '"expense.a","1","1.0 $","1.4011111 $"',
@@ -561,5 +561,62 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
         ].join('\n'),
       );
     });
+
+    it('should implement sort', async () => {
+      expect(getCSV(
+        journal,
+        new ReportPolicy()
+          .withReportFrom(Date.parse('2021-01-01Z'))
+          .withReportTo(Date.parse("2021-03-01Z"))
+          .withAccount("\\v^income|expense")
+          .withReportPeriodInterval(0, 1, 0)
+          .withHideZero(true)
+          .withMaxDepth(2)
+          .withSortStrategy("desc")
+          .withInversion(true)
+        , 0
+      )).toEqual([
+        '"Account","Depth","2021-01-01T00:00:00.000Z => 2021-02-01T00:00:00.000Z","2021-02-01T00:00:00.000Z => 2021-03-01T00:00:00.000Z"',
+        '"income.z","1","1 $","1 $"',
+        '"income.b","1","","1 $"',
+        '"expense.a","1","-1 $","-1 $"',
+      ].join("\n"));
+
+      expect(getCSV(
+        journal,
+        new ReportPolicy()
+          .withReportFrom(Date.parse('2021-01-01Z'))
+          .withReportTo(Date.parse("2021-03-01Z"))
+          .withAccount("\\v^income|expense")
+          .withReportPeriodInterval(0, 1, 0)
+          .withHideZero(true)
+          .withMaxDepth(2)
+          .withSortStrategy("asc")
+        , 0
+      )).toEqual([
+        '"Account","Depth","2021-01-01T00:00:00.000Z => 2021-02-01T00:00:00.000Z","2021-02-01T00:00:00.000Z => 2021-03-01T00:00:00.000Z"',
+        '"income.z","1","-1 $","-1 $"',
+        '"income.b","1","","-1 $"',
+        '"expense.a","1","1 $","1 $"',
+      ].join("\n"));
+
+      expect(getCSV(
+        journal,
+        new ReportPolicy()
+          .withReportFrom(Date.parse('2021-01-01Z'))
+          .withReportTo(Date.parse("2021-03-01Z"))
+          .withAccount("\\v^income|expense")
+          .withReportPeriodInterval(0, 1, 0)
+          .withHideZero(true)
+          .withMaxDepth(2)
+          .withSortStrategy("accountId")
+        , 0
+      )).toEqual([
+        '"Account","Depth","2021-01-01T00:00:00.000Z => 2021-02-01T00:00:00.000Z","2021-02-01T00:00:00.000Z => 2021-03-01T00:00:00.000Z"',
+        '"expense.a","1","1 $","1 $"',
+        '"income.b","1","","-1 $"',
+        '"income.z","1","-1 $","-1 $"',
+      ].join("\n"));
+    })
   });
 });

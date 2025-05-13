@@ -41,19 +41,19 @@ describe.sequential('Integration: JournalReaderAdapter x AccountManager.closeAcc
 
     const txn = journal.transactionStore.getTransactionById('ffddaazz')!;
 
-    expect(txn.description).toMatch("open      Asset.Checking.BoA");
-    expect(txn.accountOpened).toMatch("Asset.Checking.BoA");
+    expect(txn.description).toEqual("open      Asset.Checking.BoA");
+    expect(txn.accountOpened).toEqual("Asset.Checking.BoA");
     expect(txn.accountClosed).toBeUndefined();
 
     let amt = txn.postings[0].amount?.getEntries()[0]!;
-    expect(txn.postings[0].account.identifier).toMatch("Equity.OpeningBalance");
-    expect(amt.currency.id).toMatch("USD");
+    expect(txn.postings[0].account.identifier).toEqual("Equity.OpeningBalance");
+    expect(amt.currency.id).toEqual("USD");
     expect(amt.value.reduce().numerator).toEqual(-1n);
     expect(amt.value.reduce().denominator).toEqual(3n);
 
     let amt2 = txn.postings[1].amount?.getEntries()[0]!;
-    expect(txn.postings[1].account.identifier).toMatch("Asset.Checking.BoA");
-    expect(amt2.currency.id).toMatch("USD");
+    expect(txn.postings[1].account.identifier).toEqual("Asset.Checking.BoA");
+    expect(amt2.currency.id).toEqual("USD");
     expect(amt2.value.reduce().numerator).toEqual(1n);
     expect(amt2.value.reduce().denominator).toEqual(3n);
 
@@ -61,8 +61,8 @@ describe.sequential('Integration: JournalReaderAdapter x AccountManager.closeAcc
 
     const txn2 = journal.transactionStore.getTransactionById('ffddaaz2')!;
 
-    expect(txn2.description).toMatch("close  Asset.Checking.BoA");
-    expect(txn2.accountClosed).toMatch("Asset.Checking.BoA");
+    expect(txn2.description).toEqual("close  Asset.Checking.BoA");
+    expect(txn2.accountClosed).toEqual("Asset.Checking.BoA");
     expect(txn2.accountOpened).toBeUndefined();
 
     journal = Journal.create();

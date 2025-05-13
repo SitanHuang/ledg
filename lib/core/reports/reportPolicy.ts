@@ -130,8 +130,18 @@ export class ReportPolicy extends QueryPolicy {
    */
   sortStrategy: SortStrategy = "accountId";
 
+  /**
+   * Flips the sign of amounts.
+   */
+  inversion = false;
+
   withSortStrategy(strategy: SortStrategy): this {
     this.sortStrategy = strategy;
+    return this;
+  }
+
+  withInversion(inversion: boolean): this {
+    this.inversion = inversion;
     return this;
   }
 

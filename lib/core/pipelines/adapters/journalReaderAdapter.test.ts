@@ -36,14 +36,14 @@ describe.sequential('JournalReaderAdapter', () => {
     const txn = journal.transactionStore.getTransactionById('ffddaazz')!;
 
     let amt = txn.postings[0].amount?.getEntries()[0]!;
-    expect(txn.postings[0].account.identifier).toMatch("Equity.OpeningBalance");
-    expect(amt.currency.id).toMatch("USD");
+    expect(txn.postings[0].account.identifier).toEqual("Equity.OpeningBalance");
+    expect(amt.currency.id).toEqual("USD");
     expect(amt.value.reduce().numerator).toEqual(-1n);
     expect(amt.value.reduce().denominator).toEqual(3n);
 
     let amt2 = txn.postings[1].amount?.getEntries()[0]!;
-    expect(txn.postings[1].account.identifier).toMatch("Asset.Checking.BoA");
-    expect(amt2.currency.id).toMatch("USD");
+    expect(txn.postings[1].account.identifier).toEqual("Asset.Checking.BoA");
+    expect(amt2.currency.id).toEqual("USD");
     expect(amt2.value.reduce().numerator).toEqual(1n);
     expect(amt2.value.reduce().denominator).toEqual(3n);
 

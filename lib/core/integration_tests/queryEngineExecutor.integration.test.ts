@@ -63,7 +63,7 @@ describe.sequential('Integration: QueryEngineExecutor', () => {
       .withAccount("ast..boa")
       .withFrom(Date.parse('2040-01-01 00:00:00Z'))
       .withTo(Date.parse('2040-01-01 00:00:02Z'))
-      .withUseDate('date2'))).toFractionString()).toMatch("1 / 3 USD");
+      .withUseDate('date2'))).toFractionString()).toEqual("1 / 3 USD");
 
     expect(sumQuery(journal, QueryEngine.create(new QueryPolicy()
       .withAccount("ast..boa")
@@ -85,28 +85,28 @@ describe.sequential('Integration: QueryEngineExecutor', () => {
       .withAccount("ast..boa")
       .withFrom(Date.parse('2040-01-01 00:00:00Z'))
       .withTo(Date.parse('2040-01-01 00:00:02Z'))
-      .withUseDate('date'))).toFractionString()).toMatch("2 / 3 USD");
+      .withUseDate('date'))).toFractionString()).toEqual("2 / 3 USD");
 
     expect(sumQuery(journal, QueryEngine.create(new QueryPolicy()
       .withAccount("ast..boa")
       .withFrom(Date.parse('2040-01-01 00:00:00Z'))
       .withTo(Date.parse('2040-01-01 00:00:04Z'))
-      .withUseDate('date2'))).toFractionString()).toMatch("");
+      .withUseDate('date2'))).toFractionString()).toEqual("");
 
     expect(sumQuery(journal, QueryEngine.create(new QueryPolicy()
       .withAccount("*obal")
       .withFrom(Date.parse('2040-01-01 00:00:00Z'))
       .withTo(Date.parse('2040-01-01 00:00:02Z'))
-      .withUseDate('date'))).toFractionString()).toMatch("-2 / 1 CNY");
+      .withUseDate('date'))).toFractionString()).toEqual("-2 / 1 CNY");
 
     expect(sumQuery(journal, QueryEngine.create(new QueryPolicy()
-      .withAccount("*obal"))).toFractionString()).toMatch("");
+      .withAccount("*obal"))).toFractionString()).toEqual("-2 / 1 CNY, 1 / 3 EUR");
 
     expect(sumQuery(journal, QueryEngine.create(new QueryPolicy()
       .withAccount("*obal")
-      .withModifier("id", /abcdefgh/))).toFractionString()).toMatch("1 / 3 EUR");
+      .withModifier("id", /abcdefgh/))).toFractionString()).toEqual("1 / 3 EUR");
 
-    expect(sumQuery(journal, QueryEngine.create(new QueryPolicy())).toFractionString()).toMatch("");
+    expect(sumQuery(journal, QueryEngine.create(new QueryPolicy())).toFractionString()).toEqual("-2 / 1 CNY, 1 / 3 EUR");
 
     expect(sumQuery(journal, QueryEngine.create(new QueryPolicy()
       .withModifier("description", /^MyTransaction$/)))
@@ -132,9 +132,9 @@ describe.sequential('Integration: QueryEngineExecutor', () => {
       .withModifier("description", /^MyPosting$/))).toFractionString()).toBe("-1 / 1 CNY");
 
     expect(sumQuery(journal, QueryEngine.create(new QueryPolicy()
-      .withModifier("testDat", /^fdsa$/))).toFractionString()).toMatch("-2 / 3 USD");
+      .withModifier("testDat", /^fdsa$/))).toFractionString()).toEqual("-2 / 3 USD");
 
     expect(sumQuery(journal, QueryEngine.create(new QueryPolicy()
-      .withModifier("testDat", /^5555$/))).toFractionString()).toMatch("1 / 3 EUR");
+      .withModifier("testDat", /^5555$/))).toFractionString()).toEqual("1 / 3 EUR");
   });
 });
