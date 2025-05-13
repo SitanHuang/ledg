@@ -50,7 +50,7 @@ export class MultiperiodTreeAggregator {
   }
 
   private executeQuery(): Result<MultiperiodTreeItem> {
-    const { rootTreeItem } = this;
+    const { rootTreeItem, displayedAccounts } = this;
     const { currencyConversionService } = this.journal;
     const { valuationStrategy, valuationCurrency } = this.reportPolicy;
     const useLedgObjDate = this.reportPolicy.useLedgObjDate.bind(this.reportPolicy);
@@ -61,6 +61,14 @@ export class MultiperiodTreeAggregator {
 
     this.queryEngineExecutor.executePostings(this.journal, (posting) => {
       let amount = posting.amount;
+
+      const date = useLedgObjDate(posting);
+
+      // We don't wanna create empty entries in rootTreeItem.accept that cause
+      // unopened/closed accounts to pop up
+      if (!displayedAccounts.has(posting.account.identifier)) {
+        return;
+      }
 
       if (valuationCurrency && valuationStrategy == "txnDate") {
         // TRANSACTION PRIMARY DATE BY SPEC
@@ -78,7 +86,7 @@ export class MultiperiodTreeAggregator {
         }
       }
 
-      rootTreeItem.accept(posting.account.identifier, useLedgObjDate(posting), amount);
+      rootTreeItem.accept(posting.account.identifier, date, amount);
     });
 
     // if (error) {
@@ -88,26 +96,47 @@ export class MultiperiodTreeAggregator {
     return rootTreeItem;
   }
 
+  private displayedAccounts = new Set<AccountIdentifier>();
+
   private populateAllAccounts() {
     const { accountManager } = this.journal;
-    const { reportPolicy } = this;
-    const accounts = this.queryEngineExecutor.queryAccounts(this.journal);
+    const { reportPolicy, displayedAccounts } = this;
+
+    let accounts = this.queryEngineExecutor.queryAccounts(this.journal);
+
+    if (reportPolicy.reportFrom !== undefined && reportPolicy.reportTo !== undefined) {
+      const openedAccounts = accountManager.getAccountsEverOpenedDuringRange(reportPolicy.reportFrom, reportPolicy.reportTo);
+
+      accounts = accounts.filter(account => openedAccounts.includes(account));
+    }
+
+    displayedAccounts.clear();
 
     for (let i = 0; i < accounts.length; i++) {
       const account = accounts[i];
 
-      if (reportPolicy.reportFrom !== undefined && reportPolicy.reportTo !== undefined) {
-        const status1 = accountManager.getAccountStatusByDateRange(account.identifier, reportPolicy.reportFrom);
-        const status2 = accountManager.getAccountStatusByDateRange(account.identifier, Math.max(reportPolicy.reportTo - 1, reportPolicy.reportFrom));
-
-        if (status1 !== "open" && status2 !== "open") {
-          // Account is closed throughout entire duration.
-          continue;
-        }
-      }
+      displayedAccounts.add(account.identifier);
 
       this.rootTreeItem.accept(account.identifier, reportPolicy.reportFrom ?? reportPolicy.reportTo ?? reportPolicy.from ?? reportPolicy.to ?? 0);
     }
+
+    // const accounts = this.queryEngineExecutor.queryAccounts(this.journal);
+
+    // for (let i = 0; i < accounts.length; i++) {
+    //   const account = accounts[i];
+
+    //   if (reportPolicy.reportFrom !== undefined && reportPolicy.reportTo !== undefined) {
+    //     const status1 = accountManager.getAccountStatusByDateRange(account.identifier, reportPolicy.reportFrom);
+    //     const status2 = accountManager.getAccountStatusByDateRange(account.identifier, Math.max(reportPolicy.reportTo - 1, reportPolicy.reportFrom));
+
+    //     if (status1 !== "open" && status2 !== "open") {
+    //       // Account is closed throughout entire duration.
+    //       continue;
+    //     }
+    //   }
+
+    //   this.rootTreeItem.accept(account.identifier, reportPolicy.reportFrom ?? reportPolicy.reportTo ?? reportPolicy.from ?? reportPolicy.to ?? 0);
+    // }
   }
 
   debugCSV(displayPrecision = Infinity): string {
@@ -167,27 +196,27 @@ export class MultiperiodTreeItem {
   treeView(): void {
     // 1. build hierarchical skeleton from the existing leaves
     const leaves = Array.from(this.children.values());
-    this.children.clear();                   // rebuild from scratch
+    this.children.clear(); // rebuild from scratch
 
     for (const leaf of leaves) {
       const groups = Account.splitIdentifier(leaf.accountIdentifier);
-      const ancestors: MultiperiodTreeItem[] = [];
-      let node: MultiperiodTreeItem = this;   // start at ROOT
+      const parents: MultiperiodTreeItem[] = [];
+      let node: MultiperiodTreeItem = this; // start at ROOT
       let path = "";
 
       for (let i = 0; i < groups.length; i++) {
-        path = path ? `${path}.${groups[i]}` : groups[i];
-        node = node._ensureChild(path, node.depth + 1);
-        ancestors.push(node);
+        path = path ? `${path}${Account.DELIMITER}${groups[i]}` : groups[i];
+        node = node._getOrCreateChild(path, node.depth + 1);
+        parents.push(node);
       }
 
-      // copy money figures into the new leaf (last ancestor)
-      const dst = ancestors[ancestors.length - 1];
+      // copy money figures into the new leaf (last parent)
+      const dst = parents[parents.length - 1];
       dst._copyTotalsFrom(leaf);
 
       // always roll totals up the chain for a tree view
-      for (let i = ancestors.length - 2; i >= 0; i--) {
-        ancestors[i]._accumulateFromChild(ancestors[i + 1]);
+      for (let i = parents.length - 2; i >= 0; i--) {
+        parents[i]._copyTotalsFrom(parents[i + 1]);
       }
     }
 
@@ -209,7 +238,6 @@ export class MultiperiodTreeItem {
    * Called only when `reportPolicy.tree === false`.
    */
   applyFlatPolicy(): void {
-    // 1. enforce MAX‑DEPTH (aggregate & drop deep children)
     if (this.reportPolicy.maxDepth !== Infinity) {
       const toTrim: [string, MultiperiodTreeItem][] = [];
       for (const [id, item] of this.children) {
@@ -220,25 +248,24 @@ export class MultiperiodTreeItem {
       }
       for (const [id, item] of toTrim) {
         this.children.delete(id);
-        const ancestorId = Account.joinDelimitedGroups(
+        const parentId = Account.joinDelimitedGroups(
           Account.splitIdentifier(id)
             .slice(0, this.reportPolicy.maxDepth)
         );
-        const anc = this._ensureChild(ancestorId, 1);
-        anc._accumulateFromChild(item);
+        const anc = this._getOrCreateChild(parentId, 1);
+        anc._copyTotalsFrom(item);
       }
     }
 
-    // inject parent rows if sumParent=true
-    if (!this.reportPolicy.sumParent) return;
-
-    const current = Array.from(this.children.values());
-    for (const item of current) {
-      const segs = Account.splitIdentifier(item.accountIdentifier);
-      for (let lvl = segs.length - 1; lvl >= Math.max(this.reportPolicy.minDepth, 1); lvl--) {
-        const parentId = Account.joinDelimitedGroups(segs.slice(0, lvl));
-        const parent = this._ensureChild(parentId, 1);
-        parent._accumulateFromChild(item);
+    if (this.reportPolicy.sumParent) {
+      const current = Array.from(this.children.values());
+      for (const item of current) {
+        const segs = Account.splitIdentifier(item.accountIdentifier);
+        for (let lvl = segs.length - 1; lvl >= Math.max(this.reportPolicy.minDepth, 1); lvl--) {
+          const parentId = Account.joinDelimitedGroups(segs.slice(0, lvl));
+          const parent = this._getOrCreateChild(parentId, 1);
+          parent._copyTotalsFrom(item);
+        }
       }
     }
   }
@@ -304,16 +331,8 @@ export class MultiperiodTreeItem {
     }
   }
 
-  /** roll a child's totals into this node */
-  private _accumulateFromChild(child: MultiperiodTreeItem): void {
-    this.baselineAmount = this.baselineAmount.plus(child.baselineAmount);
-    for (let i = 0; i < this.additiveSums.length; i++) {
-      this.additiveSums[i] = this.additiveSums[i].plus(child.additiveSums[i]);
-    }
-  }
-
   /** get‑or‑create helper (keeps O(1) lookup) */
-  private _ensureChild(id: AccountIdentifier, depth: number): MultiperiodTreeItem {
+  private _getOrCreateChild(id: AccountIdentifier, depth: number): MultiperiodTreeItem {
     const c = this.children.get(id);
     if (!c) {
       const d = new MultiperiodTreeItem(this.aggregator, id, this.reportPolicy, depth);
@@ -328,7 +347,7 @@ export class MultiperiodTreeItem {
     if (this.depth >= maxDepth) {
       // aggregate everything below then delete references
       for (const child of this.children.values()) {
-        this._accumulateFromChild(child);
+        this._copyTotalsFrom(child);
       }
       this.children.clear();
       return;
@@ -421,7 +440,6 @@ export class MultiperiodTreeItem {
   }
 
   debugCSV(policy: ReportPolicy, displayPrecision: number): string {
-    // build header once (root depth = 0)
     const headers = [
       `"Account"`,
       `"Depth"`,

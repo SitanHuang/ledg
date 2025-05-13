@@ -20,7 +20,7 @@ describe('ReportPolicy - validations', () => {
   it('throws if from/to undefined', () => {
     const rp = new ReportPolicy();
     rp.withReportPeriodInterval(1, 0, 0);
-    expect(() => rp.periods()).toThrow(/`from` and `to` must be defined/);
+    expect(() => rp.periods()).toThrow(/`reportFrom` and `reportTo` must be defined/);
   });
 
   it('throws if interval is all zeros', () => {
@@ -28,7 +28,7 @@ describe('ReportPolicy - validations', () => {
       .withReportFrom(ts('2024-01-01'))
       .withReportTo(ts('2024-01-10'))
       .withReportPeriodInterval(0, 0, 0);
-    expect(() => rp.periods()).toThrow(/cannot be all zeros/);
+    expect(() => rp.periods()).toThrow(/not set/);
   });
 
   it('throws if to <= from', () => {

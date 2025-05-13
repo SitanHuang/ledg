@@ -146,7 +146,7 @@ export class ReportPolicy extends QueryPolicy {
   }
 
   withReportPeriodInterval(dayInterval: timestamp, monthInterval: timestamp, yearInterval: timestamp): this {
-    this.reportPeriodInterval = new ReportPeriodInterval(dayInterval, monthInterval, yearInterval);
+    this.reportPeriodInterval = dayInterval == 0 && monthInterval == 0 && yearInterval == 0 ? undefined : new ReportPeriodInterval(dayInterval, monthInterval, yearInterval);
     return this;
   }
 
