@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { Journal } from '../data/journal.ts';
 import { InputStreamJournalReader } from '../parsing/journal/inputStreamJournalReader.ts';
-import { Ok } from '../types.ts';
-import { getErrorMessages } from '../utils/debugErrorTools.ts';
-import { DefaultTransactionPipeline } from '../pipelines/transactionPipeline.ts';
 import { JournalReaderAdapter } from '../pipelines/adapters/journalReaderAdapter.ts';
+import { DefaultTransactionPipeline } from '../pipelines/transactionPipeline.ts';
+import { isOk, Ok } from '../types.ts';
+import { getErrorMessages } from '../utils/debugErrorTools.ts';
 
 async function parseSrc(src: string[], journal?: Journal) {
   journal = journal ?? Journal.create();
@@ -96,7 +96,7 @@ describe.sequential('Integration: JournalReaderAdapter x AccountManager.closeAcc
       '2039-01-01 00:00:01 close Asset.Checking.BoA',
       '  \tAsset.Checking.BoA\t -1 * [1 USD] / 3',
       '  \tEquity.OpeningBalance',
-    ]) as Error)).toMatch(/was never opened/);
+    ]) as Error)).toMatch(/parsed OPEN directive are not allowed/);
     expect(getErrorMessages(await parseSrc([
       '2025-01-01 open Equity.OpeningBalance',
       '2040-01-01 00:00:00 open Asset.Checking.BoA #ffddaazz',
@@ -117,5 +117,121 @@ describe.sequential('Integration: JournalReaderAdapter x AccountManager.closeAcc
       '  \tAsset.Checking.BoA\t -1 * [1 USD] / 2',
       '  \tEquity.OpeningBalance',
     ]) as Error)).toMatch(/Account "Asset.Checking.BoA" cannot be closed due to non-strictly-zero balance of .+-1 \/ 6 USD./);
+  });
+  it('enforces account assignment in PARSE ORDER', async () => {
+    expect(getErrorMessages(await parseSrc([
+      '2000-01-01 open null',
+      '2000-01-01 open test',
+      '2001-01-01 00:00:00',
+      '  \ttest\t1',
+      '  ;=2003-01-01',
+      '  \tnull',
+      '2002-01-01 00:00:01 close test',
+      '  \ttest\t-1',
+      '  \tnull',
+    ]) as Error)).toMatch(/cannot be closed due to non-strictly-zero balance of .+-1 \/ 1 \$./);
+    expect(isOk(await parseSrc([
+      '2000-01-01 open null',
+      '2000-01-01 open test',
+      '2001-01-01 00:00:00',
+      '  \ttest\t1',
+      '  \tnull',
+      '2002-01-01 00:00:00',
+      '  \ttest\t0',
+      '  \tnull',
+      '2002-01-01 00:00:01 close test',
+      '  \ttest\t-1',
+      '  \tnull',
+    ]))).toBe(true);
+    expect(getErrorMessages(await parseSrc([
+      '2000-01-01 open null',
+      '2000-01-01 open test',
+      '2001-01-01 00:00:00',
+      '  \ttest\t1',
+      '  \tnull',
+      '2002-01-01 00:00:01 close test',
+      '  \ttest\t-1',
+      '  \tnull',
+      '2002-01-01 00:00:00',
+      '  \ttest\t0',
+      '  \tnull',
+    ]) as Error)).toMatch(/previous CLOSE directive are not allowed/i);
+
+    expect(getErrorMessages(await parseSrc([
+      '2000-01-01 open null',
+      '2000-01-01 open test',
+      '2001-01-01 00:00:00',
+      '  \ttest\t1',
+      '  \tnull',
+      '2002-01-01 00:00:01 close test',
+      '  \ttest\t-1',
+      '  \tnull',
+      '2001-05-01 00:00:00',
+      '  \ttest\t0',
+      '  \tnull',
+    ]) as Error)).toMatch(/previous CLOSE directive are not allowed/i);
+
+    expect(getErrorMessages(await parseSrc([
+      '2000-01-01 open null',
+      '2000-01-01 open test',
+      '2001-01-01 00:00:00',
+      '  \ttest\t1',
+      '  \tnull',
+      '2002-01-01 00:00:01 close test',
+      '  \ttest\t-1',
+      '  \tnull',
+      '2002-02-01 open test',
+      '2002-02-02 close test',
+      '2002-03-01 open test',
+      '2002-03-02 close test',
+      '2001-05-01 00:00:00',
+      '  \ttest\t0',
+      '  \tnull',
+    ]) as Error)).toMatch(/previous CLOSE directive are not allowed/i);
+
+    expect(isOk(await parseSrc([
+      '2000-01-01 open null',
+      '2000-01-01 open test',
+      '2001-01-01 00:00:00',
+      '  \ttest\t1',
+      '  \tnull',
+      '2002-01-01 00:00:01 close test',
+      '  \ttest\t-1',
+      '  \tnull',
+      '2002-02-01 open test',
+      '2002-05-01 00:00:00',
+      '  \ttest\t0',
+      '  \tnull',
+    ]))).toBe(true);
+
+    expect(getErrorMessages(await parseSrc([
+      '2000-01-01 open null',
+      '2000-01-01 open test',
+      '2001-01-01 00:00:00',
+      '  \ttest\t1',
+      '  \tnull',
+      '2002-01-01 00:00:01 close test',
+      '  \ttest\t-1',
+      '  \tnull',
+      '2002-02-01 open test',
+      '2002-01-02 00:00:00',
+      '  \ttest\t0',
+      '  \tnull',
+    ]))).toMatch(/most recently parsed OPEN directive are not allowed/);
+
+    expect(getErrorMessages(await parseSrc([
+      '2000-01-01 open null',
+      '2000-01-01 open test',
+      '2001-01-01 00:00:00',
+      '  \ttest\t1',
+      '  \tnull',
+      '2002-01-01 00:00:01 close test',
+      '  \ttest\t-1',
+      '  \tnull',
+      '2002-02-01 open test',
+      '2002-05-01=2001-01-02 00:00:00',
+      '  \ttest\t0',
+      '  \tnull',
+    ]))).toMatch(/most recently parsed OPEN directive are not allowed/);
   });
 });

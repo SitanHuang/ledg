@@ -1,4 +1,4 @@
-import { isNone, None, Ok, OkType, Option, Result, timestamp, unwrap } from "../types.ts";
+import { None, Ok, OkType, Option, Result, timestamp, unwrap } from "../types.ts";
 import { Account, AccountIdentifier } from "./account.ts";
 import { BalanceAssertionService } from "./balanceAssertionService.ts";
 
@@ -58,6 +58,16 @@ export abstract class AccountManager {
   }
 
   /**
+   * Return every account that is **ever** OPEN at any instant in the
+   * half‑open interval [from, to) (to defaults to from when omitted).
+   *
+   * Importantly, account is OPEN if `to` co-incides with a closure event; this
+   * is so that reports such as incomestatements still show the closure posting
+   * amounts.
+   */
+  abstract getAccountsEverOpenedDuringRange(from: timestamp, to?: timestamp): readonly Account[];
+
+  /**
    * Returns account status for a specific date/date2 range of a single
    * AccountAssignableObject. If an account is partially CLOSED during `from` to `to`, then
    * the method returns CLOSED. The method returns UNOPEN if and only if the
@@ -93,29 +103,16 @@ export abstract class AccountManager {
    * and date2; that is:
    *   - Account closure must be after the latest of date/date2
    *   - Account opening must be before the earliest of date/date2
+   *
+   * Because account balance assertions are evaluated at parse time, any
+   * postings written after a previous close directive, regardless of posting
+   * dates, are disallowed. Postings with date/date2 before the previous open
+   * directive are also disallowed for the same reason.
    */
-  requestAccountAssignment(
+  abstract requestAccountAssignment(
     identifier: AccountIdentifier,
     objContext: AccountAssignableObject
-  ): Result<Account, AccountAssignmentError> {
-    const accountResult = this.getAccount(identifier);
-    if (isNone(accountResult)) {
-      return new AccountAssignmentError(`Account "${identifier}" was never opened.`);
-    }
-
-    const account: Account = accountResult;
-
-    const status = this.getAccountStatusByContext(identifier, objContext);
-
-    switch (status) {
-      case ACCOUNT_UNOPEN:
-        return new AccountAssignmentError(`Account "${identifier}" was never opened.`);
-      case ACCOUNT_CLOSED:
-        return new AccountAssignmentError(`Account "${identifier}" is closed.`);
-    }
-
-    return account;
-  }
+  ): Result<Account, AccountAssignmentError>;
 }
 
 
@@ -127,6 +124,8 @@ interface DefaultAccountRecord {
 export class DefaultAccountManager extends AccountManager {
   // For each account identifier, store the Account instance and a timeline of events.
   // Each event is an object: { time, type } where type is "open" or "close".
+  //
+  // The events MUST be in insertion order at parse time for requestAccountAssignment to work.
   protected accounts: Map<AccountIdentifier, { account: Account; events: DefaultAccountRecord[] }>;
   protected knownAccounts: Account[];
 
@@ -185,38 +184,116 @@ export class DefaultAccountManager extends AccountManager {
     if (!entry) return None; // never opened
 
     const events = entry.events;
-    const n = events.length;
-
-    if (n === 1) { // fast path: single-event account
-      const ev = events[0];
-
-      // account must already be open and the close must be after the open
-      if (ev.type !== "open" || time <= ev.time) {
-        return None;
-      }
-
-      const balance = balanceAssertionService.assertAccountStrictlyZero(entry.account, time);
-
-      // balance must be *strictly* zero at the moment of closure
-      if (balance !== true) {
-        return new AccountClosureAssertionError(`Account "${identifier}" cannot be closed due to non-strictly-zero balance of ${balance.toFractionString()}.`);
-      }
-
-      events.push({ time, type: "close" });
-      return Ok;
-    }
 
     const status = this.getStatusAt(events, time);
     if (status !== ACCOUNT_OPEN){
       return None; // closed / unopened / coincident
     }
 
-    if (!balanceAssertionService.assertAccountStrictlyZero(entry.account, time)) {
-      return new AccountClosureAssertionError(`Account "${identifier} cannot be closed due to non-strictly-zero balance."`);
+    const balance = balanceAssertionService.assertAccountStrictlyZero(entry.account, time);
+
+    // balance must be *strictly* zero at the moment of closure
+    if (balance !== true) {
+      return new AccountClosureAssertionError(
+        `Account "${identifier}" cannot be closed due to non-strictly-zero balance ` +
+        `of [${balance.map(x => x[1].toFractionString() || "ZERO").join("; ")}] ` +
+        `for evaluation methods [${balance.map(x => `"${x[0]}"`).join("; ")}].`
+      );
     }
 
     events.push({ time, type: "close" });
     return Ok;
+  }
+
+  override getAccountsEverOpenedDuringRange(from: timestamp, to?: timestamp): Account[] {
+    // Normalise the interval
+    let start = from;
+    let end = to ?? from;
+    if (start > end) [start, end] = [end, start];
+
+    const openAccounts: Account[] = [];
+
+    for (const { account, events } of this.accounts.values()) {
+      // Obviously unopened accounts
+      if (events.length === 0) continue;
+
+      // Work on a **time‑sorted** copy
+      const sorted = [...events].sort((a, b) => a.time - b.time);
+
+      let isOpen = false; // current state while scanning
+      let currentOpenTime = Number.NaN; // the time of the last open
+
+      for (const ev of sorted) {
+        if (ev.type === "open") {
+          isOpen = true;
+          currentOpenTime = ev.time;
+          continue;
+        }
+
+        if (!isOpen) continue;
+
+        // We have an open interval: [currentOpenTime, ev.time)
+        if (intervalsOverlap(currentOpenTime, ev.time, start, end)) {
+          openAccounts.push(account);
+          break; // no need to examine the rest of this account
+        }
+
+        isOpen = false; // we’ve consumed this open span
+      }
+
+      // Handle a final **open** with no matching “close”
+      if (isOpen) {
+        if (intervalsOverlap(currentOpenTime, Number.POSITIVE_INFINITY, start, end)) {
+          openAccounts.push(account);
+        }
+      }
+    }
+
+    /**
+     * Test two half‑open intervals [aStart, aEnd] and [bStart, bEnd) for
+     * any overlap.
+     */
+    function intervalsOverlap(aStart: timestamp, aEnd: timestamp,
+      bStart: timestamp, bEnd: timestamp): boolean {
+      return aStart < bEnd && bStart <= aEnd;
+    }
+
+    return openAccounts;
+  }
+
+  override requestAccountAssignment(
+    identifier: AccountIdentifier,
+    objContext: AccountAssignableObject
+  ): Result<Account, AccountAssignmentError> {
+
+    const entry = this.accounts.get(identifier);
+    if (!entry || objContext.date === undefined) {
+      return new AccountAssignmentError(`Account "${identifier}" was never opened.`);
+    }
+
+    const lastEv = entry.events.at(-1)!; // last directive in parse order
+
+    // refuse anything parsed after a CLOSE
+    if (lastEv.type === "close") {
+      return new AccountAssignmentError(
+        "Any postings parsed after the previous CLOSE directive are not allowed. " +
+        "This is because closure directives only enforce balance assertions AT PARSE TIME."
+      );
+    }
+
+    // refuse dates earlier than the previous OPEN
+    const earliest = objContext.date2 === undefined
+        ? objContext.date
+        : Math.min(objContext.date, objContext.date2);
+
+    if (earliest !== undefined && earliest < lastEv.time /* lastEv is OPEN here */) {
+      return new AccountAssignmentError(
+        "Posting dates preceding the most recently parsed OPEN directive are not allowed. " +
+        "This is because closure directives only enforce balance assertions AT PARSE TIME."
+      );
+    }
+
+    return entry.account;
   }
 
   override getAccountStatusByDateRange(identifier: AccountIdentifier, from: timestamp, to?: timestamp): AccountStatus {
