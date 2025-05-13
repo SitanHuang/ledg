@@ -1,4 +1,4 @@
-interface RationalFormatOptions {
+export interface RationalFormatOptions {
   displayPrecision?: number; // number of decimal places for display (default is 10)
 }
 
@@ -199,11 +199,11 @@ export class Rational {
   }
 
   /**
-   * Helper method that compares this Rational with another.
+   * Compares this Rational with another.
    * Returns -1 if this < other, 0 if equal, and 1 if this > other.
    * Uses cross-multiplication to avoid floating point inaccuracies.
    */
-  private compareTo(other: Rational): number {
+  public compareTo(other: Rational): number {
     const diff = this.numerator * other.denominator - other.numerator * this.denominator;
     return diff < 0n ? -1 : diff > 0n ? 1 : 0;
   }

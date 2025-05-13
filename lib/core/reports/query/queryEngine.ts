@@ -17,7 +17,8 @@ export class QueryEngine {
   compile(): QueryEngineExecutor {
     // Array has faster iteration
     const modifierList: [string, ModifierQuery][] = Array.from(this.queryPolicy.modifiers.entries());
-    const { from, to, accountGlob: account, useDate } = this.queryPolicy;
+    const { from, to, accountGlob: account } = this.queryPolicy;
+    const useLedgObjDate = this.queryPolicy.useLedgObjDate.bind(this.queryPolicy);
 
     const testModQuery = (modQuery: ModifierQuery, target: unknown): boolean =>
       modQuery === false
@@ -26,7 +27,7 @@ export class QueryEngine {
 
     const query: Query = {
       acceptLedgObject: (ledgObject: LedgObject): boolean => {
-        const date = useDate == 'date' ? ledgObject.date : ledgObject.date2;
+        const date = useLedgObjDate(ledgObject);
 
         if (
           (Number.isFinite(from) && date < from!) ||

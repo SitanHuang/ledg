@@ -1,5 +1,5 @@
 import { Currency } from "../valuation/currency.ts";
-import { Rational } from "../math/rational.ts";
+import { Rational, RationalFormatOptions } from "../math/rational.ts";
 import { Option, None, isNone } from "../types.ts";
 import { ValuationPolicy } from "../valuation/policy.ts";
 import { CurrencyConversionService } from "../valuation/currencyConversionService.ts";
@@ -24,7 +24,7 @@ export class Amount {
    * Helper to create an Amount instance. It takes an optional array of entries
    * (currency/value pairs) and filters out zero-valued entries.
    */
-  public static create(entries: readonly { currency: Currency; value: Rational }[]=[], sourceString?: string): Amount {
+  public static create(entries: readonly { currency: Currency; value: Rational }[] = [], sourceString?: string): Amount {
     const map = new Map<string, { currency: Currency; value: Rational }>();
     if (entries) {
       for (const { currency, value } of entries) {
@@ -155,6 +155,19 @@ export class Amount {
     return total;
   }
 
+  public convertToAmount(target: Currency, provider: CurrencyConversionService, valuationPolicy: ValuationPolicy): Option<this> {
+    const result = this.convertTo(target, provider, valuationPolicy);
+
+    if (isNone(result)) {
+      return result;
+    }
+
+    const map = new Map<string, { currency: Currency; value: Rational }>();
+    map.set(target.id, { currency: target, value: result });
+
+    return Amount.fromMap(map, this.sourceString);
+  }
+
   /**
    * Determines if this Amount is considered zero.
    *
@@ -254,20 +267,23 @@ export class Amount {
   /**
    * Returns a debug string representation of the Amount (e.g. "1.03 USD, 339 WKHR, -0.1 CAD").
    */
-  public toString(): string {
+  public toString(options?: RationalFormatOptions): string {
     const parts: string[] = [];
     for (const { currency, value } of this.amounts.values()) {
-      parts.push(`${value.toString()} ${currency.id}`);
+      parts.push(`${value.toString(options)} ${currency.id}`);
     }
     return parts.join(", ");
   }
 
   /**
-   * Returns a precise, fractional value and the currency id.
+   * Returns the precise, fractional value and the currency id for each
+   * currency, sorted alphebetically by curreny id.
    */
   public toFractionString(): string {
     const parts: string[] = [];
-    for (const { currency, value } of this.amounts.values()) {
+    const sortedKeys = Array.from(this.amounts.keys()).sort();
+    for (let i = 0; i < sortedKeys.length; i++) {
+      const { currency, value } = this.amounts.get(sortedKeys[i])!;
       parts.push(`${value.toFractionString()} ${currency.id}`);
     }
     return parts.join(", ");
@@ -287,4 +303,52 @@ export class Amount {
     }
     return Amount.fromMap(result);
   }
+
+  /**
+   * Compares this Amount with another *strictly* by the per‑currency magnitudes
+   * that are already present in the two Amounts (no conversions, no rounding).
+   *
+   * ‑1 → this  <  other
+   *  0 → equal
+   *  1 → this  >  other
+   *
+   * Ordering is defined deterministically by ascending currency id so that the
+   * result is stable even when two Amount instances contain disjoint sets of
+   * currencies.
+   *
+   * Complexity: O(k) where k = |currencies(this) ∪ currencies(other)|.
+   * The method allocates only one `string[]` (the union key list) and touches
+   * each underlying `Rational` exactly once, which is about as cheap as a
+   * “naive” compare can be for millions of postings.
+   */
+  public naiveCompareTo(other: Amount): number {
+    // Fast path: identical reference ⇒ equal.
+    if (this === other) {
+      return 0;
+    }
+
+    // Build the union of currency ids that appear in either instance.
+    const keysSet = new Set<string>();
+    for (const k of this.amounts.keys()) keysSet.add(k);
+    for (const k of other.amounts.keys()) keysSet.add(k);
+
+    // Deterministic traversal order (important for stable ordering).
+    const keys = Array.from(keysSet);
+    keys.sort((a, b) => a.localeCompare(b)); // radix‑sort–like speed for short ASCII ids.
+
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[i];
+
+      // Get the Rational values or fall back to ZERO for missing currencies.
+      const a = this.amounts.get(key)?.value ?? Rational.ZERO;
+      const b = other.amounts.get(key)?.value ?? Rational.ZERO;
+
+      const cmp = a.compareTo(b);
+      if (cmp !== 0) {
+        return cmp; // first non‑equal currency decides
+      }
+    }
+    return 0; // all currency magnitudes equal
+  }
+
 }

@@ -1,10 +1,10 @@
 import { Account } from "../../accounting/account.ts";
-import { Posting } from "../../accounting/posting.ts";
+import { BoundPosting } from "../../accounting/posting.ts";
 import { Journal } from "../../data/journal.ts";
 import { IteratorCallback } from "../../data/transactionStore.ts";
 import { Query } from "./query.ts";
 
-export type PostingAcceptor = IteratorCallback<Posting, void>;
+export type PostingAcceptor = IteratorCallback<BoundPosting, void>;
 export type AccountAcceptor = IteratorCallback<Account, void>;
 
 export class QueryEngineExecutor {
@@ -23,7 +23,7 @@ export class QueryEngineExecutor {
         continue;
       }
 
-      transactionStore.iteratePostingsByAccount(accounts[i], (posting: Posting) => {
+      transactionStore.iteratePostingsByAccount(accounts[i], (posting: BoundPosting) => {
         if (!acceptLedgObject(posting)) {
           return;
         }

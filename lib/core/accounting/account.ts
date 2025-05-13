@@ -6,8 +6,7 @@ export class Account {
   protected readonly _delimitedGroups: string[];
 
   constructor(
-    public identifier: AccountIdentifier,
-    // TODO: split by delimeter
+    public identifier: AccountIdentifier
   ) {
     this._delimitedGroups = Account.splitIdentifier(identifier);
   }
@@ -18,5 +17,9 @@ export class Account {
 
   public static splitIdentifier(identifier: AccountIdentifier): string[]  {
     return identifier.split(Account.DELIMITER);
+  }
+
+  public static joinDelimitedGroups(delimitedGroups: string[]): string  {
+    return delimitedGroups.join(Account.DELIMITER);
   }
 }

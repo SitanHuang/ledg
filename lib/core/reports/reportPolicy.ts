@@ -3,6 +3,7 @@ import { Currency } from "../valuation/currency.ts";
 import { QueryPolicy } from "./query/queryPolicy.ts";
 
 export type ValuationStrategy = "eop" | "txnDate" | timestamp;
+export type SortStrategy = "accountId" | "asc" | "desc";
 
 export class ReportPolicy extends QueryPolicy {
   /**
@@ -46,14 +47,70 @@ export class ReportPolicy extends QueryPolicy {
   cumulative = false;
 
   /**
-   * Accumulates sub-account totals to their parents.
+   * Accumulates sub-account totals to their parents. Under `tree`=false, new
+   * entries will be added for every parent.
    */
   sumParent = false;
 
   /**
-   * Maximum depth of account levels displayed.
+   * Maximum depth of account levels displayed. Regardless of the `sumParent`
+   * option, accounts below the `maxDepth` will be summed to their parents.
+   *
+   * Tree view example:
+   *   ```
+   *   Expense 0
+   *     Car   1
+   *       Gas 2
+   *   ```
+   *
+   *   With maxDepth=2, becomes:
+   *   ```
+   *   Expense 0
+   *     Car   3
+   *   ```
+   *
    */
-  maxDepth?: number;
+  maxDepth = Infinity;
+
+  /**
+   * Minimum depth of top-level display items.
+   *
+   * Tree-view example:
+   *   ```
+   *   Expense 0
+   *     Car   1
+   *       Gas 2
+   *   ```
+   *
+   *   With minDepth=2, becomes:
+   *   ```
+   *   Expense.Car  1
+   *     Gas        2
+   *   ```
+   *
+   * In non-tree-view mode, `minDepth` has no effects UNLESS `sumParent` is
+   * enabled. In that case, the sumParent will stop at the requested `minDepth`.
+   * Example:
+   *
+   *   ```
+   *   Expense.Car     1
+   *   Expense.Car.Gas 2
+   *   ```
+   *
+   *   With minDepth=2 & sumParent=true, becomes:
+   *   ```
+   *   Expense.Car     3
+   *   Expense.Car.Gas 2
+   *   ```
+   *   With minDepth=0 & sumParent=true, becomes:
+   *   ```
+   *   Expense         3
+   *   Expense.Car     3
+   *   Expense.Car.Gas 2
+   *   ```
+   *
+   */
+  minDepth = 0;
 
   /**
    * Hides any entries with zero amounts, regardless of account status.
@@ -64,6 +121,19 @@ export class ReportPolicy extends QueryPolicy {
    * Enables account tree view.
    */
   tree = false;
+
+  /**
+   * Sorting strategy of the report.
+   *   - "accountId" - sorts by account identifier in ascending order
+   *   - "asc" | "desc" - sorts by total aggregate amount in
+   *     ascending/descending order across all periods
+   */
+  sortStrategy: SortStrategy = "accountId";
+
+  withSortStrategy(strategy: SortStrategy): this {
+    this.sortStrategy = strategy;
+    return this;
+  }
 
   withValutionCurrency(currency: Currency): this {
     this.valuationCurrency = currency;
@@ -90,6 +160,26 @@ export class ReportPolicy extends QueryPolicy {
     return this;
   }
 
+  withMinDepth(minDepth: number): this {
+    this.minDepth = minDepth;
+    return this;
+  }
+
+  withCumulative(cumulative: boolean): this {
+    this.cumulative = cumulative;
+    return this;
+  }
+
+  withHideZero(hideZero: boolean): this {
+    this.hideZero = hideZero;
+    return this;
+  }
+
+  withTree(tree: boolean): this {
+    this.tree = tree;
+    return this;
+  }
+
   withReportFrom(reportFrom: timestamp): this {
     this.reportFrom = reportFrom;
     return this;
@@ -112,7 +202,7 @@ export class ReportPolicy extends QueryPolicy {
       throw new Error("reportPeriodInterval not set");
     }
     if (!this.reportFrom || !this.reportTo) {
-      throw new Error("`from` and `to` must be defined on ReportPolicy");
+      throw new Error("`reportFrom` and `reportTo` must be defined on ReportPolicy");
     }
     if (!this._periods) {
       this._periods = new PeriodCalculator(

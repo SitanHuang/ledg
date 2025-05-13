@@ -1,5 +1,6 @@
-import { AccountGlob } from "./accountGlob.ts";
+import { LedgObject } from "../../data/ledgObject.ts";
 import { timestamp } from "../../types.ts";
+import { AccountGlob } from "./accountGlob.ts";
 
 export type ModifierQuery = RegExp | false;
 
@@ -59,5 +60,9 @@ export class QueryPolicy {
   withModifier(modifierName: string, query: ModifierQuery): this {
     this.modifiers.set(modifierName, query);
     return this;
+  }
+
+  useLedgObjDate(obj: LedgObject): timestamp {
+    return this.useDate == 'date' ? obj.date : obj.date2;
   }
 }
