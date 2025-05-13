@@ -116,6 +116,6 @@ describe.sequential('Integration: JournalReaderAdapter x AccountManager.closeAcc
       '2040-01-01 00:00:01 close Asset.Checking.BoA',
       '  \tAsset.Checking.BoA\t -1 * [1 USD] / 2',
       '  \tEquity.OpeningBalance',
-    ]) as Error)).toMatch(/Account "Asset.Checking.BoA" cannot be closed due to non-strictly-zero balance of -1 \/ 6 USD./);
+    ]) as Error)).toMatch(/Account "Asset.Checking.BoA" cannot be closed due to non-strictly-zero balance of .+-1 \/ 6 USD./);
   });
 });

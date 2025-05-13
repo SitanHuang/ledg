@@ -43,7 +43,7 @@ describe.sequential('Integration: JournalReaderAdapter x Pricing', () => {
       '  \tEquity.OpeningBalance\tCNY -1',
       '  \tAsset.Checking.BoA\t [1 USD] / 3', // 0.333
       '2040-01-01 00:00:01 close  Asset.Checking.BoA   #ffddaaz2',
-      '  \tAsset.Checking.BoA\t -1 * [1 EUR] / 3',
+      '  \tAsset.Checking.BoA\t-1 * [1 USD] / 3',
       '  \tEquity.OpeningBalance',
     ];
     expect(await parseSrc(src, journal)).toBe(Ok);
