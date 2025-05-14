@@ -215,13 +215,15 @@ export class MultiperiodTreeItem {
         parents.push(node);
       }
 
-      // copy money figures into the new leaf (last parent)
+      // clone the leaf’s own numbers into the final node
       const dst = parents[parents.length - 1];
       dst._copyTotalsFrom(leaf);
 
-      // always roll totals up the chain for a tree view
-      for (let i = parents.length - 2; i >= 0; i--) {
-        parents[i]._copyTotalsFrom(parents[i + 1]);
+      // roll totals up the chain for a tree view
+      if (this.reportPolicy.sumParent) {
+        for (let i = parents.length - 2; i >= 0; i--) {
+          parents[i]._copyTotalsFrom(parents[i + 1]);
+        }
       }
     }
 

@@ -47,8 +47,27 @@ export class ReportPolicy extends QueryPolicy {
   cumulative = false;
 
   /**
-   * Accumulates sub-account totals to their parents. Under `tree`=false, new
-   * entries will be added for every parent.
+   * Accumulates sub-account totals to their parents.
+   *
+   * Tree view example:
+   *   ```
+   *   Expense         0
+   *     Car           1
+   *       Gas         2
+   *       Maintenance 1
+   *   ```
+   *
+   *   With sumParent=true, becomes:
+   *   ```
+   *   Expense         4
+   *     Car           4
+   *       Gas         2
+   *       Maintenance 1
+   *   ```
+   *
+   * Under `tree`=false, all parent accounts will be shown in the report,
+   * including accounts that do not exist (e.g., never explicitly opened/created
+   * by the user.).
    */
   sumParent = false;
 
