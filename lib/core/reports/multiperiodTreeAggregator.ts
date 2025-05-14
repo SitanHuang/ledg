@@ -157,14 +157,30 @@ export class MultiperiodTreeItem {
   // flat children map; content may be rebuilt by treeView()/applyFlatPolicy()
   private children = new Map<string, MultiperiodTreeItem>();
 
+  private readonly delimitedGroups: readonly string[];
+
   constructor(
     protected readonly aggregator: MultiperiodTreeAggregator,
     protected readonly accountIdentifier: AccountIdentifier,
     protected readonly reportPolicy: ReportPolicy,
-    protected readonly depth = 0, // 0 = root level
+    protected depth = 0, // 0 = root level
   ) {
     this.periods = this.reportPolicy.periods();
     this.additiveSums = Array(this.periods.length).fill(Amount.ZERO);
+
+    this.delimitedGroups = Account.splitIdentifier(accountIdentifier);
+  }
+
+  get displayedName() {
+    if (!this.reportPolicy.tree) {
+      return this.accountIdentifier;
+    }
+
+    if (this.depth < this.reportPolicy.minDepth) {
+      return this.accountIdentifier;
+    }
+
+    return this.delimitedGroups.at(-1) ?? this.accountIdentifier;
   }
 
   accept(accountId: AccountIdentifier, ts: timestamp, amount?: Amount) {
@@ -204,7 +220,7 @@ export class MultiperiodTreeItem {
     this.children.clear(); // rebuild from scratch
 
     for (const leaf of leaves) {
-      const groups = Account.splitIdentifier(leaf.accountIdentifier);
+      const groups = leaf.delimitedGroups;
       const parents: MultiperiodTreeItem[] = [];
       let node: MultiperiodTreeItem = this; // start at ROOT
       let path = "";
@@ -222,7 +238,7 @@ export class MultiperiodTreeItem {
       // roll totals up the chain for a tree view
       if (this.reportPolicy.sumParent) {
         for (let i = parents.length - 2; i >= 0; i--) {
-          parents[i]._copyTotalsFrom(parents[i + 1]);
+          parents[i]._copyTotalsFrom(parents[parents.length - 1]);
         }
       }
     }
@@ -248,7 +264,7 @@ export class MultiperiodTreeItem {
     if (this.reportPolicy.maxDepth !== Infinity) {
       const toTrim: [string, MultiperiodTreeItem][] = [];
       for (const [id, item] of this.children) {
-        const depth = Account.splitIdentifier(id).length;
+        const depth = item.delimitedGroups.length;
         if (depth > this.reportPolicy.maxDepth) {
           toTrim.push([id, item]);
         }
@@ -256,8 +272,7 @@ export class MultiperiodTreeItem {
       for (const [id, item] of toTrim) {
         this.children.delete(id);
         const parentId = Account.joinDelimitedGroups(
-          Account.splitIdentifier(id)
-            .slice(0, this.reportPolicy.maxDepth)
+          item.delimitedGroups.slice(0, this.reportPolicy.maxDepth)
         );
         const anc = this._getOrCreateChild(parentId, 1);
         anc._copyTotalsFrom(item);
@@ -267,7 +282,7 @@ export class MultiperiodTreeItem {
     if (this.reportPolicy.sumParent) {
       const current = Array.from(this.children.values());
       for (const item of current) {
-        const segs = Account.splitIdentifier(item.accountIdentifier);
+        const segs = item.delimitedGroups;
         for (let lvl = segs.length - 1; lvl >= Math.max(this.reportPolicy.minDepth, 1); lvl--) {
           const parentId = Account.joinDelimitedGroups(segs.slice(0, lvl));
           const parent = this._getOrCreateChild(parentId, 1);
@@ -371,20 +386,38 @@ export class MultiperiodTreeItem {
     for (const child of this.children.values()) {
       child._applyMinDepth(minDepth);
       if (child.depth === minDepth - 1) {
-        for (const gc of child.children.values()) promoted.push(gc);
+        for (const gc of child.children.values()) {
+          promoted.push(gc);
+        }
       }
     }
 
     if (promoted.length) {
       this.children.clear();
-      for (const p of promoted) this.children.set(p.accountIdentifier, p);
+      for (const p of promoted) {
+        p.promoteRecursive();
+        this.children.set(p.accountIdentifier, p);
+      }
+    }
+  }
+
+  private promoteRecursive() {
+    this.depth--;
+    for (const gc of this.children.values()) {
+      gc.promoteRecursive();
     }
   }
 
   /** Total across all periods. */
-  grandTotal(): Amount {
+  grandTotalRecursive(): Amount {
     let total = Amount.ZERO;
+
     for (const a of this.additiveSums) total = total.plus(a);
+
+    for (const child of this.children.values()) {
+      total = total.plus(child.grandTotalRecursive());
+    }
+
     return total;
   }
 
@@ -401,7 +434,7 @@ export class MultiperiodTreeItem {
     } else {
       const asc = sortStrategy === "asc";
       kids.sort((a, b) => {
-        const cmp = a.grandTotal().naiveCompareTo(b.grandTotal());
+        const cmp = a.grandTotalRecursive().naiveCompareTo(b.grandTotalRecursive());
         return asc ? cmp : -cmp;
       });
     }
@@ -471,7 +504,7 @@ export class MultiperiodTreeItem {
       if (node.accountIdentifier) {
         const depth = treeMode ? node.depth : 1;
         const row = [
-          `"${node.accountIdentifier}"`,
+          `"${node.displayedName}"`,
           `"${depth}"`,
           ...node.additiveSums.map(a => `"${displayPrecision < Infinity ? a.toString({ displayPrecision }) : a.toFractionString()}"`)
         ];
@@ -481,6 +514,14 @@ export class MultiperiodTreeItem {
     };
 
     this._forEachChild(walk);
+
+    // const row = [
+    //   `"Sum"`,
+    //   `"0"`,
+    //   ...this.additiveSums.map(a => `"${displayPrecision < Infinity ? a.toString({ displayPrecision }) : a.toFractionString()}"`)
+    // ];
+    // lines.push(row.join(","));
+
     return lines.join("\n");
   }
 }

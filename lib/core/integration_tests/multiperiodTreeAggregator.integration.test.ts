@@ -732,4 +732,272 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
       ].join("\n"));
     });
   });
+
+  describe('Set 2: tree', () => {
+    beforeEach(async () => {
+      journal = Journal.create();
+      let src = [
+        '2020-01-01 open dev.null',
+        '2020-01-01 open income.a.a',
+        '2020-01-01 open income.b',
+        '2020-01-01 open income.b.a',
+        '2020-01-01 open income.z',
+        '2020-01-01 open income.z.a',
+        '2020-01-01 open expense.a',
+        '2020-01-01 open expense.c',
+        '2020-01-01 open asset.cash',
+        'P 2021-01-01 R $1.11',
+        'P 2021-12-31 R $2.22',
+        'P 2022-01-01 R $4.44',
+        'P 3000-01-01 R $5.55',
+        'P 0000-01-01 r 1R',
+        '2021-01-01 asdf',
+        '  ;tags:"A2"',
+        '  \tincome.z\t-1$',
+        '  \texpense.a\t1$',
+        '2021-02-01 asdf2',
+        '  ;bookClose:true',
+        '  ;tags:"A2"',
+        '  \tincome.z\t-0.5$',
+        '  \tincome.z.a\t-0.0011111$',
+        '  \tincome.b\t-1$',
+        '  \texpense.a\t1.4011111$',
+        '  \tasset.cash\t0.1$',
+        '2021-12-31 bar',
+        '  ;virt:true',
+        '  ;tags:"A1,A2"',
+        '  \tincome.a.a\t-1r',
+        '  \tincome.b.a\t-2r',
+        '  \texpense.c\t3r',
+      ];
+      expect(await parseSrc(src, journal)).toBe(Ok);
+    })
+
+    // Below tests are inspired by v1.0 `test/commands/incomestatement.js`
+
+    it('should not fail', async () => {
+      expect(getCSV(
+        journal,
+        new ReportPolicy()
+          .withReportFrom(Date.parse('2021-01-01Z'))
+          .withReportTo(Date.parse("2021-03-01Z"))
+          .withAccount("\\v^income|expense")
+          .withReportPeriodInterval(0, 1, 0)
+          .withHideZero(true)
+          .withTree(true)
+        , 2
+      )).toEqual([
+        '"Account","Depth","2021-01-01T00:00:00.000Z => 2021-02-01T00:00:00.000Z","2021-02-01T00:00:00.000Z => 2021-03-01T00:00:00.000Z"',
+        '"expense","1","",""',
+        '"a","2","1.0 $","1.4 $"',
+        '"income","1","",""',
+        '"b","2","","-1.0 $"',
+        '"z","2","-1.0 $","-0.5 $"',
+        '"a","3","","0.0 $"',
+      ].join("\n"));
+    });
+
+    it('should implement min-depth', async () => {
+      expect(getCSV(
+        journal,
+        new ReportPolicy()
+          .withReportFrom(Date.parse('2021-01-01Z'))
+          .withReportTo(Date.parse("2021-03-01Z"))
+          .withAccount("\\v^income|expense")
+          .withReportPeriodInterval(0, 1, 0)
+          .withHideZero(true)
+          .withTree(true)
+          .withMinDepth(2)
+          .withMaxDepth(11)
+        , 2
+      )).toEqual([
+        '"Account","Depth","2021-01-01T00:00:00.000Z => 2021-02-01T00:00:00.000Z","2021-02-01T00:00:00.000Z => 2021-03-01T00:00:00.000Z"',
+        '"expense.a","1","1.0 $","1.4 $"',
+        '"income.b","1","","-1.0 $"',
+        '"income.z","1","-1.0 $","-0.5 $"',
+        '"a","2","","0.0 $"',
+      ].join("\n"));
+    });
+
+    it('should implement min-depth and max-depth', async () => {
+      expect(getCSV(
+        journal,
+        new ReportPolicy()
+          .withReportFrom(Date.parse('2021-01-01Z'))
+          .withReportTo(Date.parse("2021-03-01Z"))
+          .withAccount("\\v^income|expense")
+          .withReportPeriodInterval(0, 1, 0)
+          .withHideZero(true)
+          .withTree(true)
+          .withMinDepth(2)
+          .withMaxDepth(2)
+        , 2
+      )).toEqual([
+        '"Account","Depth","2021-01-01T00:00:00.000Z => 2021-02-01T00:00:00.000Z","2021-02-01T00:00:00.000Z => 2021-03-01T00:00:00.000Z"',
+        '"expense.a","1","1.0 $","1.4 $"',
+        '"income.b","1","","-1.0 $"',
+        '"income.z","1","-1.0 $","-0.5 $"',
+      ].join("\n"));
+    });
+
+    it('should implement min-depth and sum parent', async () => {
+      expect(getCSV(
+        journal,
+        new ReportPolicy()
+          .withReportFrom(Date.parse('2021-01-01Z'))
+          .withReportTo(Date.parse("2021-03-01Z"))
+          .withAccount("\\v^income|expense")
+          .withReportPeriodInterval(0, 1, 0)
+          .withHideZero(true)
+          .withTree(true)
+          .withSumParent(true)
+          .withMinDepth(2)
+        , 2
+      )).toEqual([
+        '"Account","Depth","2021-01-01T00:00:00.000Z => 2021-02-01T00:00:00.000Z","2021-02-01T00:00:00.000Z => 2021-03-01T00:00:00.000Z"',
+        '"expense.a","1","1.0 $","1.4 $"',
+        '"income.b","1","","-1.0 $"',
+        '"income.z","1","-1.0 $","-0.5 $"',
+        '"a","2","","0.0 $"',
+      ].join("\n"));
+    });
+
+    it('should sum parent', async () => {
+      expect(getCSV(
+        journal,
+        new ReportPolicy()
+          .withReportFrom(Date.parse('2021-01-01Z'))
+          .withReportTo(Date.parse("2021-03-01Z"))
+          .withAccount("\\v^income|expense")
+          .withReportPeriodInterval(0, 1, 0)
+          .withHideZero(true)
+          .withTree(true)
+          .withSumParent(true)
+        , 2
+      )).toEqual([
+        '"Account","Depth","2021-01-01T00:00:00.000Z => 2021-02-01T00:00:00.000Z","2021-02-01T00:00:00.000Z => 2021-03-01T00:00:00.000Z"',
+        '"expense","1","1.0 $","1.4 $"',
+        '"a","2","1.0 $","1.4 $"',
+        '"income","1","-1.0 $","-1.5 $"',
+        '"b","2","","-1.0 $"',
+        '"z","2","-1.0 $","-0.5 $"',
+        '"a","3","","0.0 $"',
+      ].join("\n"));
+    });
+
+    it('should sort', async () => {
+      expect(getCSV(
+        journal,
+        new ReportPolicy()
+          .withReportFrom(Date.parse('2021-01-01Z'))
+          .withReportTo(Date.parse("2021-03-01Z"))
+          .withAccount("\\v^income|expense")
+          .withReportPeriodInterval(0, 1, 0)
+          .withHideZero(true)
+          .withTree(true)
+          .withSortStrategy("asc")
+        , 2
+      )).toEqual([
+        '"Account","Depth","2021-01-01T00:00:00.000Z => 2021-02-01T00:00:00.000Z","2021-02-01T00:00:00.000Z => 2021-03-01T00:00:00.000Z"',
+        '"income","1","",""',
+        '"z","2","-1.0 $","-0.5 $"',
+        '"a","3","","0.0 $"',
+        '"b","2","","-1.0 $"',
+        '"expense","1","",""',
+        '"a","2","1.0 $","1.4 $"',
+      ].join("\n"));
+      expect(getCSV(
+        journal,
+        new ReportPolicy()
+          .withReportFrom(Date.parse('2021-12-01Z'))
+          .withReportTo(Date.parse("2022-02-01Z"))
+          .withAccount("\\v^income|expense")
+          .withReportPeriodInterval(0, 1, 0)
+          .withHideZero(true)
+          .withTree(true)
+          .withSortStrategy("desc")
+          .withInversion(true)
+        , 0
+      )).toEqual([
+        '"Account","Depth","2021-12-01T00:00:00.000Z => 2022-01-01T00:00:00.000Z","2022-01-01T00:00:00.000Z => 2022-02-01T00:00:00.000Z"',
+        '"income","1","",""',
+        '"b","2","",""',
+        '"a","3","2 r",""',
+        '"a","2","",""',
+        '"a","3","1 r",""',
+        '"expense","1","",""',
+        '"c","2","-3 r",""',
+      ].join("\n"));
+      expect(getCSV(
+        journal,
+        new ReportPolicy()
+          .withReportFrom(Date.parse('2021-12-01Z'))
+          .withReportTo(Date.parse("2022-02-01Z"))
+          .withAccount("\\v^income|expense")
+          .withReportPeriodInterval(0, 1, 0)
+          .withHideZero(true)
+          .withTree(true)
+          .withSortStrategy("desc")
+        , 0
+      )).toEqual([
+        '"Account","Depth","2021-12-01T00:00:00.000Z => 2022-01-01T00:00:00.000Z","2022-01-01T00:00:00.000Z => 2022-02-01T00:00:00.000Z"',
+        '"expense","1","",""',
+        '"c","2","3 r",""',
+        '"income","1","",""',
+        '"a","2","",""',
+        '"a","3","-1 r",""',
+        '"b","2","",""',
+        '"a","3","-2 r",""',
+      ].join("\n"));
+    });
+
+    it('should sort and sum parent', async () => {
+      expect(getCSV(
+        journal,
+        new ReportPolicy()
+          .withReportFrom(Date.parse('2021-12-01Z'))
+          .withReportTo(Date.parse("2022-02-01Z"))
+          .withAccount("\\v^income|expense")
+          .withReportPeriodInterval(0, 1, 0)
+          .withHideZero(true)
+          .withTree(true)
+          .withSortStrategy("desc")
+          .withInversion(true)
+          .withSumParent(true)
+        , 0
+      )).toEqual([
+        '"Account","Depth","2021-12-01T00:00:00.000Z => 2022-01-01T00:00:00.000Z","2022-01-01T00:00:00.000Z => 2022-02-01T00:00:00.000Z"',
+        '"income","1","3 r",""',
+        '"b","2","2 r",""',
+        '"a","3","2 r",""',
+        '"a","2","1 r",""',
+        '"a","3","1 r",""',
+        '"expense","1","-3 r",""',
+        '"c","2","-3 r",""',
+      ].join("\n"));
+      expect(getCSV(
+        journal,
+        new ReportPolicy()
+          .withReportFrom(Date.parse('2021-12-01Z'))
+          .withReportTo(Date.parse("2022-02-01Z"))
+          .withAccount("\\v^income|expense")
+          .withReportPeriodInterval(0, 1, 0)
+          .withHideZero(true)
+          .withTree(true)
+          .withSortStrategy("asc")
+          .withInversion(true)
+          .withSumParent(true)
+        , 0
+      )).toEqual([
+        '"Account","Depth","2021-12-01T00:00:00.000Z => 2022-01-01T00:00:00.000Z","2022-01-01T00:00:00.000Z => 2022-02-01T00:00:00.000Z"',
+        '"expense","1","-3 r",""',
+        '"c","2","-3 r",""',
+        '"income","1","3 r",""',
+        '"a","2","1 r",""',
+        '"a","3","1 r",""',
+        '"b","2","2 r",""',
+        '"a","3","2 r",""',
+      ].join("\n"));
+    });
+  });
 });
