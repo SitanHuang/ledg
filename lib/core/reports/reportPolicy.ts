@@ -145,12 +145,12 @@ export class ReportPolicy extends QueryPolicy {
     return this;
   }
 
-  withValutionCurrency(currency: Currency): this {
+  withValuationCurrency(currency: Currency): this {
     this.valuationCurrency = currency;
     return this;
   }
 
-  withValutionStrategy(strategy: ValuationStrategy): this {
+  withValuationStrategy(strategy: ValuationStrategy): this {
     this.valuationStrategy = strategy;
     return this;
   }

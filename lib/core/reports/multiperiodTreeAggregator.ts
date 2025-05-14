@@ -302,7 +302,7 @@ export class MultiperiodTreeItem {
     const { currencyConversionService } = this.aggregator.journal;
     const { valuationStrategy, valuationCurrency } = this.reportPolicy;
 
-    if (!valuationCurrency) {
+    if (!valuationCurrency || valuationStrategy === "txnDate") { // txnDate performed at query time
       return;
     }
 

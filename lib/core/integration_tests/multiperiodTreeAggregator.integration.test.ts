@@ -26,7 +26,7 @@ function getCSV(journal: Journal, reportPolicy: ReportPolicy, dp=Infinity) {
 describe.sequential('Integration: MultiperiodTreeAggregator', () => {
   let journal: Journal;
 
-  describe('Set 1', () => {
+  describe('Set 1: non-cumulative', () => {
     beforeEach(async () => {
       journal = Journal.create();
       let src = [
@@ -180,13 +180,13 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
           .withReportPeriodInterval(0, 1, 0)
           .withModifier("bookClose", /^(?!true)/)
           .withHideZero(true)
-          .withValutionCurrency(journal.currencyProvider.getOrCreateCurrencyById("r"))
-          .withValutionStrategy("txnDate")
+          .withValuationCurrency(journal.currencyProvider.getOrCreateCurrencyById("r"))
+          .withValuationStrategy("txnDate")
         , 10
       )).toEqual([
         '"Account","Depth","2021-01-01T00:00:00.000Z => 2021-02-01T00:00:00.000Z","2021-02-01T00:00:00.000Z => 2021-03-01T00:00:00.000Z"',
-        '"expense.a","1","0.9009009009 r","0.0 r"',
-        '"income.z","1","-0.9009009009 r","0.0 r"',
+        '"expense.a","1","0.9009009009 r",""',
+        '"income.z","1","-0.9009009009 r",""',
       ].join("\n"));
 
       expect(getCSV(
@@ -197,12 +197,12 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
           .withAccount("!expense.c")
           .withReportPeriodInterval(0, 6, 0)
           .withHideZero(true)
-          .withValutionCurrency(journal.currencyProvider.getOrCreateCurrencyById("$"))
-          .withValutionStrategy("txnDate")
+          .withValuationCurrency(journal.currencyProvider.getOrCreateCurrencyById("$"))
+          .withValuationStrategy("txnDate")
         , 10
       )).toEqual([
         '"Account","Depth","2021-01-01T00:00:00.000Z => 2021-07-01T00:00:00.000Z","2021-07-01T00:00:00.000Z => 2022-01-01T00:00:00.000Z"',
-        '"expense.c","1","0.0 $","6.66 $"',
+        '"expense.c","1","","6.66 $"',
       ].join("\n"));
 
       expect(getCSV(
@@ -213,13 +213,13 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
           .withAccount("!expense.c")
           .withReportPeriodInterval(0, 6, 0)
           .withHideZero(true)
-          .withValutionCurrency(journal.currencyProvider.getOrCreateCurrencyById("$"))
-          .withValutionStrategy("txnDate")
+          .withValuationCurrency(journal.currencyProvider.getOrCreateCurrencyById("$"))
+          .withValuationStrategy("txnDate")
           .withUseDate("date2")
         , 10
       )).toEqual([
         '"Account","Depth","2021-01-01T00:00:00.000Z => 2021-07-01T00:00:00.000Z","2021-07-01T00:00:00.000Z => 2022-01-01T00:00:00.000Z"',
-        '"expense.c","1","6.66 $","0.0 $"',
+        '"expense.c","1","6.66 $",""',
       ].join("\n"));
 
       expect(getCSV(
@@ -230,8 +230,8 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
           .withAccount("!expense.c")
           .withReportPeriodInterval(0, 6, 0)
           .withHideZero(true)
-          .withValutionCurrency(journal.currencyProvider.getOrCreateCurrencyById("$"))
-          .withValutionStrategy(Date.parse('2021-01-01Z'))
+          .withValuationCurrency(journal.currencyProvider.getOrCreateCurrencyById("$"))
+          .withValuationStrategy(Date.parse('2021-01-01Z'))
           .withUseDate("date2")
         , 10
       )).toEqual([
@@ -250,8 +250,8 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
           .withReportPeriodInterval(0, 1, 0)
           .withModifier("bookClose", /^(?!true)/)
           .withHideZero(true)
-          .withValutionCurrency(journal.currencyProvider.getOrCreateCurrencyById("r"))
-          .withValutionStrategy(Date.parse('3000-01-01Z'))
+          .withValuationCurrency(journal.currencyProvider.getOrCreateCurrencyById("r"))
+          .withValuationStrategy(Date.parse('3000-01-01Z'))
         , 1
       )).toEqual([
         '"Account","Depth","2021-01-01T00:00:00.000Z => 2021-02-01T00:00:00.000Z","2021-02-01T00:00:00.000Z => 2021-03-01T00:00:00.000Z"',
@@ -267,8 +267,8 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
           .withAccount("!expense.c")
           .withReportPeriodInterval(0, 6, 0)
           .withHideZero(true)
-          .withValutionCurrency(journal.currencyProvider.getOrCreateCurrencyById("$"))
-          .withValutionStrategy(Date.parse('2020-01-01Z'))
+          .withValuationCurrency(journal.currencyProvider.getOrCreateCurrencyById("$"))
+          .withValuationStrategy(Date.parse('2020-01-01Z'))
           .withUseDate("date2")
         , 10
       )).toEqual([
@@ -618,5 +618,118 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
         '"income.z","1","-1 $","-1 $"',
       ].join("\n"));
     })
+  });
+
+  describe('Set 2: cumulative', () => {
+    beforeEach(async () => {
+      journal = Journal.create();
+      let src = [
+        "2021-01-01 open asset.cash",
+        "2021-01-01 open liability.cc",
+        "P 2021-01-01 R $1",
+        "P 2021-01-02 R $2",
+        "P 2021-02-01 R $3",
+        "2021-01-01 2",
+        "  ;bookClose:true",
+        "  \tasset.cash\t1R",
+        "  \tliability.cc\t-1$",
+        "2021-01-01",
+        "  \tasset.cash\t1R",
+        "  \tliability.cc\t-1R",
+      ];
+      expect(await parseSrc(src, journal)).toBe(Ok);
+    })
+
+    // Below tests are inspired by v1.0 `test/commands/balancesheet.js`
+
+    it('should bring up historical balance', async () => {
+      expect(getCSV(
+        journal,
+        new ReportPolicy()
+          .withReportFrom(Date.parse('2022-01-01Z'))
+          .withReportTo(Date.parse("2022-02-01Z"))
+          .withReportPeriodInterval(0, 1, 0)
+          .withModifier('bookClose', /^(?!true)/)
+          .withCumulative(true)
+        , 1
+      )).toEqual([
+        '"Account","Depth","2022-01-01T00:00:00.000Z => 2022-02-01T00:00:00.000Z"',
+        '"asset.cash","1","1.0 R"',
+        '"liability.cc","1","-1.0 R"',
+      ].join("\n"));
+    });
+
+    it('should convert currency at date of entry', async () => {
+      expect(getCSV(
+        journal,
+        new ReportPolicy()
+          .withReportFrom(Date.parse('2022-01-01Z'))
+          .withReportTo(Date.parse("2022-02-01Z"))
+          .withReportPeriodInterval(0, 1, 0)
+          .withModifier('bookClose', /^(?!true)/)
+          .withValuationCurrency(journal.currencyProvider.getOrCreateCurrencyById("$"))
+          .withCumulative(true)
+        , 1
+      )).toEqual([
+        '"Account","Depth","2022-01-01T00:00:00.000Z => 2022-02-01T00:00:00.000Z"',
+        '"asset.cash","1","1.0 $"',
+        '"liability.cc","1","-1.0 $"',
+      ].join("\n"));
+    });
+
+    it('should convert currency at some valuation date', async () => {
+      expect(getCSV(
+        journal,
+        new ReportPolicy()
+          .withReportFrom(Date.parse('2022-01-01Z'))
+          .withReportTo(Date.parse("2022-02-01Z"))
+          .withReportPeriodInterval(0, 1, 0)
+          .withModifier('bookClose', /^(?!true)/)
+          .withValuationCurrency(journal.currencyProvider.getOrCreateCurrencyById("$"))
+          .withValuationStrategy(Date.parse("2021-01-02Z"))
+          .withCumulative(true)
+        , 1
+      )).toEqual([
+        '"Account","Depth","2022-01-01T00:00:00.000Z => 2022-02-01T00:00:00.000Z"',
+        '"asset.cash","1","2.0 $"',
+        '"liability.cc","1","-2.0 $"',
+      ].join("\n"));
+    });
+
+    it('should convert currency at end of period', async () => {
+      expect(getCSV(
+        journal,
+        new ReportPolicy()
+          .withReportFrom(Date.parse('2021-01-01Z'))
+          .withReportTo(Date.parse("2021-03-01Z"))
+          .withReportPeriodInterval(0, 1, 0)
+          .withModifier('bookClose', /^(?!true)/)
+          .withValuationCurrency(journal.currencyProvider.getOrCreateCurrencyById("$"))
+          .withValuationStrategy("eop")
+          .withCumulative(true)
+        , 1
+      )).toEqual([
+        '"Account","Depth","2021-01-01T00:00:00.000Z => 2021-02-01T00:00:00.000Z","2021-02-01T00:00:00.000Z => 2021-03-01T00:00:00.000Z"',
+        '"asset.cash","1","2.0 $","3.0 $"',
+        '"liability.cc","1","-2.0 $","-3.0 $"',
+      ].join("\n"));
+
+      expect(getCSV(
+        journal,
+        new ReportPolicy()
+          .withReportFrom(Date.parse('2021-01-01Z'))
+          .withReportTo(Date.parse("2021-03-01Z"))
+          .withReportPeriodInterval(0, 1, 0)
+          .withModifier('description', /2/)
+          .withValuationCurrency(journal.currencyProvider.getOrCreateCurrencyById("$"))
+          .withValuationStrategy("eop")
+          .withCumulative(true)
+        , 1
+      )).toEqual([
+        '"Account","Depth","2021-01-01T00:00:00.000Z => 2021-02-01T00:00:00.000Z","2021-02-01T00:00:00.000Z => 2021-03-01T00:00:00.000Z"',
+        '"asset.cash","1","2.0 $","3.0 $"',
+        '"liability.cc","1","-1.0 $","-1.0 $"',
+      ].join("\n"));
+    });
   });
 });
