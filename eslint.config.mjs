@@ -19,6 +19,7 @@ export default tseslint.config(
       "@typescript-eslint/no-non-null-assertion": "off",
       "@typescript-eslint/prefer-for-of": "off",
       "@typescript-eslint/no-this-alias": "off",
+      "@typescript-eslint/switch-exhaustiveness-check": "error",
     }
   },
   globalIgnores(["lib/**/*.test.ts", "node_modules/*", "out/*", "types/*"]),

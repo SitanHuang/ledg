@@ -4,7 +4,7 @@ export default defineConfig({
   test: {
     include: ["out/**/*.{test,spec}.?(c|m)[jt]s?(x)"],
     coverage: {
-      exclude: ["test*", "**/*.{test,config}.{js,ts}", "**/namespace.{js,ts}", "benchmarks/*", "types/*"],
+      exclude: ["test*", "**/*.{test,config}.{js,ts}", "**/namespace.{js,ts}", "benchmarks/*", "types/*", "**/~*", "**/*.mjs"],
       provider: "v8"
     },
     reporters: ["verbose"]
