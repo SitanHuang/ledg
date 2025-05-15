@@ -179,6 +179,11 @@ export class ReportPolicy extends QueryPolicy {
     return this;
   }
 
+  withSingleReportPeriod(): this {
+    this.reportPeriodInterval = ReportPeriodInterval.SINGLE_PERIOD_INTERVAL;
+    return this
+  }
+
   withSumParent(sumParent: boolean): this {
     this.sumParent = sumParent;
     return this;
@@ -259,6 +264,8 @@ export class ReportPeriodInterval {
     public monthInterval = 0,
     public yearInterval = 0,
   ) {}
+
+  public static readonly SINGLE_PERIOD_INTERVAL = new ReportPeriodInterval(Infinity, Infinity, Infinity);
 }
 
 export class Period {
@@ -326,6 +333,15 @@ class PeriodCalculator {
       throw new Error("ReportPeriodInterval cannot be all zeros");
     }
 
+    if (
+      dayInterval === Infinity ||
+      monthInterval === Infinity ||
+      yearInterval === Infinity
+    ) {
+      // exactly one bucket – from start (inclusive) to end (exclusive)
+      return [new Period(this.start.getTime(), this.end.getTime())];
+    }
+
     const periods: Period[] = [];
     let curStart = this.start;
 
@@ -350,14 +366,12 @@ class PeriodIndexer {
    */
   private readonly periods: readonly Period[];
   private readonly intv: ReportPeriodInterval;
-  private readonly baseDate: Date;
   private readonly msPerDayIntv: number; // pre‑calc for day‑only path
   private readonly totalMonthsIntv: number;
 
   constructor(periods: readonly Period[], intv: ReportPeriodInterval) {
     this.periods = periods;
     this.intv = intv;
-    this.baseDate = new Date(periods[0].from);
     this.msPerDayIntv = intv.dayInterval * MS_PER_DAY;
     this.totalMonthsIntv = intv.yearInterval * 12 + intv.monthInterval;
 

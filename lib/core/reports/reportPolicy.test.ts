@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Period, ReportPeriodInterval, ReportPolicy } from './reportPolicy.ts';
 
-const ts = (isoDate: string): number => Date.parse(`${isoDate}T00:00:00Z`);
+const ts = (isoDate: string): number => Date.parse(`${isoDate}Z`);
 
 function buildPolicy(from: string, to: string, intv: ReportPeriodInterval): ReportPolicy {
   return new ReportPolicy()
@@ -197,5 +197,44 @@ describe('ReportPolicy - lazy build + idempotence', () => {
     const p1 = rp.periods();
     const p2 = rp.periods();
     expect(p1).toBe(p2);
+  });
+});
+
+describe('ReportPolicy - single-period mode', () => {
+  it('creates exactly one bucket that spans the full range', () => {
+    const rp = new ReportPolicy()
+      .withReportFrom(ts('2024-01-01'))
+      .withReportTo(ts('2024-01-10'))
+      .withSingleReportPeriod();
+
+    const periods = rp.periods();
+    expect(periods).toHaveLength(1);
+    expect(periods[0]).toEqual(
+      new Period(ts('2024-01-01'), ts('2024-01-10')),
+    );
+
+    // bucketIndex mapping
+    expect(rp.bucketIndex(ts('2024-01-05'))).toBe(0);  // inside
+    expect(rp.bucketIndex(ts('2024-01-10'))).toBe(-1); // upper bound exclusive
+    expect(rp.bucketIndex(ts('2023-12-31'))).toBe(-1); // below range
+  });
+
+  it('wins over a previous withReportPeriodInterval() call (last-call-wins)', () => {
+    const rp = new ReportPolicy()
+      .withReportFrom(ts('2024-05-01'))
+      .withReportTo(ts('2024-05-15'))
+      .withReportPeriodInterval(1, 0, 0) // daily – will be overridden
+      .withSingleReportPeriod();
+
+    expect(rp.periods()).toHaveLength(1);
+  });
+
+  it('still validates from/to > 0 and throws when invalid', () => {
+    const rp = new ReportPolicy()
+      .withReportFrom(ts('2024-01-01'))
+      .withReportTo(ts('2024-01-01')) // equal → invalid
+      .withSingleReportPeriod();
+
+    expect(() => rp.periods()).toThrow(/`to` must be > `from`/);
   });
 });
