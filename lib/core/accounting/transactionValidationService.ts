@@ -6,7 +6,9 @@ import { Amount } from "./amount.ts";
 import { PostingBuilder } from "./posting.ts";
 import { TransactionBuilder } from "./transaction.ts";
 
-export class TransactionValidationError extends Error {}
+export class TransactionValidationError extends Error {
+  protected readonly __transactionValidationErrorBrand = undefined;
+}
 
 export class TransactionValidationService {
 

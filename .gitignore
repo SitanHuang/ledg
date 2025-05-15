@@ -16,3 +16,4 @@ ledg-win.exe
 out/*
 coverage/*
 types/*
+.vscode

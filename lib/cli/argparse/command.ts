@@ -1,0 +1,219 @@
+import { hasError, isOk, Maybe, Ok, Result } from "../../core/types.ts";
+import { ArgParseError, Positionals, Token } from "./argparse.ts";
+import { Option, OptionValue } from "./option.ts";
+
+export abstract class Command {
+
+  protected readonly longOptions = new Map<string, Option>();
+  protected readonly shortOptions = new Map<string, string>();
+
+  constructor(
+    public readonly name: string,
+    public readonly description: string,
+  ) { }
+
+  protected setOption(opt: Option): this {
+    this.longOptions.set(opt.name, opt);
+
+    if (opt.alias) {
+      this.shortOptions.set(opt.alias, opt.name);
+    }
+
+    return this;
+  }
+  protected removeOption(opt: Option): this {
+    this.longOptions.delete(opt.name);
+
+    return this;
+  }
+
+  build() { /* stub */ }
+
+  exec(argv: readonly string[]): Result<Positionals, ArgParseError> {
+    const positionals: Token[] = [];
+
+    const userProvidedOptions = new Set<Option>();
+
+    let bypass = false;
+
+    for (let i = 0; i < argv.length; i++) {
+      const raw = argv[i];
+
+      if (raw == '--') { bypass = true; continue; }
+      if (bypass) { positionals.push(new Token(raw, true)); continue; }
+
+      if (raw.startsWith("--")) {
+        // Long form: --name or --name=value
+        const eq = raw.indexOf("=");
+        const longName = raw.slice(2, eq === -1 ? undefined : eq);
+        const opt = this.longOptions.get(longName);
+
+        if (!opt) {
+          throw new ArgParseError(`Unknown option --${longName}`);
+        }
+
+        let val: string | undefined;
+
+        if (eq !== -1) {
+          val = raw.slice(eq + 1);
+        } else if (opt.type === "boolean") {
+          val = "true";
+        } else {
+          val = argv[i + 1];
+
+          if (val === undefined) {
+            throw new ArgParseError(`Option --${longName} expects a value.`);
+          }
+
+          ++i; // consume look‑ahead
+        }
+
+        const result = this.parseOption(opt, val);
+        userProvidedOptions.add(opt);
+
+        if (!isOk(result)) {
+          return result;
+        }
+
+        continue;
+      }
+
+      if (raw.startsWith("-") && raw.length > 1) {
+        const chars = raw.slice(1).split("");
+        for (let cIdx = 0; cIdx < chars.length; ++cIdx) {
+          const ch = chars[cIdx];
+          const longName = this.shortOptions.get(ch);
+          const opt = longName ? this.longOptions.get(longName) : undefined;
+          if (!opt) {
+            throw new ArgParseError(`Unknown option -${ch}`);
+          }
+
+          let val: string | undefined;
+          if (opt.type === "boolean") {
+            val = "true";
+          } else if (cIdx === chars.length - 1) {
+            val = argv[i + 1];
+
+            if (val === undefined) {
+              throw new ArgParseError(`Option -${ch} expects a value.`);
+            }
+
+            ++i;
+          } else {
+            throw new ArgParseError(`Option -${ch} must be last in cluster as it expects a value.`);
+          }
+
+          const result = this.parseOption(opt, val);
+          userProvidedOptions.add(opt);
+
+          if (!isOk(result)) {
+            return result;
+          }
+        }
+        continue;
+      }
+
+      positionals.push(new Token(raw));
+    }
+
+    // Inject defaults for missing options
+    for (const opt of this.longOptions.values()) {
+      if (!userProvidedOptions.has(opt)) {
+        if (opt.defaultValue !== undefined) {
+          this.consumeOption(opt, opt.parse() as OptionValue);
+        } else if (opt.required) {
+          return new ArgParseError(`Option --${opt.name} is required.`)
+        }
+      }
+    }
+
+    return positionals;
+  }
+
+  private parseOption(option: Option, val: string): Maybe<ArgParseError> {
+    const result = option.parse(val);
+
+    if (hasError(result)) {
+      return result;
+    }
+
+    const err = this.consumeOption(option, result);
+
+    if (!isOk(err)) {
+      return err;
+    }
+
+    return Ok;
+  }
+
+  protected abstract consumeOption(option: Option, value: OptionValue): Maybe<ArgParseError>;
+
+  abstract run(positionals: Positionals): Promise<Maybe>;
+}
+
+export abstract class ExtensibleCommand extends Command {
+  protected readonly subcommandAliases = new Map<string, string>();
+  protected readonly subcommands = new Map<string, Command>();
+
+  setSubcommand(name: string, aliases: string[], subcommand: Command): this {
+    this.subcommands.set(name, subcommand);
+
+    aliases.forEach(alias => {
+      this.subcommandAliases.set(alias, name);
+    });
+
+    return this;
+  }
+
+  protected detectedSubcommand?: Command;
+
+  build(): this {
+    super.build();
+
+    for (const command of this.subcommands.values()) {
+      command.build();
+    }
+
+    return this;
+  }
+
+  override exec(argv: readonly string[]): Result<Positionals, ArgParseError> {
+    this.detectedSubcommand = undefined;
+
+    const sentinelIdx = argv.indexOf("--");
+
+    const relevantTokens = sentinelIdx >= 0 ? argv.slice(0, sentinelIdx) : argv;
+
+    // first non-option in that slice
+    const subIndex = relevantTokens.findIndex(arg => !arg.startsWith("-"));
+    if (subIndex >= 0) {
+      const rawName = relevantTokens[subIndex];
+      const name = this.subcommandAliases.get(rawName) ?? rawName;
+      const sub = this.detectedSubcommand = this.subcommands.get(name);
+      if (sub) {
+        // delegate everything after the sub-command name
+        return sub.exec(argv.slice(subIndex + 1));
+      }
+    }
+
+    // no sub-command matched → fall back to normal parsing
+    return super.exec(argv);
+  }
+
+  override async run(positionals: Positionals): Promise<Maybe> {
+    if (this.detectedSubcommand) {
+      return this.detectedSubcommand.run(positionals);
+    }
+
+    return this.runDefault(positionals);
+  }
+
+  consumeOption(): Maybe<ArgParseError> {
+    return Ok;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async runDefault(_positionals: Positionals): Promise<Maybe> {
+    return new ArgParseError(`"${this.name}" requires a valid subcommand.`);
+  }
+}

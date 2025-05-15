@@ -1,35 +1,47 @@
 type timestamp = number;
 
-// eslint-disable-next-line @typescript-eslint/no-extraneous-class
-class NoneType {
+class NoneClass {
+  private readonly __noneTypeBrand = undefined;
+
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   private constructor() {}
 
-  public static readonly instance: NoneType = Object.freeze(new NoneType());
+  public static readonly instance: NoneType = Object.freeze(new NoneClass());
 }
 
-// eslint-disable-next-line @typescript-eslint/no-extraneous-class
-class OkType {
+class OkClass {
+  private readonly __okTypeBrand = undefined;
+
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   private constructor() { }
 
-  public static readonly instance: OkType = Object.freeze(new OkType());
+  public static readonly instance: OkType = Object.freeze(new OkClass());
 }
 
-const None: NoneType = NoneType.instance;
-const Ok: OkType = OkType.instance;
+type NoneType = Readonly<NoneClass>;
+type OkType = Readonly<OkClass>;
+
+const None: NoneType = NoneClass.instance;
+const Ok: OkType = OkClass.instance;
 
 type Some<T> = T;
-type Option<T> = Some<T> | NoneType;
+type Option<T> = T | NoneType;
 type Maybe<E extends Error = Error> = OkType | E;
 
-type Result<T, E extends Error = Error> = Some<T> | E;
+type Result<T, E extends Error = Error> = T | E;
 
 function isSome<T>(opt: Option<T>): opt is T {
   return opt !== None && !(opt instanceof Error);
 }
 function isNone<T>(opt: Option<T>): opt is NoneType {
   return opt === None;
+}
+
+function hasResult<T>(opt: Result<T>): opt is T {
+  return opt !== None && !(opt instanceof Error);
+}
+function hasError<E extends Error=Error>(opt: Result<unknown, E>): opt is E {
+  return opt instanceof Error;
 }
 
 function isOk(maybe: Maybe): maybe is OkType {
@@ -55,4 +67,4 @@ function unwrap<T>(opt: Option<T>): T {
   throw new Error("PANIC: Called unwrap on a None value");
 }
 
-export { timestamp, Option, Some, None, isSome, isNone, unwrap, unwrapResult, Result, Ok, Maybe, NoneType, OkType, isOk };
+export { timestamp, Option, Some, None, isSome, isNone, hasResult, hasError, unwrap, unwrapResult, Result, Ok, Maybe, NoneType, OkType, isOk };

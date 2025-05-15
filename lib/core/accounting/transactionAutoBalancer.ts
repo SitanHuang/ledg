@@ -3,7 +3,9 @@ import { Amount, CurrencyConversionService, isNone, None, NoneType, Option, Post
 import { CurrencyProvider } from "../valuation/currencyProvider.ts";
 import { ValuationPolicy } from "../valuation/policy.ts";
 
-export class TransactionAutoBalanceError extends Error {}
+export class TransactionAutoBalanceError extends Error {
+  protected readonly __transactionAutoBalanceErrorBrand = undefined;
+}
 
 export class TransactionAutoBalancer {
   constructor(

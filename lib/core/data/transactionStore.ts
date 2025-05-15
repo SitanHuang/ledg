@@ -4,8 +4,12 @@ import { Transaction } from "../accounting/transaction.ts";
 import { TransactionID } from "../accounting/types.ts";
 import { Maybe, Ok } from "../types.ts";
 
-export class TransactionStoreError extends Error {};
-export class DuplicateUUIDError extends TransactionStoreError {};
+export class TransactionStoreError extends Error {
+  protected readonly __transactionStoreErrorBrand = undefined;
+};
+export class DuplicateUUIDError extends TransactionStoreError {
+  protected readonly __duplicateUUIDErrorBrand = undefined;
+};
 
 export type IteratorFlowControl = "stop" | "continue" | undefined; // undefined is same as stop
 export const IteratorStop: IteratorFlowControl = "stop";

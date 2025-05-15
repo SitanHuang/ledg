@@ -2,7 +2,9 @@ import { None, Ok, OkType, Option, Result, timestamp, unwrap } from "../types.ts
 import { Account, AccountIdentifier } from "./account.ts";
 import { BalanceAssertionService } from "./balanceAssertionService.ts";
 
-export class AccountAssignmentError extends Error {};
+export class AccountAssignmentError extends Error {
+  protected readonly __accountAssignmentErrorBrand = undefined;
+};
 
 export type AccountStatus = "closed" | "open" | "unopen";
 export const ACCOUNT_CLOSED: AccountStatus = "closed";
@@ -14,7 +16,9 @@ export interface AccountAssignableObject {
   date2?: timestamp;
 }
 
-export class AccountClosureAssertionError extends Error { }
+export class AccountClosureAssertionError extends Error {
+  protected readonly __accountClosureAssertionErrorBrand = undefined;
+}
 
 /**
  * The AccountManager's primary purpose is to track an account's life cycle:
