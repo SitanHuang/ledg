@@ -8,6 +8,7 @@ export type RenderFormat = {
 } | {
   target: 'ascii',
   colorSpace?: TerminalColorSpace,
+  lightTerminal?: boolean,
 };
 
 export abstract class Renderable {

@@ -31,7 +31,6 @@ export abstract class ReportCommand extends QueryCommand {
 
   protected readonly singlePeriodOption = new Option({
     name: "single-period",
-    alias: "sp",
     type: "boolean",
     description: "Treat the entire range as one period bucket.",
   });
@@ -52,28 +51,28 @@ export abstract class ReportCommand extends QueryCommand {
 
   protected readonly cumulativeOption = new Option({
     name: "cumulative",
-    alias: "cum",
+    alias: "cml",
     type: "boolean",
     description: "Aggregate each period cumulatively.",
   });
 
   protected readonly sumParentOption = new Option({
     name: "sum-parent",
-    alias: "spn",
+    alias: "sp",
     type: "boolean",
     description: "Accumulate sub-account totals into parents.",
   });
 
   protected readonly maxDepthOption = new Option({
     name: "max-depth",
-    alias: "md",
+    alias: "dep",
     type: "int",
     description: "Maximum account depth shown (Infinity by default).",
   });
 
   protected readonly minDepthOption = new Option({
     name: "min-depth",
-    alias: "nd",
+    alias: "mdep",
     type: "int",
     description: "Minimum account depth of top-level rows (0 by default).",
   });

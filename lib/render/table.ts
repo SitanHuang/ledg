@@ -38,14 +38,13 @@ export interface TableOptions {
    */
   firstRowIsHeader?: boolean;
   /**
-   * When true, header rows are underlined (ascii) / receive <u> (html).
+   * When true, header rows are underlined
    */
   underlineHeader?: boolean;
-
   /**
-   * When true, the alternating row colors are correctly modified for readability in the terminal.
+   * When true, header rows are bold
    */
-  lightTerminal?: boolean;
+  boldHeader?: boolean;
 }
 
 interface RowOptions {
@@ -53,6 +52,10 @@ interface RowOptions {
   header?: boolean;
   /** Whether to underline the whole row regardless of header status. */
   underline?: boolean;
+  /** Whether to underline the previous row regardless of header status. */
+  topline?: boolean;
+  /** Whether to bold the whole row regardless of header status. */
+  boldline?: boolean;
   /** Reset alternate-row colour to the initial (un-shaded) state before this row. */
   resetAlternateColor?: boolean;
 }
@@ -74,6 +77,8 @@ class TableRow {
     this.opts = {
       header: !!opts.header,
       underline: !!opts.underline,
+      topline: !!opts.topline,
+      boldline: !!opts.boldline,
       resetAlternateColor: !!opts.resetAlternateColor,
     };
   }
@@ -143,7 +148,7 @@ export class Table extends Renderable {
       alternateColor: opts.alternateColor ?? true,
       firstRowIsHeader: opts.firstRowIsHeader ?? true,
       underlineHeader: opts.underlineHeader ?? true,
-      lightTerminal: opts.lightTerminal ?? false,
+      boldHeader: opts.boldHeader ?? true,
     };
   }
 
@@ -197,7 +202,7 @@ export class Table extends Renderable {
 
     let altRow = 0;
 
-    this.rows.forEach((row) => {
+    this.rows.forEach((row, rowId) => {
       if (row.opts.resetAlternateColor) altRow = 0;
 
       const cells: TableCell[] = row.cells.map(
@@ -211,14 +216,22 @@ export class Table extends Renderable {
       );
       line.htmlTag('tr');
 
-      if ((row.opts.header && this.opts.underlineHeader) || row.opts.underline) {
+      if (
+        (row.opts.header && this.opts.underlineHeader) || row.opts.underline ||
+        this.rows.at(rowId + 1)?.opts.topline
+      ) {
         line.underline(true);
+      }
+      if (
+        (row.opts.header && this.opts.boldHeader) || row.opts.boldline
+      ) {
+        line.bold(true);
       }
 
       if (this.opts.alternateColor && !row.opts.header) {
         if (altRow++ % 2 === 1) {
           line.bg(
-            this.opts.lightTerminal ?
+            format.target !== "ascii" || format.lightTerminal ?
               [0xee, 0xee, 0xee] :
               [0x1c, 0x1c, 0x1c]
           );

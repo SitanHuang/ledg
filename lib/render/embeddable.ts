@@ -40,6 +40,10 @@ export class JoinedEmbeddable extends Embeddable {
     return new JoinedEmbeddable(interleaved);
   }
 
+  deconstruct(): readonly Embeddable[] {
+    return this.embeds;
+  }
+
   public static join(embeds: Embeddable[]): JoinedEmbeddable {
     return new this(embeds);
   }

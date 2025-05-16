@@ -20,7 +20,9 @@ async function parseSrc(src: string[], journal?: Journal) {
 }
 
 function getCSV(journal: Journal, reportPolicy: ReportPolicy, dp=Infinity) {
-  return new MultiperiodTreeAggregator(journal, QueryEngine.create(reportPolicy).compile(), reportPolicy).execute().debugCSV(dp);
+  const x = new MultiperiodTreeAggregator(journal, QueryEngine.create(reportPolicy).compile(), reportPolicy);
+  x.execute();
+  return x.debugCSV(dp);
 }
 
 describe.sequential('Integration: MultiperiodTreeAggregator', () => {

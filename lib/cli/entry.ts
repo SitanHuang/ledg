@@ -1,6 +1,8 @@
 import { getErrorMessages } from "../core/utils/debugErrorTools.ts";
 import { RootCommand } from "./commands/root.ts";
 
+export const DEBUG = true;
+
 (async () => {
   try {
     const root = new RootCommand();
@@ -16,8 +18,16 @@ import { RootCommand } from "./commands/root.ts";
       throw status;
     }
   } catch (e) {
+    if ((e as Error).message?.includes("Help requested.")) {
+      process.exit(1);
+    }
     // TODO: we need a CLI version for pretty printing errors
     console.error(getErrorMessages(e));
+
+    if (DEBUG) {
+      throw e;
+    }
+
     process.exit(1);
   }
 })();

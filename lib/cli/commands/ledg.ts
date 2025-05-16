@@ -7,6 +7,7 @@ import { isOk, Maybe, Ok, Result } from "../../core/types.ts";
 import { ArgParseError, Positionals } from "../argparse/argparse.ts";
 import { Command } from "../argparse/command.ts";
 import { Option, OptionValue } from "../argparse/option.ts";
+import { LedgCLIContext } from "../context.ts";
 
 export abstract class LedgCommand extends Command {
 
@@ -36,7 +37,13 @@ export abstract class LedgCommand extends Command {
     return Ok;
   }
 
-  async getJournal(): Promise<Result<Journal>> {
+  private _cliContext?: LedgCLIContext;
+
+  async getCLIContext(): Promise<Result<LedgCLIContext>> {
+    if (this._cliContext) {
+      return this._cliContext;
+    }
+
     const journal = Journal.create();
 
     // TODO: load in configuration
@@ -56,7 +63,9 @@ export abstract class LedgCommand extends Command {
       return result;
     }
 
-    return journal;
+    const context = new LedgCLIContext(journal);
+
+    return this._cliContext = context;
   }
 
   override async run(positionals: Positionals): Promise<Maybe> {

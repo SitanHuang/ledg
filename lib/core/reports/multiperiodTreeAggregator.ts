@@ -3,14 +3,14 @@ import { Amount } from "../accounting/amount.ts";
 import { Journal } from "../data/journal.ts";
 import { Rational } from "../math/rational.ts";
 // import { SourceableError } from "../errors.ts";
-import { isNone, Result, timestamp } from "../types.ts";
+import { isNone, isOk, Maybe, Ok, Result, timestamp } from "../types.ts";
 import { ValuationPolicy } from "../valuation/policy.ts";
 import { QueryEngineExecutor } from "./query/queryEngineExecutor.ts";
 import { Period, ReportPolicy } from "./reportPolicy.ts";
 
 export class MultiperiodTreeAggregator {
-  private rootTreeItem: MultiperiodTreeItem;
-  private periods: readonly Period[];
+  protected rootTreeItem: MultiperiodTreeItem;
+  protected periods: readonly Period[];
 
   constructor(
     public readonly journal: Journal,
@@ -21,12 +21,16 @@ export class MultiperiodTreeAggregator {
     this.periods = this.createPeriods();
   }
 
-  execute(): this {
+  execute(): Result<MultiperiodTreeItem> {
     this.rootTreeItem = this.createRootTreeItem();
     this.periods = this.createPeriods();
 
     this.populateAllAccounts();
-    this.executeQuery();
+    const result = this.executeQuery();
+
+    if (!isOk(result)) {
+      return result;
+    }
 
     if (this.reportPolicy.tree) {
       this.rootTreeItem.treeView();
@@ -44,17 +48,17 @@ export class MultiperiodTreeAggregator {
       this.rootTreeItem.invert();
     }
 
-    return this;
+    return this.rootTreeItem;
   }
 
-  private createRootTreeItem() {
+  protected createRootTreeItem() {
     return new MultiperiodTreeItem(this, "", this.reportPolicy, 0);
   }
-  private createPeriods() {
+  protected createPeriods() {
     return this.reportPolicy.periods();
   }
 
-  private executeQuery(): Result<MultiperiodTreeItem> {
+  protected executeQuery(): Maybe {
     const { rootTreeItem, displayedAccounts } = this;
     const { currencyConversionService, currencyProvider } = this.journal;
     const { valuationStrategy, valuationCurrencyId } = this.reportPolicy;
@@ -99,12 +103,12 @@ export class MultiperiodTreeAggregator {
     //   return error;
     // }
 
-    return rootTreeItem;
+    return Ok;
   }
 
-  private displayedAccounts = new Set<AccountIdentifier>();
+  protected displayedAccounts = new Set<AccountIdentifier>();
 
-  private populateAllAccounts() {
+  protected populateAllAccounts() {
     const { accountManager } = this.journal;
     const { reportPolicy, displayedAccounts } = this;
 
@@ -151,20 +155,20 @@ export class MultiperiodTreeAggregator {
 }
 
 export class MultiperiodTreeItem {
-  private baselineAmount: Amount = Amount.ZERO;
-  private readonly additiveSums: Amount[];
-  private readonly periods: readonly Period[];
+  protected baselineAmount: Amount = Amount.ZERO;
+  public readonly additiveSums: Amount[];
+  public readonly periods: readonly Period[];
 
   // flat children map; content may be rebuilt by treeView()/applyFlatPolicy()
-  private children = new Map<string, MultiperiodTreeItem>();
+  protected children = new Map<string, MultiperiodTreeItem>();
 
-  private readonly delimitedGroups: readonly string[];
+  protected readonly delimitedGroups: readonly string[];
 
   constructor(
     protected readonly aggregator: MultiperiodTreeAggregator,
-    protected readonly accountIdentifier: AccountIdentifier,
-    protected readonly reportPolicy: ReportPolicy,
-    protected depth = 0, // 0 = root level
+    public readonly accountIdentifier: AccountIdentifier,
+    public readonly reportPolicy: ReportPolicy,
+    public depth = 0, // 0 = root level
   ) {
     this.periods = this.reportPolicy.periods();
     this.additiveSums = Array(this.periods.length).fill(Amount.ZERO);
@@ -172,7 +176,7 @@ export class MultiperiodTreeItem {
     this.delimitedGroups = Account.splitIdentifier(accountIdentifier);
   }
 
-  get displayedName() {
+  public get displayedName() {
     if (!this.reportPolicy.tree) {
       return this.accountIdentifier;
     }
@@ -301,7 +305,7 @@ export class MultiperiodTreeItem {
     this.valuate();
   }
 
-  private accumulate(): void {
+  protected accumulate(): void {
     if (!this.reportPolicy.cumulative) {
       return;
     }
@@ -316,7 +320,7 @@ export class MultiperiodTreeItem {
     }
   }
 
-  private valuate(): void {
+  protected valuate(): void {
     const { currencyConversionService, currencyProvider } = this.aggregator.journal;
     const { valuationStrategy, valuationCurrencyId } = this.reportPolicy;
     const valuationCurrency = valuationCurrencyId ? currencyProvider.getOrCreateCurrencyById(valuationCurrencyId) : undefined;
@@ -348,7 +352,7 @@ export class MultiperiodTreeItem {
   }
 
   /** copy baseline & all additive sums */
-  private _copyTotalsFrom(src: MultiperiodTreeItem): void {
+  protected _copyTotalsFrom(src: MultiperiodTreeItem): void {
     this.baselineAmount = this.baselineAmount.plus(src.baselineAmount);
     for (let i = 0; i < this.additiveSums.length; i++) {
       this.additiveSums[i] = this.additiveSums[i].plus(src.additiveSums[i]);
@@ -356,7 +360,7 @@ export class MultiperiodTreeItem {
   }
 
   /** get‑or‑create helper (keeps O(1) lookup) */
-  private _getOrCreateChild(id: AccountIdentifier, depth: number): MultiperiodTreeItem {
+  protected _getOrCreateChild(id: AccountIdentifier, depth: number): MultiperiodTreeItem {
     const c = this.children.get(id);
     if (!c) {
       const d = new MultiperiodTreeItem(this.aggregator, id, this.reportPolicy, depth);
@@ -367,7 +371,7 @@ export class MultiperiodTreeItem {
   }
 
   /** drops / aggregates sub‑trees deeper than `maxDepth` */
-  private _pruneToMaxDepth(maxDepth: number): void {
+  protected _pruneToMaxDepth(maxDepth: number): void {
     if (this.depth >= maxDepth) {
       // aggregate everything below then delete references
       for (const child of this.children.values()) {
@@ -380,7 +384,7 @@ export class MultiperiodTreeItem {
   }
 
   /** promotes nodes so that root‑visible depth == `minDepth` */
-  private _applyMinDepth(minDepth: number): void {
+  protected _applyMinDepth(minDepth: number): void {
     if (this.depth >= minDepth - 1) return;  // nothing to flatten here
 
     // collect grandchildren we will promote
@@ -403,7 +407,7 @@ export class MultiperiodTreeItem {
     }
   }
 
-  private promoteRecursive() {
+  protected promoteRecursive() {
     this.depth--;
     for (const gc of this.children.values()) {
       gc.promoteRecursive();
@@ -427,7 +431,7 @@ export class MultiperiodTreeItem {
    * Returns children **in the order requested by ReportPolicy.sortStrategy**.
    * The Map itself is left untouched – ordering is applied only when iterating.
    */
-  private _sortedChildren(): MultiperiodTreeItem[] {
+  protected _sortedChildren(): MultiperiodTreeItem[] {
     const kids = Array.from(this.children.values());
     const { sortStrategy } = this.reportPolicy;
 
@@ -444,8 +448,20 @@ export class MultiperiodTreeItem {
   }
 
   /* ensure ALL outward‑facing iterations respect the sort order */
-  private _forEachChild(fn: (c: MultiperiodTreeItem) => void): void {
+  walkChildren(fn: (c: MultiperiodTreeItem) => void): void {
     for (const c of this._sortedChildren()) fn(c);
+  }
+
+  walkChildrenRecursive(fn: (c: MultiperiodTreeItem) => void): void {
+    for (const c of this._sortedChildren()) {
+      fn(c);
+      c.walkChildren(fn);
+    }
+  }
+
+  walk(fn: (c: MultiperiodTreeItem) => void): void {
+    fn(this);
+    this.walkChildren(fn);
   }
 
   /**
@@ -483,7 +499,7 @@ export class MultiperiodTreeItem {
   }
 
   /** true when every period’s total is exactly 0 */
-  private _allPeriodsZero(): boolean {
+  protected _allPeriodsZero(): boolean {
     for (const a of this.additiveSums) {
       if (!a.isStrictlyZero()) {
         return false;
@@ -512,10 +528,10 @@ export class MultiperiodTreeItem {
         ];
         lines.push(row.join(","));
       }
-      node._forEachChild(walk);
+      node.walkChildren(walk);
     };
 
-    this._forEachChild(walk);
+    this.walkChildren(walk);
 
     // const row = [
     //   `"Sum"`,

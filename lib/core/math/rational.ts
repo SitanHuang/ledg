@@ -1,5 +1,16 @@
 export interface RationalFormatOptions {
-  displayPrecision?: number; // number of decimal places for display (default is 10)
+  /** Minimum digits after the decimal point (default = 1).            */
+  minFractionDigits?: number;
+  /** Insert thousands grouping separators? (default = 0).          */
+  useGrouping?: number;
+  /** Character used for the thousands separator (default = ",").      */
+  groupSeparator?: string;
+  /** Character used for the decimal separator   (default = ".").      */
+  decimalSeparator?: string;
+
+  /** Maximum digits after the decimal point; value is rounded to this
+  *  precision (default = 10).                                         */
+  displayPrecision?: number;
 }
 
 export class Rational {
@@ -140,28 +151,58 @@ export class Rational {
     return Number(this.numerator) / Number(this.denominator);
   }
 
-  public valueOf(options?: RationalFormatOptions): string {
-    const dp: number = options?.displayPrecision ?? 10;
-    // Round to the desired precision so that the denominator becomes 10^dp.
-    const q: Rational = this.round(dp);
-    const absNum: bigint = q.numerator < 0n ? -q.numerator : q.numerator;
-    // Ensure we have at least dp+1 digits.
-    const s: string = absNum.toString().padStart(dp + 1, '0');
-    const intPart: string = s.slice(0, s.length - dp);
-    const sign: string = q.numerator < 0n ? "-" : "";
-    // If display precision is 0, return just the integer part without a decimal point.
-    if (dp === 0) {
-      return sign + intPart;
-    } else {
-      let fracPart: string = s.slice(s.length - dp);
-      // Remove any trailing zeros but always leave at least one digit.
-      fracPart = fracPart.replace(/0+$/, "");
-      if (fracPart === "") {
-        fracPart = "0";
-      }
+  public valueOf(opts: RationalFormatOptions = {}): string {
+    const {
+      displayPrecision = 10,
+      minFractionDigits = 1,
+      useGrouping = 0,
+      groupSeparator = ",",
+      decimalSeparator = ".",
+    }: RationalFormatOptions = opts;
 
-      return sign + intPart + "." + fracPart;
+    const minFrac = minFractionDigits;
+    const maxFrac = displayPrecision;
+
+    // Round to maxFrac decimal places
+    const q = this.round(maxFrac);
+    const neg = q.numerator < 0n;
+    const absNum = neg ? -q.numerator : q.numerator;
+
+    const raw = absNum.toString().padStart(maxFrac + 1, "0");
+    const splitIndex = raw.length - maxFrac;
+    const intPartRaw = raw.slice(0, splitIndex);
+    let fracPart = raw.slice(splitIndex);
+
+    if (maxFrac > 0) {
+      // trim trailing zeros but keep ≥ minFrac
+      let trimTo = fracPart.length;
+      while (trimTo > minFrac && fracPart[trimTo - 1] === '0')
+        --trimTo;
+      fracPart = fracPart.slice(0, trimTo);
+
+      // pad if we are still short
+      while (fracPart.length < minFrac) fracPart += "0";
     }
+
+    // Grouping:
+    let intPart = intPartRaw;
+    if (useGrouping > 0 && intPartRaw.length > useGrouping) {
+      const buf: string[] = [];
+      let count = 0;
+      for (let i = intPartRaw.length - 1; i >= 0; --i) {
+        buf.push(intPartRaw[i]);
+        if (++count === useGrouping && i !== 0) {
+          buf.push(groupSeparator);
+          count = 0;
+        }
+      }
+      buf.reverse();
+      intPart = buf.join("");
+    }
+
+    const sign = neg ? "-" : "";
+    if (maxFrac === 0) return sign + intPart;
+    return sign + intPart + decimalSeparator + fracPart;
   }
 
   /**

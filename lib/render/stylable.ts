@@ -107,7 +107,7 @@ export class Stylable extends Embeddable {
     return this;
   }
   bg(opt: Color): this {
-    this._color = opt;
+    this._bg = opt;
     return this;
   }
   forceReset(opt: boolean): this {
@@ -153,7 +153,7 @@ export class Stylable extends Embeddable {
   }
 
   private toAnsi(content: string, format: Extract<RenderFormat, { target: 'ascii' }>): string {
-    let styled = ansis;
+    let styled = this._reset ? ansis.reset : ansis;
     if (this._bold) styled = styled.bold;
     if (this._dim) styled = styled.dim;
     if (this._italic) styled = styled.italic;
@@ -168,11 +168,7 @@ export class Stylable extends Embeddable {
       styled = this.applyColor(styled, this._bg, true, format.colorSpace);
     }
 
-    let out = styled(content);
-
-    if (this._reset) out = ansis.reset('') + out + ansis.reset('');
-
-    return out;
+    return styled.visible(content);
   }
 
   private toHtml(content: string): string {
