@@ -10,7 +10,7 @@
     "buildtest": "tsc && vitest run --config lib/vitest.config.ts --coverage",
     "run": "node out/cli/entry.js",
     "buildrun": "npm run build && node out/cli/entry.js",
-    "esbuild": "esbuild --bundle lib/cli/entry.ts --minify --platform=node --outfile=./bin/ledg2.cjs --legal-comments=none --tree-shaking=true",
+    "esbuild": "esbuild --bundle lib/cli/entry.ts --minify --platform=node --outfile=./bin/ledg2.cjs --legal-comments=none --tree-shaking=true && node dev_tools/package_binary.mjs",
     "binary": "npm run buildtest && npm run esbuild"
   },
   "devDependencies": {

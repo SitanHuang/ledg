@@ -455,7 +455,7 @@ export class MultiperiodTreeItem {
   walkChildrenRecursive(fn: (c: MultiperiodTreeItem) => void): void {
     for (const c of this._sortedChildren()) {
       fn(c);
-      c.walkChildren(fn);
+      c.walkChildrenRecursive(fn);
     }
   }
 

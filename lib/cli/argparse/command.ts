@@ -212,6 +212,7 @@ export abstract class ExtensibleCommand extends Command {
   }
 
   protected detectedSubcommand?: Command;
+  protected defaultSubcommand?: Command;
 
   build(): this {
     super.build();
@@ -242,6 +243,10 @@ export abstract class ExtensibleCommand extends Command {
       }
     }
 
+    if (this.defaultSubcommand) {
+      return this.defaultSubcommand.exec(argv);
+    }
+
     // no sub-command matched → fall back to normal parsing
     return super.exec(argv);
   }
@@ -259,7 +264,9 @@ export abstract class ExtensibleCommand extends Command {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async runDefault(_positionals: Positionals): Promise<Maybe> {
-    return new ArgParseError(`"${this.name}" requires a valid subcommand.`);
+  async runDefault(positionals: Positionals): Promise<Maybe> {
+    return this.defaultSubcommand ?
+      await this.defaultSubcommand.run(positionals) :
+      new ArgParseError(`"${this.name}" requires a valid subcommand.`);
   }
 }
