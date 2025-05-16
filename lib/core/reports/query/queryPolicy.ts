@@ -62,6 +62,8 @@ export class QueryPolicy {
     return this;
   }
 
+  // TODO: tags
+
   useLedgObjDate(obj: LedgObject): timestamp {
     return this.useDate == 'date' ? obj.date : obj.date2;
   }

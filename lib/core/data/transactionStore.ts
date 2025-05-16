@@ -2,7 +2,7 @@ import { Account, AccountIdentifier } from "../accounting/account.ts";
 import { BoundPosting } from "../accounting/posting.ts";
 import { Transaction } from "../accounting/transaction.ts";
 import { TransactionID } from "../accounting/types.ts";
-import { Maybe, Ok } from "../types.ts";
+import { Maybe, Ok, timestamp } from "../types.ts";
 
 export class TransactionStoreError extends Error {
   protected readonly __transactionStoreErrorBrand = undefined;
@@ -48,6 +48,8 @@ export abstract class TransactionStore {
   getTransactionByPosting(posting: BoundPosting): Transaction {
     return this.getTransactionById(posting.transactionID)!;
   }
+
+  abstract getDataRangeExtremes(): [timestamp, timestamp];
 }
 
 export class DefaultTransactionStore extends TransactionStore {
@@ -55,6 +57,9 @@ export class DefaultTransactionStore extends TransactionStore {
   private readonly transactions: Transaction[] = [];
   private readonly transactionIdMap = new Map<TransactionID, Transaction>();
   private readonly transactionAccountIdMap = new Map<AccountIdentifier, BoundPosting[]>();
+
+  private dateMinExtrema = Infinity;
+  private dateMaxExtrema = -Infinity;
 
   override insertTransaction(transaction: Transaction): Maybe<TransactionStoreError> {
     if (this.getTransactionById(transaction.id))
@@ -78,9 +83,20 @@ export class DefaultTransactionStore extends TransactionStore {
         postingsArray.push(posting);
       }
 
+      this.dateMinExtrema = Math.min(this.dateMinExtrema, posting.date, posting.date2);
+      this.dateMaxExtrema = Math.min(this.dateMaxExtrema, posting.date, posting.date2);
     }
+    this.dateMinExtrema = Math.min(this.dateMinExtrema, transaction.date, transaction.date2);
+    this.dateMaxExtrema = Math.min(this.dateMaxExtrema, transaction.date, transaction.date2);
 
     return Ok;
+  }
+
+  override getDataRangeExtremes(): [timestamp, timestamp] {
+    return [
+      Number.isFinite(this.dateMinExtrema) ? this.dateMinExtrema : 0,
+      Number.isFinite(this.dateMaxExtrema) ? this.dateMaxExtrema : 0,
+    ]
   }
 
   override iterateAll(callback: IteratorCallback<Transaction, void>) {

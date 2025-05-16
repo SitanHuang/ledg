@@ -231,19 +231,35 @@ export class ReportPolicy extends QueryPolicy {
    * Each bucket is `[from, to)` capped to [`this.reportFrom`, `this.reportTo`].
    */
   periods(): readonly Period[] {
+    if (this.reportFrom === undefined || this.reportTo === undefined) {
+      // Unbounded period
+
+      if (this.reportPeriodInterval?.isFinite()) {
+        throw new Error("Unbounded reporting periods cannot have finite period interval.");
+      }
+      this.withSingleReportPeriod();
+
+      const singlePeriod = new Period(this.reportFrom, this.reportTo);
+      this._periods = [singlePeriod];
+
+      this._indexer = {
+        indexOf: (ts) => singlePeriod.contains(ts) ? 0 : -1
+      };
+
+      return this._periods;
+    }
+
     if (!this.reportPeriodInterval) {
       throw new Error("reportPeriodInterval not set");
     }
-    if (!this.reportFrom || !this.reportTo) {
-      throw new Error("`reportFrom` and `reportTo` must be defined on ReportPolicy");
-    }
+
     if (!this._periods) {
-      this._periods = new PeriodCalculator(
+      const periods = this._periods = new PeriodCalculator(
         this.reportFrom,
         this.reportTo,
         this.reportPeriodInterval,
       ).build();
-      this._indexer = new PeriodIndexer(this._periods, this.reportPeriodInterval);
+      this._indexer = new BoundedPeriodIndexer(periods, this.reportPeriodInterval);
     }
     return this._periods;
   }
@@ -265,14 +281,18 @@ export class ReportPeriodInterval {
   ) {}
 
   public static readonly SINGLE_PERIOD_INTERVAL = new ReportPeriodInterval(Infinity, Infinity, Infinity);
+
+  isFinite() {
+    return Number.isFinite(this.dayInterval) && Number.isFinite(this.monthInterval) && Number.isFinite(this.yearInterval);
+  }
 }
 
 export class Period {
-  readonly from: timestamp; // inclusive
-  readonly to: timestamp; // exclusive
+  readonly from?: timestamp; // inclusive
+  readonly to?: timestamp; // exclusive
 
-  constructor(from: timestamp, to: timestamp) {
-    if (to <= from) {
+  constructor(from: timestamp | undefined, to: timestamp | undefined) {
+    if (from && to && to <= from) {
       throw new RangeError("Period `to` must be after `from`");
     }
 
@@ -281,7 +301,10 @@ export class Period {
   }
 
   contains(ts: timestamp): boolean {
-    return ts >= this.from && ts < this.to;
+    return !(
+      (this.from ? ts < this.from : false) ||
+      (this.to ? ts >= this.to : false)
+    );
   }
 }
 
@@ -313,9 +336,9 @@ const MS_PER_DAY = 86_400_000;
  * [`from`, `to`) using the supplied interval.
  */
 class PeriodCalculator {
-  private readonly start!: Date;
-  private readonly end!: Date;
-  private readonly intv!: ReportPeriodInterval;
+  private readonly start: Date;
+  private readonly end: Date;
+  private readonly intv: ReportPeriodInterval;
 
   constructor(from: timestamp, to: timestamp, intv: ReportPeriodInterval) {
     if (to <= from) {
@@ -326,7 +349,7 @@ class PeriodCalculator {
     this.intv = intv;
   }
 
-  build(): Period[] {
+  build(): Required<Period>[] {
     const { yearInterval, monthInterval, dayInterval } = this.intv;
     if (yearInterval === 0 && monthInterval === 0 && dayInterval === 0) {
       throw new Error("ReportPeriodInterval cannot be all zeros");
@@ -338,10 +361,10 @@ class PeriodCalculator {
       yearInterval === Infinity
     ) {
       // exactly one bucket – from start (inclusive) to end (exclusive)
-      return [new Period(this.start.getTime(), this.end.getTime())];
+      return [new Period(this.start.getTime(), this.end.getTime()) as Required<Period>];
     }
 
-    const periods: Period[] = [];
+    const periods: Required<Period>[] = [];
     let curStart = this.start;
 
     while (curStart < this.end) {
@@ -352,23 +375,27 @@ class PeriodCalculator {
         dayInterval,
       );
       const curEndMs = Math.min(nxt.getTime(), this.end.getTime());
-      periods.push(new Period(curStart.getTime(), curEndMs));
+      periods.push(new Period(curStart.getTime(), curEndMs) as Required<Period>);
       curStart = nxt;
     }
     return periods;
   }
 }
 
-class PeriodIndexer {
+interface PeriodIndexer {
+  indexOf(ts: timestamp): number;
+}
+
+class BoundedPeriodIndexer implements PeriodIndexer {
   /**
    * Sorted periods.
    */
-  private readonly periods: readonly Period[];
+  private readonly periods: readonly Required<Period>[];
   private readonly intv: ReportPeriodInterval;
   private readonly msPerDayIntv: number; // pre‑calc for day‑only path
   private readonly totalMonthsIntv: number;
 
-  constructor(periods: readonly Period[], intv: ReportPeriodInterval) {
+  constructor(periods: readonly Required<Period>[], intv: ReportPeriodInterval) {
     this.periods = periods;
     this.intv = intv;
     this.msPerDayIntv = intv.dayInterval * MS_PER_DAY;

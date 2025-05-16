@@ -1,6 +1,6 @@
+import { DEBUG } from "../../entry.ts";
 import { MultiperiodTreeAggregator, QueryEngine } from "../../../core/reports/namespace.ts";
-import { hasResult, isOk, Maybe, Ok, unwrapResult } from "../../../core/types.ts";
-import { parseSmartDate } from "../../../core/utils/dateUtils.ts";
+import { hasResult, isOk, Maybe, Ok } from "../../../core/types.ts";
 import { MultiperiodTreeRenderer } from "../../../render/multiperiodTree.ts";
 import { Table } from "../../../render/table.ts";
 import { ArgParseError, Positionals } from "../../argparse/argparse.ts";
@@ -24,14 +24,18 @@ export class AccountsCommand extends ReportCommand {
   override build(): void {
     super.build();
 
-    this.fromOption.defaultValue = unwrapResult(parseSmartDate('today midnight'));
-    this.toOption.defaultValue = unwrapResult(parseSmartDate('tomorrow midnight'));
-    this.cumulativeOption.defaultValue = true;
+    this.fromOption.required = false;
+    this.fromOption.defaultValueDisplay = "-inf";
+    this.fromOption.defaultValue = undefined;
+    this.toOption.required = false;
+    this.toOption.defaultValue = undefined;
+    this.toOption.defaultValueDisplay = "inf";
 
     this.removeOption(this.periodDayOption);
     this.removeOption(this.periodMonthOption);
     this.removeOption(this.periodYearOption);
     this.removeOption(this.singlePeriodOption);
+    this.removeOption(this.cumulativeOption);
 
     this.setOption(this.sumOption);
   }
@@ -53,17 +57,27 @@ export class AccountsCommand extends ReportCommand {
       return result;
     }
 
+    const policy = this.getReportPolicy()
+      .withSingleReportPeriod();
+
+    if (DEBUG) {
+      policy.periods();
+      console.debug(policy);
+    }
+
     const context = await this.getCLIContext();
     if (!hasResult(context)) {
       return context;
     }
 
+    const { journal } = context;
+
     const rootItem = new MultiperiodTreeAggregator(
-      context.journal,
+      journal,
       QueryEngine
         .create(this.getReportPolicy().withSingleReportPeriod())
         .compile(),
-      this.getReportPolicy()
+      policy
     ).execute();
 
     if (!hasResult(rootItem)) {

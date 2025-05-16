@@ -17,12 +17,6 @@ describe('ReportPolicy - validations', () => {
     expect(() => rp.periods()).toThrow(/reportPeriodInterval not set/);
   });
 
-  it('throws if from/to undefined', () => {
-    const rp = new ReportPolicy();
-    rp.withReportPeriodInterval(1, 0, 0);
-    expect(() => rp.periods()).toThrow(/`reportFrom` and `reportTo` must be defined/);
-  });
-
   it('throws if interval is all zeros', () => {
     const rp = new ReportPolicy()
       .withReportFrom(ts('2024-01-01'))
@@ -85,7 +79,7 @@ describe('ReportPolicy - day interval accuracy', () => {
 
     // bucketIndex inside each period - use a mid‑point day to avoid boundary ambiguity
     for (let i = 0; i < periods.length; i++) {
-      const mid = periods[i].from + Math.floor((periods[i].to - periods[i].from) / 2);
+      const mid = periods[i].from! + Math.floor((periods[i].to! - periods[i].from!) / 2);
       expect(rp.bucketIndex(mid)).toBe(i);
     }
   });
@@ -223,7 +217,7 @@ describe('ReportPolicy - single-period mode', () => {
     const rp = new ReportPolicy()
       .withReportFrom(ts('2024-05-01'))
       .withReportTo(ts('2024-05-15'))
-      .withReportPeriodInterval(1, 0, 0) // daily – will be overridden
+      .withReportPeriodInterval(1, 0, 0) // daily - will be overridden
       .withSingleReportPeriod();
 
     expect(rp.periods()).toHaveLength(1);
@@ -236,5 +230,71 @@ describe('ReportPolicy - single-period mode', () => {
       .withSingleReportPeriod();
 
     expect(() => rp.periods()).toThrow(/`to` must be > `from`/);
+  });
+});
+
+describe('ReportPolicy - un-bounded period support', () => {
+  it('creates a single period when only `reportFrom` is set', () => {
+    const rp = new ReportPolicy().withReportFrom(ts('2024-01-01'));
+    const periods = rp.periods();
+
+    expect(periods).toHaveLength(1);
+    expect(periods[0]).toEqual(new Period(ts('2024-01-01'), undefined));
+
+    // Bucket index
+    expect(rp.bucketIndex(ts('2024-01-01'))).toBe(0);   // on lower bound
+    expect(rp.bucketIndex(ts('2124-01-01'))).toBe(0);   // far future
+    expect(rp.bucketIndex(ts('2023-12-31'))).toBe(-1);  // below range
+  });
+
+  it('creates a single period when only `reportTo` is set', () => {
+    const rp = new ReportPolicy().withReportTo(ts('2024-01-10'));
+    const periods = rp.periods();
+
+    expect(periods).toHaveLength(1);
+    expect(periods[0]).toEqual(new Period(undefined, ts('2024-01-10')));
+
+    expect(rp.bucketIndex(ts('2024-01-09'))).toBe(0);   // inside
+    expect(rp.bucketIndex(ts('2024-01-10'))).toBe(-1);  // on exclusive upper bound
+    expect(rp.bucketIndex(-2208988800000 /* 1900-01-01 */)).toBe(0); // lower un-bounded
+  });
+
+  it('creates an *infinite* period when both bounds are omitted', () => {
+    const rp = new ReportPolicy();
+    expect(rp.periods()).toEqual([new Period(undefined, undefined)]);
+    expect(rp.bucketIndex(Date.now())).toBe(0);
+  });
+
+  it('throws if an un-bounded report defines any *finite* interval', () => {
+    expect(() =>
+      new ReportPolicy()
+        .withReportFrom(ts('2024-01-01'))
+        .withReportPeriodInterval(1, 0, 0)
+        .periods()
+    ).toThrow(/Unbounded reporting periods/);
+  });
+});
+
+describe('Period.contains - edge behaviour', () => {
+  const p = new Period(ts('2024-01-01'), ts('2024-01-02'));
+
+  it('excludes the exact upper bound', () => {
+    expect(p.contains(ts('2024-01-02'))).toBe(false);
+    expect(p.contains(ts('2024-01-02') - 1)).toBe(true);
+  });
+
+  it('includes the exact lower bound', () => {
+    expect(p.contains(ts('2024-01-01'))).toBe(true);
+  });
+});
+
+describe('ReportPolicy - epoch-zero lower bound regression', () => {
+  it('treats `0` as a *defined* timestamp (not falsy)', () => {
+    const rp = new ReportPolicy().withReportFrom(0).withReportTo(ts('1970-01-02')).withSingleReportPeriod();
+    const periods = rp.periods();
+
+    expect(periods[0]).toEqual(new Period(0, ts('1970-01-02')));
+    expect(rp.bucketIndex(0)).toBe(0);
+    expect(rp.bucketIndex(ts('1970-01-02'))).toBe(-1);
   });
 });

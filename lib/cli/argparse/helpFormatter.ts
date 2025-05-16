@@ -53,9 +53,16 @@ export class HelpFormatter {
         const flag = shortForm ? renderable`${shortForm}, ${longForm}` : longForm;
 
         let extra = opt.description ?? "";
-        if (opt.required) extra += " (required)";
-        else if (opt.defaultValue !== undefined)
+        if (opt.required) {
+          extra += " (required)";
+        } else if (opt.defaultValueDisplay !== undefined) {
+          extra += ` (default: ${opt.defaultValueDisplay})`;
+          // TODO: format UTC date here
+        } else if (opt.defaultValue !== undefined) {
           extra += ` (default: ${opt.defaultValue})`;
+          // TODO: format UTC date here
+        }
+
         if (opt.multiple) extra += " (repeatable)";
 
         return { flag, extra: extra.trim() };

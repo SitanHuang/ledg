@@ -26,7 +26,7 @@ export class MultiperiodTreeAggregator {
     this.periods = this.createPeriods();
 
     this.populateAllAccounts();
-    const result = this.executeQuery();
+    let result = this.executeQuery();
 
     if (!isOk(result)) {
       return result;
@@ -38,7 +38,10 @@ export class MultiperiodTreeAggregator {
       this.rootTreeItem.applyFlatPolicy();
     }
 
-    this.rootTreeItem.accumulateAndValuate();
+    result = this.rootTreeItem.accumulateAndValuate();
+    if (!isOk(result)) {
+      return result;
+    }
 
     if (this.reportPolicy.hideZero) {
       this.rootTreeItem.pruneZeros();
@@ -47,6 +50,8 @@ export class MultiperiodTreeAggregator {
     if (this.reportPolicy.inversion) {
       this.rootTreeItem.invert();
     }
+
+    this.rootTreeItem.rootItemAggregateChildTotals();
 
     return this.rootTreeItem;
   }
@@ -259,6 +264,12 @@ export class MultiperiodTreeItem {
     }
   }
 
+  rootItemAggregateChildTotals(): void {
+    for (const child of this.children.values()) {
+      this._copyTotalsFrom(child);
+    }
+  }
+
   /**
    * Flat‑mode post‑processing:
    *   - trims accounts deeper than `maxDepth`
@@ -300,9 +311,9 @@ export class MultiperiodTreeItem {
   /**
    * Cumulative per‑period roll‑up.
    */
-  accumulateAndValuate(): void {
+  accumulateAndValuate(): Maybe {
     this.accumulate();
-    this.valuate();
+    return this.valuate();
   }
 
   protected accumulate(): void {
@@ -320,19 +331,27 @@ export class MultiperiodTreeItem {
     }
   }
 
-  protected valuate(): void {
+  protected valuate(): Maybe {
     const { currencyConversionService, currencyProvider } = this.aggregator.journal;
     const { valuationStrategy, valuationCurrencyId } = this.reportPolicy;
     const valuationCurrency = valuationCurrencyId ? currencyProvider.getOrCreateCurrencyById(valuationCurrencyId) : undefined;
 
     if (!valuationCurrency || valuationStrategy === "txnDate") { // txnDate performed at query time
-      return;
+      return Ok;
     }
 
     for (let i = 0; i < this.additiveSums.length; i++) {
       const period = this.periods[i];
 
-      const valuationDate = typeof valuationStrategy === 'number' ? valuationStrategy : Math.max(period.to - 1, period.from);
+      let valuationDate: number;
+      if (typeof valuationStrategy === 'number') {
+        valuationDate = valuationStrategy;
+      } else if (period.to) {
+        valuationDate = period.from ? Math.max(period.to - 1, period.from) : period.to - 1;
+      } else {
+        return new Error("Valuation at end of period cannot occur for unbounded period end dates.");
+      }
+
       const result = this.additiveSums[i].convertToAmount(valuationCurrency, currencyConversionService, new ValuationPolicy(valuationDate));
 
       if (isNone(result)) {
@@ -347,8 +366,13 @@ export class MultiperiodTreeItem {
     }
 
     for (const child of this.children.values()) {
-      child.valuate();
+      const result = child.valuate();
+      if (!isOk(result)) {
+        return result;
+      }
     }
+
+    return Ok;
   }
 
   /** copy baseline & all additive sums */
@@ -512,7 +536,7 @@ export class MultiperiodTreeItem {
     const headers = [
       `"Account"`,
       `"Depth"`,
-      ...this.periods.map(p => `"${new Date(p.from).toISOString()} => ${new Date(p.to).toISOString()}"`)
+      ...this.periods.map(p => `"${p.from ? new Date(p.from).toISOString() : '-inf'} => ${p.to ? new Date(p.to).toISOString() : 'inf'}"`)
     ];
     const lines: string[] = [headers.join(",")];
 

@@ -29,6 +29,7 @@ export interface OptionMetadata<T extends OptionType = OptionType> {
   description?: string;
   /** Default value if the option is omitted on the command line. */
   defaultValue?: OptionTypeMap[T];
+  defaultValueDisplay?: string;
   /** Indicates the option must be explicitly provided. */
   required?: boolean;
   /** Allow repeated appearances instead of overriding; the consumer decides how to aggregate. */
@@ -58,6 +59,7 @@ export class Option<T extends OptionType = OptionType> {
   required: boolean;
   multiple: boolean;
   defaultValue?: OptionTypeMap[T];
+  defaultValueDisplay?: string;
 
   constructor(config: OptionMetadata<T>) {
     this.name = config.name;
@@ -67,6 +69,7 @@ export class Option<T extends OptionType = OptionType> {
     this.required = config.required ?? false;
     this.multiple = config.multiple ?? false;
     this.defaultValue = config.defaultValue;
+    this.defaultValueDisplay = config.defaultValueDisplay;
   }
 
   extractValue(option: Option, value: OptionValue, callback?: (val: OptionTypeMap[T]) => void): OptionTypeMap[T] | undefined {
