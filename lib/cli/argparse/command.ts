@@ -20,9 +20,17 @@ export abstract class Command {
   ) { }
 
   protected setOption(opt: Option): this {
+    if (this.longOptions.has(opt.name)) {
+      throw new Error(`Duplicate option name "${opt.name}"`);
+    }
+
     this.longOptions.set(opt.name, opt);
 
     if (opt.alias) {
+      if (this.shortOptions.has(opt.alias)) {
+        throw new Error(`Duplicate option alias "${opt.alias}" for "${opt.name}"`);
+      }
+
       this.shortOptions.set(opt.alias, opt.name);
     }
 
@@ -30,6 +38,9 @@ export abstract class Command {
   }
   protected removeOption(opt: Option): this {
     this.longOptions.delete(opt.name);
+    if (opt.alias) {
+      this.shortOptions.delete(opt.alias);
+    }
 
     return this;
   }
@@ -62,7 +73,11 @@ export abstract class Command {
         // Long form: --name or --name=value
         const eq = raw.indexOf("=");
         const longName = raw.slice(2, eq === -1 ? undefined : eq);
-        const opt = this.longOptions.get(longName);
+        let opt = this.longOptions.get(longName);
+
+        if (!opt && longName.length > 1) {
+          opt = this.longOptions.get(this.shortOptions.get(longName) ?? longName);
+        }
 
         if (!opt) {
           throw new ArgParseError(`Unknown option --${longName}`);
@@ -136,7 +151,10 @@ export abstract class Command {
     for (const opt of this.longOptions.values()) {
       if (!userProvidedOptions.has(opt)) {
         if (opt.defaultValue !== undefined) {
-          this.consumeOption(opt, opt.parse() as OptionValue);
+          const result = this.consumeOption(opt, opt.defaultValue);
+          if (!isOk(result)) {
+            return result;
+          }
         } else if (opt.required) {
           return new ArgParseError(`Option --${opt.name} is required.`)
         }

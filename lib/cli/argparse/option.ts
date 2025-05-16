@@ -51,13 +51,13 @@ export interface OptionMetadata<T extends OptionType = OptionType> {
  * ```
  */
 export class Option<T extends OptionType = OptionType> {
-  readonly name: string;
-  readonly alias?: string;
-  readonly type: T;
-  readonly description?: string;
-  readonly required: boolean;
-  readonly multiple: boolean;
-  readonly defaultValue?: OptionTypeMap[T];
+  name: string;
+  alias?: string;
+  type: T;
+  description?: string;
+  required: boolean;
+  multiple: boolean;
+  defaultValue?: OptionTypeMap[T];
 
   constructor(config: OptionMetadata<T>) {
     this.name = config.name;
@@ -100,8 +100,8 @@ export class Option<T extends OptionType = OptionType> {
         return raw as OptionTypeMap[T];
 
       case 'int': {
-        const intVal = parseInt(raw, 10);
-        if (Number.isNaN(intVal)) {
+        const intVal = Number(raw);
+        if (!Number.isInteger(intVal)) {
           return new ArgParseError(`Option "--${this.name}" expects an integer but got "${raw}".`);
         }
         return intVal as OptionTypeMap[T];

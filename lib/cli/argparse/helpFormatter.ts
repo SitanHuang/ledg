@@ -49,7 +49,7 @@ export class HelpFormatter {
 
         const placeholder = italic(opt.type === "boolean" ? "" : ` <${opt.type}>`);
         const longForm = renderable`--${opt.name}${placeholder}`;
-        const shortForm = alias ? renderable`-${alias}${placeholder}` : "";
+        const shortForm = alias ? renderable`-${alias.length > 1 ? `-${alias}` : alias}${placeholder}` : "";
         const flag = shortForm ? renderable`${shortForm}, ${longForm}` : longForm;
 
         let extra = opt.description ?? "";

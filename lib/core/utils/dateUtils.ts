@@ -10,13 +10,13 @@ export function parseSmartDate(date: string): Result<timestamp> {
     date += '/1/1';
   }
 
-  const result = chrono.parseDate(date, { timezone: 'UTC' });
+  const result = chrono.parseDate(date);
 
   if (!result) {
     return new SmartDateParseError(`"${date}" cannot be parsed as a smart date.`);
   }
 
-  return result.getTime();
+  return relabelLocalDateAsUtc(result);
 }
 
 export function relabelLocalDateAsUtc(date: Date): timestamp {

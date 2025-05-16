@@ -180,7 +180,7 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
           .withReportPeriodInterval(0, 1, 0)
           .withModifier("bookClose", /^(?!true)/)
           .withHideZero(true)
-          .withValuationCurrency(journal.currencyProvider.getOrCreateCurrencyById("r"))
+          .withValuationCurrencyId("r")
           .withValuationStrategy("txnDate")
         , 10
       )).toEqual([
@@ -197,7 +197,7 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
           .withAccount("!expense.c")
           .withReportPeriodInterval(0, 6, 0)
           .withHideZero(true)
-          .withValuationCurrency(journal.currencyProvider.getOrCreateCurrencyById("$"))
+          .withValuationCurrencyId("$")
           .withValuationStrategy("txnDate")
         , 10
       )).toEqual([
@@ -213,7 +213,7 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
           .withAccount("!expense.c")
           .withReportPeriodInterval(0, 6, 0)
           .withHideZero(true)
-          .withValuationCurrency(journal.currencyProvider.getOrCreateCurrencyById("$"))
+          .withValuationCurrencyId("$")
           .withValuationStrategy("txnDate")
           .withUseDate("date2")
         , 10
@@ -230,7 +230,7 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
           .withAccount("!expense.c")
           .withReportPeriodInterval(0, 6, 0)
           .withHideZero(true)
-          .withValuationCurrency(journal.currencyProvider.getOrCreateCurrencyById("$"))
+          .withValuationCurrencyId("$")
           .withValuationStrategy(Date.parse('2021-01-01Z'))
           .withUseDate("date2")
         , 10
@@ -250,7 +250,7 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
           .withReportPeriodInterval(0, 1, 0)
           .withModifier("bookClose", /^(?!true)/)
           .withHideZero(true)
-          .withValuationCurrency(journal.currencyProvider.getOrCreateCurrencyById("r"))
+          .withValuationCurrencyId("r")
           .withValuationStrategy(Date.parse('3000-01-01Z'))
         , 1
       )).toEqual([
@@ -267,7 +267,7 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
           .withAccount("!expense.c")
           .withReportPeriodInterval(0, 6, 0)
           .withHideZero(true)
-          .withValuationCurrency(journal.currencyProvider.getOrCreateCurrencyById("$"))
+          .withValuationCurrencyId("$")
           .withValuationStrategy(Date.parse('2020-01-01Z'))
           .withUseDate("date2")
         , 10
@@ -667,7 +667,7 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
           .withReportTo(Date.parse("2022-02-01Z"))
           .withReportPeriodInterval(0, 1, 0)
           .withModifier('bookClose', /^(?!true)/)
-          .withValuationCurrency(journal.currencyProvider.getOrCreateCurrencyById("$"))
+          .withValuationCurrencyId("$")
           .withCumulative(true)
         , 1
       )).toEqual([
@@ -685,7 +685,7 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
           .withReportTo(Date.parse("2022-02-01Z"))
           .withReportPeriodInterval(0, 1, 0)
           .withModifier('bookClose', /^(?!true)/)
-          .withValuationCurrency(journal.currencyProvider.getOrCreateCurrencyById("$"))
+          .withValuationCurrencyId("$")
           .withValuationStrategy(Date.parse("2021-01-02Z"))
           .withCumulative(true)
         , 1
@@ -704,7 +704,7 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
           .withReportTo(Date.parse("2021-03-01Z"))
           .withReportPeriodInterval(0, 1, 0)
           .withModifier('bookClose', /^(?!true)/)
-          .withValuationCurrency(journal.currencyProvider.getOrCreateCurrencyById("$"))
+          .withValuationCurrencyId("$")
           .withValuationStrategy("eop")
           .withCumulative(true)
         , 1
@@ -721,7 +721,7 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
           .withReportTo(Date.parse("2021-03-01Z"))
           .withReportPeriodInterval(0, 1, 0)
           .withModifier('description', /2/)
-          .withValuationCurrency(journal.currencyProvider.getOrCreateCurrencyById("$"))
+          .withValuationCurrencyId("$")
           .withValuationStrategy("eop")
           .withCumulative(true)
         , 1

@@ -22,13 +22,11 @@ export abstract class QueryCommand extends LedgCommand {
 
   protected readonly useDateOption = new Option({
     name: "date",
-    alias: "d",
     type: "boolean",
     description: "Use primary date."
   });
   protected readonly useDate2Option = new Option({
     name: "date2",
-    alias: "d",
     type: "boolean",
     description: "Use auxiliary date."
   });
@@ -107,5 +105,9 @@ export abstract class QueryCommand extends LedgCommand {
     });
 
     return error ?? super.consumeOption(option, value);
+  }
+
+  protected getQueryPolicy(): QueryPolicy {
+    return this.queryPolicy;
   }
 }

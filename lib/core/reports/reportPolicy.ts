@@ -1,5 +1,4 @@
 import { timestamp } from "../types.ts";
-import { Currency } from "../valuation/currency.ts";
 import { QueryPolicy } from "./query/queryPolicy.ts";
 
 export type ValuationStrategy = "eop" | "txnDate" | timestamp;
@@ -28,7 +27,7 @@ export class ReportPolicy extends QueryPolicy {
    * The currency that all amounts should be convert to in a report. Undefined
    * value leaves amounts unconverted.
    */
-  valuationCurrency?: Currency;
+  valuationCurrencyId?: string;
 
   /**
    * Valuation strategy that amount conversions should occur.
@@ -164,8 +163,8 @@ export class ReportPolicy extends QueryPolicy {
     return this;
   }
 
-  withValuationCurrency(currency: Currency): this {
-    this.valuationCurrency = currency;
+  withValuationCurrencyId(currencyId: string): this {
+    this.valuationCurrencyId = currencyId;
     return this;
   }
 

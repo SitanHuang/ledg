@@ -56,11 +56,12 @@ export class MultiperiodTreeAggregator {
 
   private executeQuery(): Result<MultiperiodTreeItem> {
     const { rootTreeItem, displayedAccounts } = this;
-    const { currencyConversionService } = this.journal;
-    const { valuationStrategy, valuationCurrency } = this.reportPolicy;
+    const { currencyConversionService, currencyProvider } = this.journal;
+    const { valuationStrategy, valuationCurrencyId } = this.reportPolicy;
     const useLedgObjDate = this.reportPolicy.useLedgObjDate.bind(this.reportPolicy);
 
     const valuationPolicy = new ValuationPolicy(0);
+    const valuationCurrency = valuationCurrencyId ? currencyProvider.getOrCreateCurrencyById(valuationCurrencyId) : undefined;
 
     // let error: Error | null = null;
 
@@ -316,8 +317,9 @@ export class MultiperiodTreeItem {
   }
 
   private valuate(): void {
-    const { currencyConversionService } = this.aggregator.journal;
-    const { valuationStrategy, valuationCurrency } = this.reportPolicy;
+    const { currencyConversionService, currencyProvider } = this.aggregator.journal;
+    const { valuationStrategy, valuationCurrencyId } = this.reportPolicy;
+    const valuationCurrency = valuationCurrencyId ? currencyProvider.getOrCreateCurrencyById(valuationCurrencyId) : undefined;
 
     if (!valuationCurrency || valuationStrategy === "txnDate") { // txnDate performed at query time
       return;
