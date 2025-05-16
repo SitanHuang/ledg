@@ -2,6 +2,7 @@ node_modules/**/*
 *.swp
 ~*
 Session.vim
+bin
 bin/*
 node_modules
 package-lock.json

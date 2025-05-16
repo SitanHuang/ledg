@@ -1,4 +1,5 @@
-import { Embeddable, JoinedEmbeddable, renderable, Renderable, RenderFormat } from "./renderable.ts";
+import { JoinedEmbeddable, renderable } from "./embeddable.ts";
+import { Embeddable, Renderable, RenderFormat } from "./renderable.ts";
 import { Span } from "./span.ts";
 import { Stylable } from "./stylable.ts";
 

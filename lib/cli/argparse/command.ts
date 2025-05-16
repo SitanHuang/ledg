@@ -1,11 +1,18 @@
 import { hasError, isOk, Maybe, Ok, Result } from "../../core/types.ts";
 import { ArgParseError, Positionals, Token } from "./argparse.ts";
+import { HelpFormatter } from "./helpFormatter.ts";
 import { Option, OptionValue } from "./option.ts";
 
 export abstract class Command {
 
   protected readonly longOptions = new Map<string, Option>();
   protected readonly shortOptions = new Map<string, string>();
+  protected readonly helpOption = new Option({
+    name: "help",
+    alias: "h",
+    type: "boolean",
+    description: "Show this help message.",
+  });
 
   constructor(
     public readonly name: string,
@@ -27,7 +34,16 @@ export abstract class Command {
     return this;
   }
 
-  build() { /* stub */ }
+  getLongOptions(): ReadonlyMap<string, Option> {
+    return this.longOptions;
+  }
+  getShortOptions(): ReadonlyMap<string, string> {
+    return this.shortOptions;
+  }
+
+  build() {
+    this.setOption(this.helpOption);
+  }
 
   exec(argv: readonly string[]): Result<Positionals, ArgParseError> {
     const positionals: Token[] = [];
@@ -137,6 +153,11 @@ export abstract class Command {
       return result;
     }
 
+    if (option === this.helpOption) {
+      console.log(HelpFormatter.format(this));
+      return new ArgParseError("Help requested.");
+    }
+
     const err = this.consumeOption(option, result);
 
     if (!isOk(err)) {
@@ -163,6 +184,13 @@ export abstract class ExtensibleCommand extends Command {
     });
 
     return this;
+  }
+
+  getSubcommands(): ReadonlyMap<string, Command>{
+    return this.subcommands;
+  }
+  getAliasesForSubcommand(longCommand: string): readonly string[]{
+    return [...this.subcommandAliases.entries().filter(([, long]) => long === longCommand).map(x => x[0])];
   }
 
   protected detectedSubcommand?: Command;
