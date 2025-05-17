@@ -1,16 +1,17 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { TransactionValidationService, TransactionValidationError } from './transactionValidationService.ts';
-import { TransactionBuilder } from './transaction.ts';
-import { PostingBuilder } from './posting.ts';
-import { CurrencyConversionService } from '../valuation/currencyConversionService.ts';
-import { CurrencyProvider } from '../valuation/currencyProvider.ts';
-import { ValuationPolicy } from '../valuation/policy.ts';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { ValuationConfiguration } from '../config/valuationConfigs.ts';
-import { Amount } from './amount.ts';
+import { Metadata } from '../data/ledgObject.ts';
 import { Rational } from '../math/rational.ts';
 import { Ok, isOk } from '../types.ts';
 import { Currency } from '../valuation/currency.ts';
+import { CurrencyConversionService } from '../valuation/currencyConversionService.ts';
+import { CurrencyProvider } from '../valuation/currencyProvider.ts';
+import { ValuationPolicy } from '../valuation/policy.ts';
 import { DefaultAccountManager } from './accountManager.ts';
+import { Amount } from './amount.ts';
+import { PostingBuilder } from './posting.ts';
+import { TransactionBuilder } from './transaction.ts';
+import { TransactionValidationError, TransactionValidationService } from './transactionValidationService.ts';
 
 describe('TransactionValidationService', () => {
   let conversionService: CurrencyConversionService;
@@ -220,5 +221,57 @@ describe('TransactionValidationService', () => {
     if (result instanceof TransactionValidationError) {
       expect(result.message).toContain("is not zero");
     }
+  });
+
+  it('should validate real/virtual postings separately', () => {
+    const txBuilder = new TransactionBuilder(validationService);
+    txBuilder
+      .withId("tx1")
+      .withDate(1000)
+      .withDate2(1000);
+    const pb2 = new PostingBuilder(accountManager);
+    pb2.withAmount(Amount.create([
+      { currency: new Currency("USD"), value: Rational.fromNumber(-100) }
+    ]));
+    pb2.withDate(1000);
+
+    txBuilder
+      .appendPostingBuilder(new PostingBuilder(accountManager)
+        .withAmount(Amount.create([
+          { currency: new Currency("USD"), value: Rational.fromNumber(100) }
+        ]))
+        .withDate(1000)
+        .withMetadata({ virt: true }))
+      .appendPostingBuilder(new PostingBuilder(accountManager)
+        .withAmount(Amount.create([
+          { currency: new Currency("USD"), value: Rational.fromNumber(-100) }
+        ]))
+        .withDate(1000)
+        .withMetadata({}));
+
+    expect((validationService.validate(txBuilder) as Error).message).toMatch("is not zero");
+
+    const metadata: Metadata = { virt: true };
+
+    txBuilder
+      .appendPostingBuilder(new PostingBuilder(accountManager)
+        .withAmount(Amount.create([
+          { currency: new Currency("USD"), value: Rational.fromNumber(-100) }
+        ]))
+        .withDate(1000)
+        .withMetadata(metadata));
+
+    expect((validationService.validate(txBuilder) as Error).message).toMatch("(real) is not zero");
+
+    metadata.virt = undefined;
+
+    txBuilder
+      .appendPostingBuilder(new PostingBuilder(accountManager)
+        .withAmount(Amount.create([
+          { currency: new Currency("USD"), value: Rational.fromNumber(200) }
+        ]))
+        .withDate(1000));
+
+    expect((validationService.validate(txBuilder) as Error).message).toMatch("[100.0 USD] (virtual) is not zero");
   });
 });

@@ -6,8 +6,8 @@ import { CommitRegistry } from "./commitRegistry.ts";
 
 export interface Metadata {
   [index: string]: unknown;
-  virt?: boolean;
-  pending?: boolean;
+  virt?: true;
+  pending?: true;
   event?: string;
 }
 

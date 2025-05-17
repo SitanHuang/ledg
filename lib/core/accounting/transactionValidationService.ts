@@ -1,4 +1,5 @@
 import { ValuationConfiguration } from "../config/valuationConfigs.ts";
+import { Rational } from "../math/rational.ts";
 import { Maybe, Ok } from "../types.ts";
 import { CurrencyConversionService } from "../valuation/currencyConversionService.ts";
 import { ValuationPolicy } from "../valuation/policy.ts";
@@ -29,9 +30,14 @@ export class TransactionValidationService {
    *      the **transaction**.
    */
   validate(transactionBuilder: TransactionBuilder): Maybe<TransactionValidationError> {
+    if (!Number.isFinite(transactionBuilder.date) || !Number.isFinite(transactionBuilder.date2)) {
+      return new TransactionValidationError(`TransactionBuilder requires date and date2.`);
+    }
+
     const postingBuilders: PostingBuilder[] = transactionBuilder.getPostingBuilders();
 
-    let sum = Amount.ZERO;
+    let sumReal = Amount.ZERO;
+    let sumVirtual = Amount.ZERO;
 
     for (let i = 0; i < postingBuilders.length; i++) {
       const posting = postingBuilders[i];
@@ -40,30 +46,41 @@ export class TransactionValidationService {
         return new TransactionValidationError("Transaction contains postings with undefined amounts.");
       }
 
-      sum = amount.plus(sum);
+      if (posting.metadata.virt === true) {
+        sumVirtual = amount.plus(sumVirtual);
+      } else {
+        sumReal = amount.plus(sumReal);
+      }
     }
 
     const tolerance = this.valuationConfig.transactionBalanceTolerance;
 
-    if (!Number.isFinite(transactionBuilder.date) || !Number.isFinite(transactionBuilder.date2)) {
-      return new TransactionValidationError(`TransactionBuilder requires date and date2.`);
-    }
-
     const valuationPolicy = this.valuationPolicy ?? this._valuationPolicy.withValuationDate(transactionBuilder.date!);
 
-    const result = sum.isZeroDescriptive(this.currencyConversionService, valuationPolicy, tolerance);
+    let result = sumReal.isZeroDescriptive(this.currencyConversionService, valuationPolicy, tolerance);
 
     if (result !== true) {
-      const error = new TransactionValidationError(`The transaction balance of [${sum.toString()}] is not zero (tolerance=${tolerance.toFractionString()}), evaluated at transaction primary date.`);
+      return this.makeNonZeroDescriptiveError(sumReal, tolerance, result, 'real');
+    }
 
-      error.cause = result;
+    result = sumVirtual.isZeroDescriptive(this.currencyConversionService, valuationPolicy, tolerance);
 
-      if (result instanceof Amount) {
-        error.cause = new Error(`Unresolved balance of: ${result.toString()} = ${result.toFractionString()}`);
-      }
-      return error;
+    if (result !== true) {
+      return this.makeNonZeroDescriptiveError(sumVirtual, tolerance, result, 'virtual');
     }
 
     return Ok;
+  }
+
+  private makeNonZeroDescriptiveError(sum: Amount, tolerance: Rational, result: Error | Amount, type: 'real' | 'virtual') : TransactionValidationError {
+    const error = new TransactionValidationError(`The transaction balance of [${sum.toString()}] (${type}) is not zero (tolerance=${tolerance.toFractionString()}), evaluated at transaction primary date.`);
+
+    error.cause = result;
+
+    if (result instanceof Amount) {
+      error.cause = new Error(`Unresolved balance of: ${result.toString()} = ${result.toFractionString()}`);
+    }
+
+    return error;
   }
 }
