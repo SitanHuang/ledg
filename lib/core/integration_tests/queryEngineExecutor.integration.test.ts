@@ -51,7 +51,7 @@ describe.sequential('Integration: QueryEngineExecutor', () => {
       '  \tAsset.Checking.BoA\t [1 USD] / 3', // BoA=2/3 USD
       '2040-01-01 00:00:03 close  Asset.Checking.BoA #abcdefgh',
       '  ; testDat: "fdsa"',
-      '  \tAsset.Checking.BoA\t -[2 USD] / 3',
+      '  \t[Asset.Checking.BoA]\t -[2 USD] / 3',
       '  \t[Equity.OpeningBalance]\t[1 EUR] / 3',
       '  ; testDat: "5555"',
     ];
