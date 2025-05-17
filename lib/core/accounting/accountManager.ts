@@ -69,7 +69,7 @@ export abstract class AccountManager {
    * is so that reports such as incomestatements still show the closure posting
    * amounts.
    */
-  abstract getAccountsEverOpenedDuringRange(from: timestamp, to?: timestamp): readonly Account[];
+  abstract getAccountsEverOpenedDuringRange(from: timestamp, to?: timestamp): ReadonlySet<Account>;
 
   /**
    * Returns account status for a specific date/date2 range of a single
@@ -209,13 +209,13 @@ export class DefaultAccountManager extends AccountManager {
     return Ok;
   }
 
-  override getAccountsEverOpenedDuringRange(from: timestamp, to?: timestamp): Account[] {
+  override getAccountsEverOpenedDuringRange(from: timestamp, to?: timestamp): ReadonlySet<Account> {
     // Normalise the interval
     let start = from;
     let end = to ?? from;
     if (start > end) [start, end] = [end, start];
 
-    const openAccounts: Account[] = [];
+    const openAccounts = new Set<Account>();
 
     for (const { account, events } of this.accounts.values()) {
       // Obviously unopened accounts
@@ -238,7 +238,7 @@ export class DefaultAccountManager extends AccountManager {
 
         // We have an open interval: [currentOpenTime, ev.time)
         if (intervalsOverlap(currentOpenTime, ev.time, start, end)) {
-          openAccounts.push(account);
+          openAccounts.add(account);
           break; // no need to examine the rest of this account
         }
 
@@ -248,7 +248,7 @@ export class DefaultAccountManager extends AccountManager {
       // Handle a final **open** with no matching “close”
       if (isOpen) {
         if (intervalsOverlap(currentOpenTime, Number.POSITIVE_INFINITY, start, end)) {
-          openAccounts.push(account);
+          openAccounts.add(account);
         }
       }
     }

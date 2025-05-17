@@ -31,6 +31,12 @@ export abstract class QueryCommand extends LedgCommand {
     description: "Use auxiliary date."
   });
 
+  protected readonly realOption = new Option({
+    name: "real",
+    type: "boolean",
+    description: "Exclude virtual accounts."
+  });
+
   protected readonly accountOption = new Option({
     name: "account",
     alias: "a",
@@ -56,6 +62,7 @@ export abstract class QueryCommand extends LedgCommand {
     this.setOption(this.toOption);
     this.setOption(this.useDateOption);
     this.setOption(this.useDate2Option);
+    this.setOption(this.realOption);
     this.setOption(this.accountOption);
     this.setOption(this.modifierOption);
   }
@@ -83,6 +90,9 @@ export abstract class QueryCommand extends LedgCommand {
     });
     this.accountOption.extractValue(option, value, (pattern: string) => {
       this.queryPolicy.withAccount(pattern);
+    });
+    this.realOption.extractValue(option, value, (val: boolean) => {
+      this.queryPolicy.withRealOnly(val);
     });
 
     this.modifierOption.extractValue(option, value, (pattern: string) => {

@@ -32,6 +32,12 @@ export class QueryPolicy {
    *
    */
   modifiers = new Map<string, ModifierQuery>();
+
+  /**
+   * Exclusively select virtual/non-virtual postings
+   */
+  realOnly = false;
+
   /**
    * Account glob pattern search.
    */
@@ -45,6 +51,11 @@ export class QueryPolicy {
   withTo(to?: timestamp): this {
     this.to = to;
     return this;
+  }
+
+  withRealOnly(realOnly: boolean): this {
+    this.realOnly = realOnly;
+    return this; // TODO: test cases
   }
 
   withUseDate(useDate: 'date' | 'date2'): this {

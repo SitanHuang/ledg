@@ -52,7 +52,7 @@ describe.sequential('Integration: QueryEngineExecutor', () => {
       '2040-01-01 00:00:03 close  Asset.Checking.BoA #abcdefgh',
       '  ; testDat: "fdsa"',
       '  \tAsset.Checking.BoA\t -[2 USD] / 3',
-      '  \tEquity.OpeningBalance\t[1 EUR] / 3',
+      '  \t[Equity.OpeningBalance]\t[1 EUR] / 3',
       '  ; testDat: "5555"',
     ];
     expect(await parseSrc(src, journal)).toBe(Ok);
@@ -136,5 +136,13 @@ describe.sequential('Integration: QueryEngineExecutor', () => {
 
     expect(sumQuery(journal, QueryEngine.create(new QueryPolicy()
       .withModifier("testDat", /^5555$/))).toFractionString()).toEqual("1 / 3 EUR");
+
+    expect(sumQuery(journal, QueryEngine.create(new QueryPolicy()
+      .withModifier("testDat", /^5555$/)
+      .withRealOnly(false))).toFractionString()).toEqual("1 / 3 EUR");
+
+    expect(sumQuery(journal, QueryEngine.create(new QueryPolicy()
+      .withModifier("testDat", /^5555$/)
+      .withRealOnly(true))).toFractionString()).toEqual("");
   });
 });

@@ -1,6 +1,7 @@
-import { MultiperiodTreeItem } from "../core/reports/multiperiodTreeAggregator.ts";
+import { isMinDepthHiddenKey, MultiperiodTableKey, MultiperiodTreeItem } from "../core/reports/multiperiodTreeAggregator.ts";
 import { AmountDisplayPolicy, AmountSpan } from "./amount.ts";
-import { RenderFormat } from "./renderable.ts";
+import { renderable } from "./embeddable.ts";
+import { Embeddable, RenderFormat } from "./renderable.ts";
 import { Span } from "./span.ts";
 import { Stylable } from "./stylable.ts";
 import { Table } from "./table.ts";
@@ -14,7 +15,7 @@ export class MultiperiodTreeRenderer {
     rootItem.walkChildrenRecursive(node => {
       table.addRow([
         new AccountSpan(node.displayedName, node.depth),
-        ...node.additiveSums.map(sum => new AmountSpan(sum, this.displayPolicy))
+        ...node.displayedAmounts.map(sum => new AmountSpan(sum, this.displayPolicy))
       ]);
     });
   }
@@ -22,7 +23,7 @@ export class MultiperiodTreeRenderer {
   renderSum(rootItem: MultiperiodTreeItem, table: Table): void {
     table.addRow([
       "Sum",
-      ...rootItem.additiveSums.map(sum => {
+      ...rootItem.displayedAmounts.map(sum => {
         return new AmountSpan(sum, this.displayPolicy)
       })
     ], { topline: true, underline: true, header: true });
@@ -31,13 +32,23 @@ export class MultiperiodTreeRenderer {
 }
 
 export class AccountSpan extends Stylable {
-  constructor(
-    public accountDisplayName: string,
-    public depth: number,
-  ) {
-    super(new Span(accountDisplayName));
+  protected readonly actualTarget: Embeddable;
 
-    this.appendStyle("text-indent: 2em");
+  constructor(
+    public readonly accountDisplayName: MultiperiodTableKey,
+    public readonly depth: number,
+  ) {
+    let actualTarget;
+    if (isMinDepthHiddenKey(accountDisplayName)) {
+      super(actualTarget = new Span("(Upper-level accounts)"));
+
+      this.italic(true);
+    } else {
+      super(actualTarget = new Span(accountDisplayName));
+
+      this.appendStyle(`text-indent: ${2 * (this.depth - 1)}em`);
+    }
+    this.actualTarget = actualTarget;
   }
 
   // only used for ascii so we can safely assume there's space in that span
@@ -47,7 +58,7 @@ export class AccountSpan extends Stylable {
 
   override render(format: RenderFormat): string {
     if (["csv", "ascii"].includes(format.target)) {
-      this.target = new Span("  ".repeat(this.depth - 1) + this.accountDisplayName);
+      this.target = renderable`${"  ".repeat(this.depth - 1)}${this.actualTarget}`;
     }
     return super.render(format);
   }
