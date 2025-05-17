@@ -10,7 +10,7 @@ export class LedgCLIContext {
   public amountDisplayPolicy: AmountDisplayPolicy;
 
   constructor(
-    public journal: Journal
+    public journal = Journal.create()
   ) {
     this.amountDisplayPolicy = new AmountDisplayPolicy(journal.currencyProvider);
   }

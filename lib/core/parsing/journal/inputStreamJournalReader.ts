@@ -7,6 +7,7 @@ import { PostingBuilder } from "../../accounting/posting.ts";
 import { TransactionBuilder } from "../../accounting/transaction.ts";
 import { LedgObject, LedgObjectBuilder, Metadata, validateMetadataKeyValPair } from "../../data/ledgObject.ts";
 import { SourceDescriptor } from "../../data/sourceDescriptor.ts";
+import { SourceableError } from "../../errors.ts";
 import { isOk, Maybe, Ok, timestamp } from "../../types.ts";
 import { JournalReader } from "./journalReader.ts";
 
@@ -21,7 +22,7 @@ export class InputStreamSourceDescriptor implements SourceDescriptor {
   ) { }
 }
 
-export class InputStreamJournalReaderParseError extends Error {
+export class InputStreamJournalReaderParseError extends SourceableError {
   constructor(
     public readonly filePath: string,
     public readonly source: string,
@@ -29,8 +30,11 @@ export class InputStreamJournalReaderParseError extends Error {
     public readonly message: string,
     public readonly cause?: Error
   ) {
-    super();
-    this.message = `Error in "${filePath}" Line ${line}: ${message || cause?.message} (source: \`${source}\`)`;
+    super(
+      `Error in "${filePath}: ${message || cause?.message}`,
+      source,
+      line,
+    );
   }
 }
 

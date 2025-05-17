@@ -25,7 +25,7 @@ export type Token = {
 
 export class ValueExpressionParser {
   public static readonly QUANTITY_PATTERN = '[+-]?(\\d+\\.?\\d*|\\.\\d+)';
-  public static readonly CURRENCY_PATTERN = '[^\\d\\s,*.\\/@]+';
+  public static readonly CURRENCY_PATTERN = '[^\\d\\s,*.\\/@:]+';
 
   public static readonly QUANTITY_REGEX = new RegExp(`^${ValueExpressionParser.QUANTITY_PATTERN}`);
   public static readonly CURRENCY_REGEX = new RegExp(`^${ValueExpressionParser.CURRENCY_PATTERN}`);
@@ -118,11 +118,11 @@ export class ValueExpressionParser {
    * A <quantity> may begin with optional "+" or "-" sign followed by a 10-base
    * decimal. Leading zero before the decimal point is optional.
    *
-   * A <currency> is any non-numeric string that does not contain period, comma, brackets, forward slash, or at-sign.
-   * Multiple entries may be separated by commas; more formally:
+   * A <currency> is a non-numeric string, and multiple entries may be separated
+   * by commas; more formally:
    *
    *   currency-code := "" | non-empty-string
-   *     where non-empty-string := 1*<CHAR> where CHAR ∉ { 0–9, whitespace, ',', '*', '.', '/', '@' }
+   *     where non-empty-string := 1*<CHAR> where CHAR ∉ { 0–9, whitespace, ',', '*', '.', '/', '@', ':' }
    *
    * Note: Ambiguous '+/-' signs are interpreted as part of the numeric quantities. If these signs were
    * intended as arithmetic operators, the parser will emit an error.

@@ -1,9 +1,10 @@
 import { parseSmartDate } from '../../core/utils/dateUtils.ts';
 import { hasResult, Result, timestamp } from '../../core/types.ts';
 import { ArgParseError } from './argparse.ts';
+import { SpecGroups, specparse } from './specparse.ts';
 
-export type OptionType = 'string' | 'int' | 'decimal' | 'boolean' | 'datetime';
-export type OptionValue = string | number | boolean | timestamp;
+export type OptionType = 'string' | 'int' | 'decimal' | 'boolean' | 'datetime' | 'spec';
+export type OptionValue = string | number | boolean | timestamp | SpecGroups;
 
 // Maps an OptionType to its corresponding runtime value type
 export interface OptionTypeMap {
@@ -12,6 +13,7 @@ export interface OptionTypeMap {
   decimal: number;
   boolean: boolean;
   datetime: timestamp;
+  spec: SpecGroups;
 }
 
 /**
@@ -34,6 +36,8 @@ export interface OptionMetadata<T extends OptionType = OptionType> {
   required?: boolean;
   /** Allow repeated appearances instead of overriding; the consumer decides how to aggregate. */
   multiple?: boolean;
+
+  inputStringRegex?: RegExp;
 }
 
 /**
@@ -60,6 +64,7 @@ export class Option<T extends OptionType = OptionType> {
   multiple: boolean;
   defaultValue?: OptionTypeMap[T];
   defaultValueDisplay?: string;
+  inputStringRegex?: RegExp;
 
   constructor(config: OptionMetadata<T>) {
     this.name = config.name;
@@ -70,6 +75,7 @@ export class Option<T extends OptionType = OptionType> {
     this.multiple = config.multiple ?? false;
     this.defaultValue = config.defaultValue;
     this.defaultValueDisplay = config.defaultValueDisplay;
+    this.inputStringRegex = config.inputStringRegex;
   }
 
   extractValue(option: Option, value: OptionValue, callback?: (val: OptionTypeMap[T]) => void): OptionTypeMap[T] | undefined {
@@ -98,7 +104,20 @@ export class Option<T extends OptionType = OptionType> {
       return new ArgParseError(`Option "--${this.name}" expects a value.`);
     }
 
+    if (this.inputStringRegex?.exec(raw) === null) {
+      return new ArgParseError(`Option "--${this.name}" is invalid (pattern: ${this.inputStringRegex.source}).`);
+    }
+
     switch (this.type) {
+      case 'spec': {
+        const result = specparse(raw);
+        if (!hasResult(result)) {
+          const error = new ArgParseError(`Option "--${this.name}" expects a spec value (e.g. "size: width=100, height=200; theme=dark").`);
+          error.cause = result;
+          return error;
+        }
+        return result as OptionTypeMap[T];
+      }
       case 'string':
         return raw as OptionTypeMap[T];
 

@@ -1,6 +1,6 @@
 import { createReadStream } from "node:fs";
-import { Journal } from "../../core/data/journal.ts";
 import { InputStreamJournalReader } from "../../core/parsing/journal/inputStreamJournalReader.ts";
+import { ValueExpressionParser } from "../../core/parsing/valueExpressionParser.ts";
 import { JournalReaderAdapter } from "../../core/pipelines/adapters/journalReaderAdapter.ts";
 import { DefaultTransactionPipeline } from "../../core/pipelines/transactionPipeline.ts";
 import { isOk, Maybe, Ok, Result } from "../../core/types.ts";
@@ -21,32 +21,51 @@ export abstract class LedgCommand extends Command {
     description: "Ledg book entry file, or '-' to read from STDIN."
   });
 
+  protected readonly showDefaultCurrencyOption = new Option({
+    name: "show-default-currency",
+    type: "boolean",
+    defaultValue: false,
+    description: "Do not hide the default currency code."
+  });
+
+  protected readonly defaultCurrencyOption = new Option({
+    name: "default-currency",
+    type: "string",
+    defaultValue: "$",
+    description: "Sets the default currency code.",
+    inputStringRegex: ValueExpressionParser.CURRENCY_REGEX_FULL,
+  });
+
   override build(): void {
     super.build();
 
     this.inputFile = undefined;
 
     this.setOption(this.fileOption);
+    this.setOption(this.showDefaultCurrencyOption);
+    this.setOption(this.defaultCurrencyOption);
   }
 
   protected override consumeOption(option: Option, value: OptionValue): Maybe<ArgParseError> {
     this.inputFile = this.fileOption.extractValue(option, value) ?? this.inputFile;
 
-    // TODO: stdin+
+    this.showDefaultCurrencyOption.extractValue(option, value, (val) => {
+      this._cliContext.amountDisplayPolicy.showDefaultCurrency = val;
+    });
+    this.defaultCurrencyOption.extractValue(option, value, (val) => {
+      this._cliContext.journal.configuration.valuationConfig.defaultCurrencyCode = val;
+    });
 
     return Ok;
   }
 
-  private _cliContext?: LedgCLIContext;
+  private readonly _cliContext: LedgCLIContext = new LedgCLIContext();
+  private _journalLoaded = false;
 
   async getCLIContext(): Promise<Result<LedgCLIContext>> {
-    if (this._cliContext) {
-      return this._cliContext;
-    }
+    if (this._journalLoaded) return this._cliContext;
 
-    const journal = Journal.create();
-
-    // TODO: load in configuration
+    const journal = this._cliContext.journal;
 
     const fromStdin = !this.inputFile || this.inputFile === "-";
 
@@ -63,9 +82,9 @@ export abstract class LedgCommand extends Command {
       return result;
     }
 
-    const context = new LedgCLIContext(journal);
+    this._journalLoaded = true;
 
-    return this._cliContext = context;
+    return this._cliContext;
   }
 
   override async run(positionals: Positionals): Promise<Maybe> {
