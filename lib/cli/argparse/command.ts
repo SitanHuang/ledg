@@ -243,7 +243,7 @@ export abstract class ExtensibleCommand extends Command {
       }
     }
 
-    if (this.defaultSubcommand) {
+    if (this.defaultSubcommand && !relevantTokens.find(arg => !!(arg.startsWith("--help") || arg === "-h"))) {
       return this.defaultSubcommand.exec(argv);
     }
 

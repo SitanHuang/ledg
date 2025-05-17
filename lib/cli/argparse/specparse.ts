@@ -85,7 +85,7 @@ export function specparse(input: string): Result<SpecGroups, SpecParseError> {
     currentGroup.modGroups.push({
       mod: matched.mod,
       val: matched.val === "true" ? true : matched.val === "false" ? false : (
-        matched.val.startsWith('"') ? matched.val.substring(1, matched.val.length - 1) : (
+        matched.val.startsWith('"') || matched.val.startsWith("'") ? matched.val.substring(1, matched.val.length - 1) : (
           Number(matched.val)
         )
       )
@@ -117,5 +117,5 @@ export interface SpecGroup {
 
 export type SpecGroups = SpecGroup[];
 
-const GROUP_REGEX = /\s*(?:(?<groupName>[^\s:=;"]+)\s*:\s*)?(?<mod>[a-z_]+)\s*=\s*(?<val>\d+|['"][^'"]*['"]|true|false)\s*,?\s*/yigd;
+const GROUP_REGEX = /\s*(?:(?<groupName>[^\s:=;"]+)\s*:\s*)?(?<mod>[a-z_]+)\s*=\s*(?<val>\d+|"[^"]*"|'[^']*'|true|false)\s*,?\s*/yigd;
 const WHITESPACE_REGEX = /\s/;

@@ -211,6 +211,10 @@ export class ValueExpressionParser {
 
 }
 
+export function isValidCurrencyCode(input: string): boolean {
+  return ValueExpressionParser.CURRENCY_REGEX_FULL.test(input);
+}
+
 const WHITESPACE_RGX = /\s/;
 const DIGIT_RGX = /[0-9.]/;
 const IDENTIFIER_RGX = /[A-Za-z_]/;

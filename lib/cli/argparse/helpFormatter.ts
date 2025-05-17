@@ -8,6 +8,30 @@ import { Option } from "./option.ts";
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export class HelpFormatter {
   static format(cmd: Command, ancestors: string[] = []): string {
+    const termCols = process.stdout.columns || 80;
+    const margin = 4;
+    const maxWidth = termCols - margin;
+
+    const wrapLines = (text: string, targetWidth: number, indent = 0): string[] => {
+      const origLines = text.split(/\r\n|\n|\r/);
+      const lines: string[] = [];
+
+      for (const text of origLines) {
+        const words = text.split(' ');
+        let current = '';
+        for (const word of words) {
+          if (indent + (current + word).length > targetWidth) {
+            lines.push(current.trim());
+            current = word + ' ';
+          } else {
+            current += word + ' ';
+          }
+        }
+        if (current) lines.push(current.trim());
+      }
+      return lines.map((line) => line);
+    };
+
     const lines: Embeddable[] = [];
 
     const heading = (text: string) =>
@@ -52,28 +76,48 @@ export class HelpFormatter {
         const shortForm = alias ? renderable`-${alias.length > 1 ? `-${alias}` : alias}${placeholder}` : "";
         const flag = shortForm ? renderable`${shortForm}, ${longForm}` : longForm;
 
-        let extra = opt.description ?? "";
+        let header = opt.description ?? "";
         if (opt.required) {
-          extra += " (required)";
+          header += " (required)";
         } else if (opt.defaultValueDisplay !== undefined) {
-          extra += ` (default: ${opt.defaultValueDisplay})`;
+          header += ` (default: ${opt.defaultValueDisplay})`;
           // TODO: format UTC date here
         } else if (opt.defaultValue !== undefined) {
-          extra += ` (default: ${opt.defaultValue})`;
+          header += ` (default: ${opt.defaultValue})`;
           // TODO: format UTC date here
         }
 
-        if (opt.multiple) extra += " (repeatable)";
+        if (opt.multiple) header += " (repeatable)";
 
-        return { flag, extra: extra.trim() };
+        let extra = '';
+
+        if (opt.longDescription) extra = opt.longDescription;
+
+        return { flag, header, extra };
       });
 
       const colWidth = rows.reduce((w, { flag }) => Math.max(w, flag.displayWidth), 0);
 
-      rows.forEach(({ flag, extra }) => {
+      rows.forEach(({ flag, header, extra }) => {
         const flagStylised = emphasis(flag);
         const space = " ".repeat(colWidth - flag.displayWidth + 2);
-        lines.push(renderable`  ${flagStylised}${space}${extra}`);
+        const line = renderable`  ${flagStylised}${space}`;
+
+        const indent = line.displayWidth
+
+        wrapLines(header, maxWidth, line.displayWidth).forEach((span, idx) => {
+          if (idx > 0) line.append(new Span("\n" + ' '.repeat(indent)));
+          line.append(new Span(span));
+        });
+
+        if (extra.length) {
+          wrapLines(extra, maxWidth, 4).forEach((span) => {
+            line.append(new Span("\n        "));
+            line.append(new Stylable(new Span(span)).dim(true));
+          });
+        }
+
+        lines.push(line);
       });
     }
 

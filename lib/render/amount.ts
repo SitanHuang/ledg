@@ -25,7 +25,7 @@ export class AmountDisplayPolicy extends AmountFormatOptions {
       this.showDefaultCurrency === false &&
       currency.id == this.currencyProvider.valuationConfig.defaultCurrencyCode
     ) {
-      opts.currencyCode = 'none';
+      opts.currencyCodeLocation = 'none';
     }
     return opts;
   }

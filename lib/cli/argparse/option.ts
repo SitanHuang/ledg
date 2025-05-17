@@ -29,6 +29,7 @@ export interface OptionMetadata<T extends OptionType = OptionType> {
   type: T;
   /** Description shown in generated help output. */
   description?: string;
+  longDescription?: string;
   /** Default value if the option is omitted on the command line. */
   defaultValue?: OptionTypeMap[T];
   defaultValueDisplay?: string;
@@ -60,6 +61,7 @@ export class Option<T extends OptionType = OptionType> {
   alias?: string;
   type: T;
   description?: string;
+  longDescription?: string;
   required: boolean;
   multiple: boolean;
   defaultValue?: OptionTypeMap[T];
@@ -71,6 +73,7 @@ export class Option<T extends OptionType = OptionType> {
     this.alias = config.alias;
     this.type = config.type;
     this.description = config.description;
+    this.longDescription = config.longDescription;
     this.required = config.required ?? false;
     this.multiple = config.multiple ?? false;
     this.defaultValue = config.defaultValue;

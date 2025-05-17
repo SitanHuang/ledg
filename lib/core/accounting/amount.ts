@@ -15,7 +15,7 @@ export class AmountFormatOptions implements RationalFormatOptions {
 
   nullPlaceholder = '0';
 
-  currencyCode: CurrencyCodeDiplayLocation = 'right';
+  currencyCodeLocation: CurrencyCodeDiplayLocation = 'right';
 
   protected readonly currencyOverrides = new Map<string, AmountFormatOptions>();
 
@@ -321,7 +321,7 @@ export class Amount {
           currencyCode: currency.id,
           displayedString: amtString
         };
-        switch (formatOpts.currencyCode) {
+        switch (formatOpts.currencyCodeLocation) {
           case "left":
             contentEntry.displayedString = `${currency.id} ${amtString}`;
             break;

@@ -5,7 +5,7 @@ import { hasResult } from '../../core/types.ts';
 describe('SpecParse', () => {
   it('works', () => {
     const result = specparse(
-      ` ;;groupSeparator=","; CNY: useGrouping=4, true=true, true=1, false=false; decimalSeparator="." , asdf=2;$:a=1,a=4; group=1; CNY:a="asdf";`
+      ` ;;groupSeparator=","; CNY: useGrouping=4, true=true, true=1, false=false; decimalSeparator="'" , asdf=2;$:a=1,a=4; group=1; CNY:a='"';`
     );
 
     expect(result).toEqual([
@@ -25,7 +25,7 @@ describe('SpecParse', () => {
       {
         groupName: undefined,
         modGroups: [
-          { mod: "decimalSeparator", val: "." },
+          { mod: "decimalSeparator", val: "'" },
           { mod: "asdf", val: 2 },
         ]
       },
@@ -45,7 +45,7 @@ describe('SpecParse', () => {
       {
         groupName: "CNY",
         modGroups: [
-          { mod: "a", val: "asdf" },
+          { mod: "a", val: '"' },
         ]
       },
     ]);
