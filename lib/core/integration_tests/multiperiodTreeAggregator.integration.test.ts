@@ -1002,4 +1002,57 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
       ].join("\n"));
     });
   });
+
+  describe('Targeted bugs', () => {
+    it('avoids double counting sum parent logics', async () => {
+      journal = Journal.create();
+      let src = [
+        '2020-01-01 open dev.null',
+        '2020-01-01 open Expense.Free.Retail.Fitness.Cycling',
+        '2020-01-01 open Expense.Free.Retail',
+        '2020-01-01 open income.b.a',
+        '2020-01-01 open income.b.a.d',
+        '2022-04-06',
+        '  \tExpense.Free.Retail.Fitness.Cycling\t1$',
+        '  \tdev.null',
+        '2023-05-24',
+        '  \tExpense.Free.Retail\t741$',
+        '  \tExpense.Free.Retail\t-741$',
+        '  \tdev.null',
+      ];
+      expect(await parseSrc(src, journal)).toBe(Ok);
+
+      expect(getCSV(
+        journal,
+        new ReportPolicy()
+          .withAccount("..{retail}*")
+          .withHideZero(true)
+          .withSumParent(true)
+        , 0
+      )).toEqual([
+        '"Account","Depth","-inf => inf"',
+        '"Expense","1","1 $"',
+        '"Expense.Free","1","1 $"',
+        '"Expense.Free.Retail","1","1 $"',
+        '"Expense.Free.Retail.Fitness","1","1 $"',
+        '"Expense.Free.Retail.Fitness.Cycling","1","1 $"',
+      ].join("\n"));
+      expect(getCSV(
+        journal,
+        new ReportPolicy()
+          .withAccount("..{retail}*")
+          .withHideZero(true)
+          .withSumParent(true)
+          .withTree(true)
+        , 0
+      )).toEqual([
+        '"Account","Depth","-inf => inf"',
+        '"Expense","1","1 $"',
+        '"Free","2","1 $"',
+        '"Retail","3","1 $"',
+        '"Fitness","4","1 $"',
+        '"Cycling","5","1 $"',
+      ].join("\n"));
+    });
+  });
 });

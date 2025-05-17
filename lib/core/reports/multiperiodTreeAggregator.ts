@@ -226,7 +226,9 @@ export class MultiperiodTreeItem {
    */
   treeView(): void {
     // 1. build hierarchical skeleton from the existing leaves
-    const leaves = Array.from(this.children.values());
+    const leaves = Array.from(this.children.values())
+      // VERY IMPORTANT: if unsorted, we run risk of going bottom-up and double count
+      .sort((a, b) => a.delimitedGroups.length - b.delimitedGroups.length);
     this.children.clear(); // rebuild from scratch
 
     for (const leaf of leaves) {
@@ -296,7 +298,9 @@ export class MultiperiodTreeItem {
     }
 
     if (this.reportPolicy.sumParent) {
-      const current = Array.from(this.children.values());
+      const current = Array.from(this.children.values())
+        // VERY IMPORTANT: if unsorted, we run risk of going bottom-up and double count
+        .sort((a, b) => a.delimitedGroups.length - b.delimitedGroups.length);
       for (const item of current) {
         const segs = item.delimitedGroups;
         for (let lvl = segs.length - 1; lvl >= Math.max(this.reportPolicy.minDepth, 1); lvl--) {
