@@ -1,4 +1,5 @@
 import { timestamp } from "../types.ts";
+import { AccountGlob } from "./query/accountGlob.ts";
 import { QueryPolicy } from "./query/queryPolicy.ts";
 
 export type ValuationStrategy = "eop" | "txnDate" | timestamp;
@@ -270,6 +271,40 @@ export class ReportPolicy extends QueryPolicy {
   bucketIndex(ts: timestamp): number {
     if (!this._indexer) this.periods(); // triggers lazy build
     return this._indexer!.indexOf(ts);
+  }
+
+  clone(): ReportPolicy {
+    const copy = new ReportPolicy();
+
+    copy.from = this.from;
+    copy.to = this.to;
+    copy.useDate = this.useDate;
+    copy.realOnly = this.realOnly;
+    copy.modifiers = new Map(this.modifiers);
+    if (this.accountGlob) {
+      copy.accountGlob = new AccountGlob(this.accountGlob.pattern);
+    }
+
+    copy.reportFrom = this.reportFrom;
+    copy.reportTo = this.reportTo;
+    copy.reportPeriodInterval = this.reportPeriodInterval
+      ? new ReportPeriodInterval(
+        this.reportPeriodInterval.dayInterval,
+        this.reportPeriodInterval.monthInterval,
+        this.reportPeriodInterval.yearInterval,
+      )
+      : undefined;
+    copy.valuationCurrencyId = this.valuationCurrencyId;
+    copy.valuationStrategy = this.valuationStrategy;
+    copy.cumulative = this.cumulative;
+    copy.sumParent = this.sumParent;
+    copy.maxDepth = this.maxDepth;
+    copy.minDepth = this.minDepth;
+    copy.hideZero = this.hideZero;
+    copy.tree = this.tree;
+    copy.sortStrategy = this.sortStrategy;
+    copy.inversion = this.inversion;
+    return copy;
   }
 }
 

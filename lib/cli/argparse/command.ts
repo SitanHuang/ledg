@@ -45,6 +45,12 @@ export abstract class Command {
     return this;
   }
 
+  protected clearOptions(): this {
+    this.longOptions.clear();
+    this.shortOptions.clear();
+    return this;
+  }
+
   getLongOptions(): ReadonlyMap<string, Option> {
     return this.longOptions;
   }
@@ -172,7 +178,7 @@ export abstract class Command {
     }
 
     if (option === this.helpOption) {
-      console.log(HelpFormatter.format(this));
+      this.help();
       return new ArgParseError("Help requested.");
     }
 
@@ -183,6 +189,10 @@ export abstract class Command {
     }
 
     return Ok;
+  }
+
+  protected help() {
+    console.log(HelpFormatter.format(this));
   }
 
   protected abstract consumeOption(option: Option, value: OptionValue): Maybe<ArgParseError>;
@@ -263,7 +273,6 @@ export abstract class ExtensibleCommand extends Command {
     return Ok;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async runDefault(positionals: Positionals): Promise<Maybe> {
     return this.defaultSubcommand ?
       await this.defaultSubcommand.run(positionals) :

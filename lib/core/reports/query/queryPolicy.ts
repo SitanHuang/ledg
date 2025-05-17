@@ -78,4 +78,17 @@ export class QueryPolicy {
   useLedgObjDate(obj: LedgObject): timestamp {
     return this.useDate == 'date' ? obj.date : obj.date2;
   }
+
+  clone(): QueryPolicy {
+    const copy = new QueryPolicy();
+    copy.from = this.from;
+    copy.to = this.to;
+    copy.useDate = this.useDate;
+    copy.realOnly = this.realOnly;
+    copy.modifiers = new Map(this.modifiers);
+    if (this.accountGlob) {
+      copy.accountGlob = new AccountGlob(this.accountGlob.pattern);
+    }
+    return copy;
+  }
 }

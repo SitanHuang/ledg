@@ -61,6 +61,53 @@ export abstract class LedgCommand extends Command {
     ].join("\n"),
   });
 
+  protected readonly dateFormatOption = new Option({
+    name: "date-format",
+    type: "string",
+    description: "Sets the formats for dates (midnight timestamps).",
+    longDescription: [
+      "See --datetime-format for options. Using non-date format strings forces times to be displayed even for midnight timestamps.",
+    ].join("\n"),
+  });
+  protected readonly datetimeFormatOption = new Option({
+    name: "datetime-format",
+    type: "string",
+    description: "Sets the formats for datetimes (timestamps that are not midnight).",
+    longDescription: [
+      "Format datetime using tokens:",
+      "YY   Two-digit year (25)",
+      "YYYY Four-digit year (2025)",
+      "M    Month 1-12",
+      "MM   01-12",
+      "MMM  Jan-Dec",
+      "MMMM Full month",
+      "D    Day 1-31",
+      "DD   01-31",
+      "d    Weekday 0-6 (Sun=0)",
+      "dd   Su-Sa",
+      "ddd  Short name",
+      "dddd Full name",
+      "H    Hour 0-23",
+      "HH   00-23",
+      "h   1-12",
+      "hh   01-12",
+      "m    Minute 0-59",
+      "mm   00-59",
+      "s   Second 0-59",
+      "ss   00-59",
+      "SSS  Milliseconds",
+      "A/a  AM/PM (uppercase/lowercase)",
+      "Example: 'MMM YY HH' -> '1月 25年 00時' (ja-JP)",
+      "Note: --locale affects month/day names and formatting conventions"
+    ].join("\n"),
+  });
+  protected readonly localeOption = new Option({
+    name: "locale",
+    type: "string",
+    description: "A IETF language tag for displaying datetimes.",
+    defaultValueDisplay: "System Locale"
+  });
+
   override build(): void {
     super.build();
 
@@ -70,6 +117,9 @@ export abstract class LedgCommand extends Command {
     this.setOption(this.showDefaultCurrencyOption);
     this.setOption(this.defaultCurrencyOption);
     this.setOption(this.amountFormatOption);
+    this.setOption(this.dateFormatOption);
+    this.setOption(this.datetimeFormatOption);
+    this.setOption(this.localeOption);
   }
 
   protected override consumeOption(option: Option, value: OptionValue): Maybe<ArgParseError> {
@@ -132,6 +182,21 @@ export abstract class LedgCommand extends Command {
           }
         }
       }
+    });
+
+    this.localeOption.extractValue(option, value, (locale) => {
+      try {
+        this._cliContext.dateFormat.locale = new Intl.Locale(locale);
+      } catch (e) {
+        error = new ArgParseError(`Spec "--${option.name}" expects a valid IETF tag.`);
+        error.cause = e;
+      }
+    });
+    this.dateFormatOption.extractValue(option, value, (fmt) => {
+      this._cliContext.dateFormat.dateFormat = fmt;
+    });
+    this.datetimeFormatOption.extractValue(option, value, (fmt) => {
+      this._cliContext.dateFormat.datetimeFormat = fmt;
     });
 
     return error ?? Ok;

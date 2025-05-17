@@ -1,13 +1,15 @@
-import { RenderFormat } from "../render/renderable.ts";
-import { Journal } from "../core/data/journal.ts";
-import { AmountDisplayPolicy } from "../render/amount.ts";
 import supportsColor from "supports-color";
+import { Journal } from "../core/data/journal.ts";
+import { DateFormat } from "../core/reports/dateFormat.ts";
+import { AmountDisplayPolicy } from "../render/amount.ts";
+import { RenderFormat } from "../render/renderable.ts";
 
 export class LedgCLIContext {
 
   public renderFormat: RenderFormat = LedgCLIContext.getCLIRenderFormat();
 
   public amountDisplayPolicy: AmountDisplayPolicy;
+  public dateFormat = new DateFormat();
 
   constructor(
     public journal = Journal.create()

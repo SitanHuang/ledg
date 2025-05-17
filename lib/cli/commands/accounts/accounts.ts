@@ -75,7 +75,7 @@ export class AccountsCommand extends ReportCommand {
     const rootItem = new MultiperiodTreeAggregator(
       journal,
       QueryEngine
-        .create(this.getReportPolicy().withSingleReportPeriod())
+        .create(policy)
         .compile(),
       policy
     ).execute();

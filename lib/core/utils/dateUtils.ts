@@ -35,3 +35,13 @@ export function relabelLocalDateAsUtc(date: Date): timestamp {
 
   return Date.parse(utcIso);
 }
+
+export function isUtcMidnight(ts: timestamp): boolean {
+  const date = new Date(ts);
+  return (
+    date.getUTCHours() === 0 &&
+    date.getUTCMinutes() === 0 &&
+    date.getUTCSeconds() === 0 &&
+    date.getUTCMilliseconds() === 0
+  );
+}

@@ -29,6 +29,10 @@ export class AmountDisplayPolicy extends AmountFormatOptions {
     }
     return opts;
   }
+
+  override naiveCopy(): AmountDisplayPolicy {
+    return new AmountDisplayPolicy(this.currencyProvider, this);
+  }
 }
 
 export class AmountSpan extends JoinedEmbeddable {
