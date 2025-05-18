@@ -7,6 +7,7 @@ export abstract class Command {
 
   protected readonly longOptions = new Map<string, Option>();
   protected readonly shortOptions = new Map<string, string>();
+
   protected readonly helpOption = new Option({
     name: "help",
     alias: "h",
@@ -175,7 +176,7 @@ export abstract class Command {
     return positionals;
   }
 
-  private parseOption(option: Option, val: string): Maybe<ArgParseError> {
+  protected parseOption(option: Option, val: string): Maybe<ArgParseError> {
     const result = option.parse(val);
 
     if (hasError(result)) {
@@ -200,11 +201,33 @@ export abstract class Command {
     console.log(HelpFormatter.format(this));
   }
 
+  private _env = process.env;
+  private _cwd = process.cwd();
+
+  protected get env() {
+    return process.env;
+  }
+  protected get cwd() {
+    return process.cwd();
+  }
+
+  withEnv(env: typeof this._env): this {
+    this._env = env;
+    return this;
+  }
+  withCwd(cwd: typeof this._cwd): this {
+    this._cwd = cwd;
+    return this;
+  }
+
   protected abstract consumeOption(option: Option, value: OptionValue): Maybe<ArgParseError>;
 
   abstract run(positionals: Positionals): Promise<Maybe>;
 }
 
+// The ExtensibleCommand is a **NON-PROCESSING** command that does NOT raise any
+// errors on option parsing. It simply takes the argv, guesses the subcommand,
+// and sends that argv downstream.
 export abstract class ExtensibleCommand extends Command {
   protected readonly subcommandAliases = new Map<string, string>();
   protected readonly subcommands = new Map<string, Command>();

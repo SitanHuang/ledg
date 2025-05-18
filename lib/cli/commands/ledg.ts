@@ -6,21 +6,11 @@ import { JournalReaderAdapter } from "../../core/pipelines/adapters/journalReade
 import { DefaultTransactionPipeline } from "../../core/pipelines/transactionPipeline.ts";
 import { isOk, Maybe, Ok, Result } from "../../core/types.ts";
 import { ArgParseError, Positionals } from "../argparse/argparse.ts";
-import { Command } from "../argparse/command.ts";
 import { Option, OptionValue } from "../argparse/option.ts";
 import { LedgCLIContext } from "../context.ts";
+import { ConfigurableCommand } from "./config.ts";
 
-export abstract class LedgCommand extends Command {
-
-  protected inputFile?: string;
-
-  protected readonly fileOption = new Option({
-    name: "file",
-    alias: "F",
-    type: "string",
-    required: true,
-    description: "Ledg book entry file, or '-' to read from STDIN."
-  });
+export abstract class LedgCommand extends ConfigurableCommand {
 
   protected readonly showDefaultCurrencyOption = new Option({
     name: "show-default-currency",
@@ -125,9 +115,8 @@ export abstract class LedgCommand extends Command {
   override build(): void {
     super.build();
 
-    this.inputFile = undefined;
+    this.fileOption.required = true;
 
-    this.setOption(this.fileOption);
     this.setOption(this.showDefaultCurrencyOption);
     this.setOption(this.defaultCurrencyOption);
     this.setOption(this.amountFormatOption);
@@ -139,7 +128,11 @@ export abstract class LedgCommand extends Command {
   }
 
   protected override consumeOption(option: Option, value: OptionValue): Maybe<ArgParseError> {
-    this.inputFile = this.fileOption.extractValue(option, value) ?? this.inputFile;
+    const result = super.consumeOption(option, value);
+
+    if (!isOk(result)) {
+      return result;
+    }
 
     this.showDefaultCurrencyOption.extractValue(option, value, (val) => {
       this._cliContext.amountDisplayPolicy.showDefaultCurrency = val;

@@ -7,6 +7,9 @@ import { CashflowCommand } from "./compound_reports/cashflow.ts";
 import { IncomestatementCommand } from "./compound_reports/incomestatement.ts";
 import { LedgCommand } from "./ledg.ts";
 
+// The ExtensibleCommand is a **NON-PROCESSING** command that does NOT raise any
+// errors on option parsing. It simply takes the argv, guesses the subcommand,
+// and sends that argv downstream.
 export class RootCommand extends ExtensibleCommand {
   readonly accountsSubcommand = new AccountsCommand();
   readonly incomestatementSubcommand = new IncomestatementCommand();

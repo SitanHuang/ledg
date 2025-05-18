@@ -22,7 +22,7 @@ export class SourceableError extends Error {
     const lines = this.sourceString.split(/\r?\n/);
     const lineIndex = this.line ?? 0;
 
-    const sourceLine = lines[lineIndex] ?? "";
+    const sourceLine = lines[lineIndex] ?? this.sourceString;
 
     let pointerLine = "";
     if (this.column != null && this.column > 0) {
