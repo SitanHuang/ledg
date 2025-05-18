@@ -11,6 +11,9 @@ export interface RationalFormatOptions {
   /** Maximum digits after the decimal point; value is rounded to this
   *  precision (default = 10).                                         */
   displayPrecision?: number;
+
+  /** Shows plus sign for positive numbers. Default=false. */
+  showPlus?: boolean;
 }
 
 export class Rational {
@@ -158,6 +161,7 @@ export class Rational {
       useGrouping = 0,
       groupSeparator = ",",
       decimalSeparator = ".",
+      showPlus = false,
     }: RationalFormatOptions = opts;
 
     const minFrac = minFractionDigits;
@@ -200,7 +204,7 @@ export class Rational {
       intPart = buf.join("");
     }
 
-    const sign = neg ? "-" : "";
+    const sign = neg ? "-" : (showPlus ? "+" : "");
     if (maxFrac === 0) return sign + intPart;
     return sign + intPart + decimalSeparator + fracPart;
   }

@@ -12,6 +12,7 @@ export interface CompoundReportMetadata {
   readonly reportPolicy: ReportPolicy;
   readonly subreports: readonly CompoundSubReport[];
   readonly positiveIsGreen: boolean;
+  readonly showPlus: boolean;
 }
 
 export class CompoundReport implements CompoundReportMetadata {
@@ -20,6 +21,7 @@ export class CompoundReport implements CompoundReportMetadata {
   public readonly reportPolicy!: ReportPolicy;
   public readonly subreports!: readonly CompoundSubReport[];
   public readonly positiveIsGreen!: boolean;
+  public readonly showPlus!: boolean;
 
   constructor(opts: CompoundReportMetadata) {
     Object.assign(this, opts);
@@ -45,6 +47,7 @@ export interface CompoundSubReportMetadata {
   readonly account: string;
   readonly invert: boolean;
   readonly positiveIsGreen: boolean;
+  readonly showPlus: boolean;
   readonly netMultiplier: Rational;
 }
 
@@ -53,6 +56,7 @@ export class CompoundSubReport implements CompoundSubReportMetadata {
   public readonly title!: string;
   public readonly account!: string;
   public readonly invert!: boolean;
+  public readonly showPlus!: boolean;
   public readonly positiveIsGreen!: boolean;
   public readonly netMultiplier!: Rational;
 

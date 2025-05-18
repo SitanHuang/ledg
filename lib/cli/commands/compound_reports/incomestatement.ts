@@ -38,6 +38,7 @@ export class IncomestatementCommand extends CompoundCommand {
           account: this.incomeAccPattern,
           invert: true,
           positiveIsGreen: true,
+          showPlus: true,
           netMultiplier: Rational.ONE,
         }),
         new CompoundSubReport({
@@ -45,9 +46,11 @@ export class IncomestatementCommand extends CompoundCommand {
           account: this.expenseAccPattern,
           invert: false,
           positiveIsGreen: false,
+          showPlus: false,
           netMultiplier: Rational.NEGATIVE_ONE,
         }),
       ],
+      showPlus: true,
       journal
     });
 

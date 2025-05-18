@@ -38,9 +38,11 @@ export class CashflowCommand extends CompoundCommand {
           account: this.assetAccPattern,
           invert: false,
           positiveIsGreen: true,
+          showPlus: true,
           netMultiplier: Rational.ONE,
         }),
       ],
+      showPlus: true,
       journal
     });
 

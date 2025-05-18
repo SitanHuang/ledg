@@ -65,12 +65,12 @@ export class AccountSpan extends Stylable {
 
   // only used for ascii so we can safely assume there's space in that span
   override get displayWidth(): number {
-    return this.actualTarget.displayWidth + 2 * (this.depth - 1);
+    return this.actualTarget.displayWidth + 2 * (this.depth - 1) + 1;
   }
 
   override render(format: RenderFormat): string {
     if (["csv", "ascii"].includes(format.target)) {
-      this.target = renderable`${"  ".repeat(this.depth - 1)}${this.actualTarget}`;
+      this.target = renderable` ${"  ".repeat(this.depth - 1)}${this.actualTarget}`;
     }
     return super.render(format);
   }

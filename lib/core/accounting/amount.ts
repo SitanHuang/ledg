@@ -17,6 +17,8 @@ export class AmountFormatOptions implements RationalFormatOptions {
 
   currencyCodeLocation: CurrencyCodeDiplayLocation = 'right';
 
+  showPlus = false;
+
   protected readonly currencyOverrides = new Map<string, AmountFormatOptions>();
 
   constructor(opts: RationalFormatOptions = {}) {

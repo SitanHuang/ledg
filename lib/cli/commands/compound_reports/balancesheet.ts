@@ -38,6 +38,7 @@ export class BalancesheetCommand extends CompoundCommand {
           account: this.assetAccPattern,
           invert: false,
           positiveIsGreen: true,
+          showPlus: false,
           netMultiplier: Rational.ONE,
         }),
         new CompoundSubReport({
@@ -45,9 +46,11 @@ export class BalancesheetCommand extends CompoundCommand {
           account: this.liabilityAccPattern,
           invert: true,
           positiveIsGreen: false,
+          showPlus: false,
           netMultiplier: Rational.NEGATIVE_ONE,
         }),
       ],
+      showPlus: false,
       journal
     });
 
