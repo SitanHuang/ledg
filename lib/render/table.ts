@@ -89,7 +89,10 @@ class TableCell extends Stylable {
     protected actualTarget: Embeddable,
     public width: number,
     public justify: TextJustify,
-  ) { super(actualTarget); }
+  ) {
+    super(actualTarget);
+    this.htmlTag('td');
+  }
 
   header(opt: boolean): this {
     this.htmlTag(opt ? 'th' : 'td');
@@ -124,7 +127,7 @@ class TableCell extends Stylable {
       }
       case 'html':
         this.appendStyle(`text-align: ${this.justify}`);
-        return this.render(format);
+        return super.render(format);
       case 'csv':
         return `"${super.render(format)}"`; // should auto escape using span
     }
@@ -212,7 +215,7 @@ export class Table extends Renderable {
       const line = new Stylable(
         JoinedEmbeddable
           .join(cells)
-          .join(format.target === "csv" ? "," : this.opts.colBorder)
+          .join(format.target === "csv" ? "," : format.target == "ascii" ? this.opts.colBorder : "")
       );
       line.htmlTag('tr');
 
@@ -220,7 +223,11 @@ export class Table extends Renderable {
         (row.opts.header && this.opts.underlineHeader) || row.opts.underline ||
         this.rows.at(rowId + 1)?.opts.topline
       ) {
-        line.underline(true);
+        if (format.target === "ascii") {
+          line.underline(true);
+        } else {
+          line.addClass('underline');
+        }
       }
       if (
         (row.opts.header && this.opts.boldHeader) || row.opts.boldline
@@ -247,7 +254,12 @@ export class Table extends Renderable {
 
     switch (format.target) {
       case "html":
-        return `<table class="ledg-export">${lines.map(x => x.render(format)).join("")}</table>`;
+        return `<table class="ledg-export">\n${lines.map(x => x.render(format)).join("\n")}</table>` +
+          '<style>\n' +
+          'table.ledg-export { border-collapse: collapse; }\n' +
+          'table.ledg-export th, table.ledg-export td { padding: 0.2rem 0.5rem; line-height: 1.1; }\n' +
+          'table.ledg-export .underline td, .ledg-export .underline th { border-bottom: 1px solid black; }\n' +
+          '</style>';
       case "csv":
       case "ascii":
       default:

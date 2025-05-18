@@ -52,7 +52,7 @@ export class CompoundTreeRenderer {
       treeRenderer.displayPolicy.positiveIsGreen = subreport.positiveIsGreen;
 
       treeRenderer.renderBalances(subreportTree, table);
-      treeRenderer.renderSum(subreportTree, table, "", { header: false, boldline: false });
+      treeRenderer.renderSum(subreportTree, table, "", { header: false, boldline: false, topline: true, underline: true });
 
       grandTotal.addBucketsFrom(
         subreportTree.displayedAmounts,
@@ -63,7 +63,7 @@ export class CompoundTreeRenderer {
     treeRenderer.displayPolicy = displayPolicy.naiveCopy();
     treeRenderer.displayPolicy.positiveIsGreen = report.positiveIsGreen;
 
-    treeRenderer.renderSum(grandTotal.buckets, table, "  Net");
+    treeRenderer.renderSum(grandTotal.buckets, table, "  Net", { header: true, topline: true });
 
     return builder;
   }

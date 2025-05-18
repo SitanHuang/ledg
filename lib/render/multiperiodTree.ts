@@ -39,22 +39,33 @@ export class AccountSpan extends Stylable {
     public readonly accountDisplayName: MultiperiodTableKey,
     public readonly depth: number,
   ) {
-    let actualTarget;
+    super(new Span(""));
+
     if (isMinDepthHiddenKey(accountDisplayName)) {
-      super(actualTarget = new Span("(Upper-level accounts)"));
+      this.target = this.actualTarget = new Span("(Upper-level accounts)");
 
       this.italic(true);
     } else {
-      super(actualTarget = new Span(accountDisplayName));
+      this.target = this.actualTarget = new Span(accountDisplayName);
 
       this.appendStyle(`text-indent: ${2 * (this.depth - 1)}em`);
     }
-    this.actualTarget = actualTarget;
+
+    // let actualTarget;
+    // if (isMinDepthHiddenKey(accountDisplayName)) {
+    //   this.target = this.actualTarget = new Span("(Upper-level accounts)");
+
+    //   this.italic(true);
+    // } else {
+    //   this.target = this.actualTarget = new Span(accountDisplayName);
+
+    //   this.appendStyle(`text-indent: ${2 * (this.depth - 1)}em`);
+    // }
   }
 
   // only used for ascii so we can safely assume there's space in that span
   override get displayWidth(): number {
-    return super.displayWidth + 2 * (this.depth - 1);
+    return this.actualTarget.displayWidth + 2 * (this.depth - 1);
   }
 
   override render(format: RenderFormat): string {

@@ -195,14 +195,14 @@ export class Stylable extends Embeddable {
 
     const styleAttr = this._htmlStyles.length ? ` style="${this._htmlStyles.join(';')}"` : '';
     const classes = Array.from(this._htmlClasses);
-    const classAttr = classes.length ? ` class="${classes.join(';')}"` : '';
+    const classAttr = classes.length ? ` class="${classes.join(' ')}"` : '';
     return `<${this._htmlTag || 'span'}${styleAttr}${classAttr}>${content}</${this._htmlTag || 'span'}>`;
   }
 
   private cssColor(c: Color): string {
     if (!c) return '';
     if (isRGB(c)) return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
-    return c === 'gray' ? 'grey' : c;
+    return c === 'gray' ? 'grey' : c.replace('Bright', '');
   }
 
   private applyColor(styled: Ansis, col: Color, isBg: boolean, space?: TerminalColorSpace) {

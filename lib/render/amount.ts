@@ -50,7 +50,7 @@ export class AmountSpan extends JoinedEmbeddable {
           stylable.color(displayPolicy.positiveIsGreen ? 'redBright' : 'green');
         }
 
-        return stylable;
+        return stylable.font('monospace');
       })
     ).join(", ").deconstruct()]);
   }

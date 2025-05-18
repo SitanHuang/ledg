@@ -37,6 +37,20 @@ export abstract class LedgCommand extends Command {
     inputStringRegex: ValueExpressionParser.CURRENCY_REGEX_FULL,
   });
 
+  protected readonly lightThemeOption = new Option({
+    name: "light-theme",
+    alias: 'lt',
+    type: "boolean",
+    description: "Put this in your .ledg2rc if your terminal has light background.",
+  });
+  protected readonly formatOption = new Option({
+    name: "format",
+    type: "string",
+    description: `Output reports in "ascii" | "csv" | "html" format.`,
+    defaultValueDisplay: `"ascii"`,
+    inputStringRegex: /^ascii|csv|html$/
+  });
+
   protected readonly amountFormatOption = new Option({
     name: "amount-format",
     type: "spec",
@@ -120,6 +134,8 @@ export abstract class LedgCommand extends Command {
     this.setOption(this.dateFormatOption);
     this.setOption(this.datetimeFormatOption);
     this.setOption(this.localeOption);
+    this.setOption(this.lightThemeOption);
+    this.setOption(this.formatOption);
   }
 
   protected override consumeOption(option: Option, value: OptionValue): Maybe<ArgParseError> {
@@ -131,8 +147,22 @@ export abstract class LedgCommand extends Command {
     this.defaultCurrencyOption.extractValue(option, value, (val) => {
       this._cliContext.journal.configuration.valuationConfig.defaultCurrencyCode = val;
     });
-
+    this.lightThemeOption.extractValue(option, value, (val) => {
+      if (this._cliContext.renderFormat.target === "ascii") {
+        this._cliContext.renderFormat.lightTerminal = val;
+      }
+    });
     let error: Error | undefined;
+
+    this.formatOption.extractValue(option, value, (val) => {
+      if (val === "ascii" || val === "csv" || val === "html") {
+        this._cliContext.renderFormat.target = val;
+      } else {
+        error = new ArgParseError(`Option --${option.name} requires "ascii" | "csv" | "html|, but got ${val}.`);
+      }
+    });
+
+
     this.amountFormatOption.extractValue(option, value, (specGroups) => {
       const { amountDisplayPolicy, journal } = this._cliContext;
 
