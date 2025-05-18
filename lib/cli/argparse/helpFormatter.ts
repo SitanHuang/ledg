@@ -1,3 +1,5 @@
+import { DateFormat } from "../../core/reports/dateFormat.ts";
+import { timestamp } from "../../core/types.ts";
 import { JoinedEmbeddable, renderable } from "../../render/embeddable.ts";
 import { Embeddable } from "../../render/renderable.ts";
 import { Span } from "../../render/span.ts";
@@ -16,18 +18,24 @@ export class HelpFormatter {
       const origLines = text.split(/\r\n|\n|\r/);
       const lines: string[] = [];
 
-      for (const text of origLines) {
-        const words = text.split(' ');
-        let current = '';
+      for (const line of origLines) {
+        const leadingMatch = /^\s*/.exec(line);
+        const leading = leadingMatch ? leadingMatch[0] : '';
+
+        const content = line.slice(leading.length);
+
+        const words = content.split(' ')
+
+        let current = leading;
         for (const word of words) {
           if (indent + (current + word).length > targetWidth) {
-            lines.push(current.trim());
+            lines.push(current.trimEnd());
             current = word + ' ';
           } else {
             current += word + ' ';
           }
         }
-        if (current) lines.push(current.trim());
+        if (current) lines.push(current.trimEnd());
       }
       return lines.map((line) => line);
     };
@@ -81,10 +89,12 @@ export class HelpFormatter {
           header += " (required)";
         } else if (opt.defaultValueDisplay !== undefined) {
           header += ` (default: ${opt.defaultValueDisplay})`;
-          // TODO: format UTC date here
         } else if (opt.defaultValue !== undefined) {
-          header += ` (default: ${opt.defaultValue})`;
-          // TODO: format UTC date here
+          if (opt.type === 'datetime') {
+            header += ` (default: ${DateFormat.utc().formatDate(opt.defaultValue as timestamp)})`;
+          } else {
+            header += ` (default: ${opt.defaultValue})`;
+          }
         }
 
         if (opt.multiple) header += " (repeatable)";
@@ -111,8 +121,8 @@ export class HelpFormatter {
         });
 
         if (extra.length) {
-          wrapLines(extra, maxWidth, 4).forEach((span) => {
-            line.append(new Span("\n        "));
+          wrapLines(extra, maxWidth, 6).forEach((span) => {
+            line.append(new Span("\n      "));
             line.append(new Stylable(new Span(span)).dim(true));
           });
         }

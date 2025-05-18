@@ -106,3 +106,26 @@ export class AccountGlob {
     return this.compiledPattern.test(account.identifier);
   }
 }
+
+export class CompoundAccountGlob extends AccountGlob {
+
+  constructor(
+    protected readonly globs: AccountGlob[]
+  ) {
+    super(globs[0].pattern);
+  }
+
+  appendPattern(...patterns: string[]) {
+    this.globs.push(...patterns.map(pattern => new AccountGlob(pattern)));
+  }
+
+  override execute(account: Account): boolean {
+    const globs = this.globs;
+    for (let i = 0;i < globs.length;i++) {
+      if (!globs[i].execute(account)) {
+        return false;
+      }
+    }
+    return true;
+  }
+}

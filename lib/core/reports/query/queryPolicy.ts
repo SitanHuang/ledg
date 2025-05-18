@@ -1,6 +1,6 @@
 import { LedgObject } from "../../data/ledgObject.ts";
 import { timestamp } from "../../types.ts";
-import { AccountGlob } from "./accountGlob.ts";
+import { AccountGlob, CompoundAccountGlob } from "./accountGlob.ts";
 
 export type ModifierQuery = RegExp | false;
 
@@ -67,6 +67,12 @@ export class QueryPolicy {
     this.accountGlob = new AccountGlob(pattern);
     return this;
   }
+  withAccountGlobs(...globs: AccountGlob[]): this {
+    this.accountGlob = globs.length === 0 ? undefined : (
+      globs.length === 1 ? globs[0] : new CompoundAccountGlob(globs)
+    );
+    return this;
+  }
 
   withModifier(modifierName: string, query: ModifierQuery): this {
     this.modifiers.set(modifierName, query);
@@ -79,7 +85,7 @@ export class QueryPolicy {
     return this.useDate == 'date' ? obj.date : obj.date2;
   }
 
-  clone(): QueryPolicy {
+  copy(): QueryPolicy {
     const copy = new QueryPolicy();
     copy.from = this.from;
     copy.to = this.to;

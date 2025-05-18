@@ -13,6 +13,10 @@ export abstract class Command {
     type: "boolean",
     description: "Show this help message.",
   });
+  protected readonly debugOption = new Option({
+    name: "debug",
+    type: "boolean",
+  });
 
   constructor(
     public readonly name: string,
@@ -60,6 +64,7 @@ export abstract class Command {
 
   build() {
     this.setOption(this.helpOption);
+    this.setOption(this.debugOption);
   }
 
   exec(argv: readonly string[]): Result<Positionals, ArgParseError> {

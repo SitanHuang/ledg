@@ -7,12 +7,30 @@ export class DateFormat {
   dateFormat = "YYYY-MM-DD";
   datetimeFormat = "YYYY-MM-DD HH:mm:ss";
 
+  positiveInf = "∞";
+  negativeInf = "-∞";
+
+  static utc(): DateFormat {
+    const format = new DateFormat();
+    format.locale = 'UTC';
+    format.dateFormat = "YYYY-MM-DD";
+    format.datetimeFormat = "YYYY-MM-DD HH:mm:ss";
+    return format;
+  }
+
   formatDate(timestamp: timestamp) {
     const format = isUtcMidnight(timestamp) ? this.dateFormat : this.datetimeFormat;
     const locale = this.locale;
 
+    if (timestamp === Infinity) {
+      return this.positiveInf;
+    }
+    if (timestamp === -Infinity) {
+      return this.negativeInf;
+    }
+
     const date = new Date(timestamp);
-    const tokenRegex = /(YYYY|YY|MMMM|MMM|MM|M|dddd|ddd|dd|d|DD|D|HH|H|hh|h|mm|m|ss|s|SSS|A|a)|([^YMDdHhmsSAa]+)/g;
+    const tokenRegex = /(YYYY|YY|MMMM|MMM|MM|M|dddd|ddd|dd|d|DD|D|HH|H|hh|h|mm|m|ss|s|SSS|A|a)|([^YMDdHhmsSAa]+)/gy;
     const parts = [];
     let match;
 
@@ -61,28 +79,32 @@ export class DateFormat {
             part = new Intl.DateTimeFormat(locale, { weekday: 'long', timeZone: 'UTC' }).format(date);
             break;
           case 'H':
-            part = new Intl.DateTimeFormat(locale, { hour: 'numeric', hour12: false, hourCycle: 'h23', timeZone: 'UTC' }).format(date);
+            part = date.getUTCHours().toString();
             break;
           case 'HH':
-            part = new Intl.DateTimeFormat(locale, { hour: '2-digit', hour12: false, hourCycle: 'h23', timeZone: 'UTC' }).format(date);
+            part = date.getUTCHours().toString().padStart(2, '0');
             break;
-          case 'h':
-            part = new Intl.DateTimeFormat(locale, { hour: 'numeric', hour12: true, timeZone: 'UTC' }).format(date);
+          case 'h': {
+            const h12 = date.getUTCHours() % 12 || 12;
+            part = h12.toString();
             break;
-          case 'hh':
-            part = new Intl.DateTimeFormat(locale, { hour: '2-digit', hour12: true, timeZone: 'UTC' }).format(date);
+          }
+          case 'hh': {
+            const h12 = date.getUTCHours() % 12 || 12;
+            part = h12.toString().padStart(2, '0');
             break;
+          }
           case 'm':
-            part = new Intl.DateTimeFormat(locale, { minute: 'numeric', timeZone: 'UTC' }).format(date);
+            part = date.getUTCMinutes().toString();
             break;
           case 'mm':
-            part = new Intl.DateTimeFormat(locale, { minute: '2-digit', timeZone: 'UTC' }).format(date);
+            part = date.getUTCMinutes().toString().padStart(2, '0');
             break;
           case 's':
-            part = new Intl.DateTimeFormat(locale, { second: 'numeric', timeZone: 'UTC' }).format(date);
+            part = date.getUTCSeconds().toString();
             break;
           case 'ss':
-            part = new Intl.DateTimeFormat(locale, { second: '2-digit', timeZone: 'UTC' }).format(date);
+            part = date.getUTCSeconds().toString().padStart(2, '0');
             break;
           case 'SSS': {
             const ms = date.getUTCMilliseconds();
@@ -114,5 +136,9 @@ export class DateFormat {
     }
 
     return parts.join('');
+  }
+
+  copy(): DateFormat {
+    return Object.assign(new DateFormat(), this);
   }
 }

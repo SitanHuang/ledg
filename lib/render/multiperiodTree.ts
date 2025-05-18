@@ -1,10 +1,11 @@
+import { Amount } from "../core/accounting/amount.ts";
 import { isMinDepthHiddenKey, MultiperiodTableKey, MultiperiodTreeItem } from "../core/reports/multiperiodTreeAggregator.ts";
 import { AmountDisplayPolicy, AmountSpan } from "./amount.ts";
 import { renderable } from "./embeddable.ts";
 import { Embeddable, RenderFormat } from "./renderable.ts";
 import { Span } from "./span.ts";
 import { Stylable } from "./stylable.ts";
-import { Table } from "./table.ts";
+import { RowOptions, Table } from "./table.ts";
 
 export class MultiperiodTreeRenderer {
   constructor(
@@ -20,13 +21,13 @@ export class MultiperiodTreeRenderer {
     });
   }
 
-  renderSum(rootItem: MultiperiodTreeItem, table: Table): void {
+  renderSum(rootItem: MultiperiodTreeItem | Amount[], table: Table, legendText = "Sum", rowOpts: RowOptions = {}): void {
     table.addRow([
-      "Sum",
-      ...rootItem.displayedAmounts.map(sum => {
+      legendText,
+      ...(rootItem instanceof MultiperiodTreeItem ? rootItem.displayedAmounts : rootItem).map(sum => {
         return new AmountSpan(sum, this.displayPolicy)
       })
-    ], { topline: true, underline: true, header: true });
+    ], Object.assign({ topline: true, underline: true, header: true }, rowOpts));
   }
 
 }

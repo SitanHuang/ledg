@@ -330,7 +330,7 @@ class MultiperiodTable {
 }
 
 
-class MultiperiodTableBuckets {
+export class MultiperiodTableBuckets {
   baseAmount: Amount = Amount.ZERO;
   readonly buckets: Amount[] = [];
 
@@ -374,8 +374,12 @@ class MultiperiodTableBuckets {
     }
   }
 
-  addBucketsFrom(buckets: MultiperiodTableBuckets) {
-    buckets.buckets.forEach((val, idx) => {
+  addBucketsFrom(buckets: MultiperiodTableBuckets | Amount[], multiplier?: Rational) {
+    (buckets instanceof MultiperiodTableBuckets ? buckets.buckets : buckets).forEach((val, idx) => {
+      if (multiplier) {
+        val = val.times(multiplier);
+      }
+
       this.buckets[idx] = this.buckets[idx].plus(val);
     });
   }

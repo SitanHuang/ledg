@@ -47,7 +47,7 @@ export interface TableOptions {
   boldHeader?: boolean;
 }
 
-interface RowOptions {
+export interface RowOptions {
   /** Whether the row acts as a table header. */
   header?: boolean;
   /** Whether to underline the whole row regardless of header status. */

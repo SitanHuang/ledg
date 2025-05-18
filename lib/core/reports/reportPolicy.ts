@@ -273,7 +273,7 @@ export class ReportPolicy extends QueryPolicy {
     return this._indexer!.indexOf(ts);
   }
 
-  clone(): ReportPolicy {
+  override copy(): ReportPolicy {
     const copy = new ReportPolicy();
 
     copy.from = this.from;

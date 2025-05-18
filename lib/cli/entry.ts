@@ -1,7 +1,7 @@
 import { getErrorMessages } from "../core/utils/debugErrorTools.ts";
 import { RootCommand } from "./commands/root.ts";
 
-export const DEBUG = true;
+export const DEBUG = process.argv.includes('--debug');
 
 (async () => {
   try {

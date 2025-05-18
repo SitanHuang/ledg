@@ -7,7 +7,7 @@ export class SmartDateParseError extends Error {
 
 export function parseSmartDate(date: string): Result<timestamp> {
   if (/^[\d]{4}$/.exec(date)) {
-    date += '/1/1';
+    date += '-01-01 00:00:00';
   }
 
   const result = chrono.parseDate(date);

@@ -29,6 +29,27 @@ export abstract class ReportCommand extends QueryCommand {
     description: "Year component of report period interval (0 = ignore).",
   });
 
+  protected readonly dailyOption = new Option({
+    name: "daily",
+    type: "boolean",
+    description: "Set period interval to daily.",
+  });
+  protected readonly monthlyOption = new Option({
+    name: "monthly",
+    type: "boolean",
+    description: "Set period interval to monthly.",
+  });
+  protected readonly quaterlyOption = new Option({
+    name: "quaterly",
+    type: "boolean",
+    description: "Set period interval to quaterly.",
+  });
+  protected readonly yearlyOption = new Option({
+    name: "yearly",
+    type: "boolean",
+    description: "Set period interval to yearly.",
+  });
+
   protected readonly singlePeriodOption = new Option({
     name: "single-period",
     type: "boolean",
@@ -47,6 +68,11 @@ export abstract class ReportCommand extends QueryCommand {
     alias: "vs",
     type: "string",
     description: "Valuation strategy: eop | txnDate | <datetime>.",
+  });
+  protected readonly eopOption = new Option({
+    name: "eop",
+    type: "boolean",
+    description: "Shortcut for --valuation-strategy=eop",
   });
 
   protected readonly cumulativeOption = new Option({
@@ -120,9 +146,16 @@ export abstract class ReportCommand extends QueryCommand {
     this.setOption(this.periodDayOption);
     this.setOption(this.periodMonthOption);
     this.setOption(this.periodYearOption);
+
+    this.setOption(this.dailyOption);
+    this.setOption(this.monthlyOption);
+    this.setOption(this.quaterlyOption);
+    this.setOption(this.yearlyOption);
+
     this.setOption(this.singlePeriodOption);
     this.setOption(this.currencyOption);
     this.setOption(this.valuationStrategyOption);
+    this.setOption(this.eopOption);
     this.setOption(this.cumulativeOption);
     this.setOption(this.sumParentOption);
     this.setOption(this.maxDepthOption);
@@ -164,6 +197,35 @@ export abstract class ReportCommand extends QueryCommand {
       this.applyPeriodInterval();
     });
 
+    this.dailyOption.extractValue(option, value, (opt: boolean) => {
+      if (!opt) return;
+      this.periodDays = 1;
+      this.periodMonths = 0;
+      this.periodYears = 0;
+      this.applyPeriodInterval();
+    });
+    this.monthlyOption.extractValue(option, value, (opt: boolean) => {
+      if (!opt) return;
+      this.periodDays = 0;
+      this.periodMonths = 1;
+      this.periodYears = 0;
+      this.applyPeriodInterval();
+    });
+    this.quaterlyOption.extractValue(option, value, (opt: boolean) => {
+      if (!opt) return;
+      this.periodDays = 0;
+      this.periodMonths = 3;
+      this.periodYears = 0;
+      this.applyPeriodInterval();
+    });
+    this.yearlyOption.extractValue(option, value, (opt: boolean) => {
+      if (!opt) return;
+      this.periodDays = 0;
+      this.periodMonths = 0;
+      this.periodYears = 1;
+      this.applyPeriodInterval();
+    });
+
     this.singlePeriodOption.extractValue(option, value, (flag: boolean) => {
       if (flag) {
         this.reportPolicy.withSingleReportPeriod();
@@ -188,6 +250,11 @@ export abstract class ReportCommand extends QueryCommand {
 
         this.reportPolicy.withValuationStrategy(result);
       }
+    });
+
+    this.eopOption.extractValue(option, value, (opt: boolean) => {
+      if (!opt) return;
+      this.reportPolicy.withValuationStrategy("eop");
     });
 
     this.cumulativeOption.extractValue(option, value, (flag: boolean) => {

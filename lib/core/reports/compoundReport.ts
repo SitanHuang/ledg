@@ -1,6 +1,8 @@
 import { Journal } from "../data/journal.ts";
+import { Rational } from "../math/rational.ts";
 import { hasResult, Result } from "../types.ts";
 import { MultiperiodTreeAggregator, MultiperiodTreeItem } from "./multiperiodTreeAggregator.ts";
+import { AccountGlob } from "./query/accountGlob.ts";
 import { QueryEngine } from "./query/queryEngine.ts";
 import { ReportPolicy } from "./reportPolicy.ts";
 
@@ -43,7 +45,7 @@ export interface CompoundSubReportMetadata {
   readonly account: string;
   readonly invert: boolean;
   readonly positiveIsGreen: boolean;
-  readonly netModifier: boolean;
+  readonly netMultiplier: Rational;
 }
 
 export class CompoundSubReport implements CompoundSubReportMetadata {
@@ -52,16 +54,24 @@ export class CompoundSubReport implements CompoundSubReportMetadata {
   public readonly account!: string;
   public readonly invert!: boolean;
   public readonly positiveIsGreen!: boolean;
-  public readonly netModifier!: boolean;
+  public readonly netMultiplier!: Rational;
 
-  constructor(opts: CompoundReportMetadata) {
+  constructor(opts: CompoundSubReportMetadata) {
     Object.assign(this, opts);
   }
 
   execute(journal: Journal, parentReportPolicy: ReportPolicy): Result<MultiperiodTreeItem> {
-    const policy = parentReportPolicy.clone()
-      .withAccount(this.account)
+    const policy = parentReportPolicy.copy()
       .withInversion(this.invert);
+
+    const accountGlob = new AccountGlob(this.account);
+
+    if (policy.accountGlob) {
+      // User-specified accounts first
+      policy.withAccountGlobs(policy.accountGlob, accountGlob);
+    } else {
+      policy.withAccountGlobs(accountGlob);
+    }
 
     return new MultiperiodTreeAggregator(
       journal,
