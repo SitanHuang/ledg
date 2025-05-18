@@ -244,25 +244,43 @@ export abstract class ExtensibleCommand extends Command {
 
     const sentinelIdx = argv.indexOf("--");
 
-    const relevantTokens = sentinelIdx >= 0 ? argv.slice(0, sentinelIdx) : argv;
+    type Candidate = [string, number];
 
-    // first non-option in that slice
-    const subIndex = relevantTokens.findIndex(arg => !arg.startsWith("-"));
-    if (subIndex >= 0) {
-      const rawName = relevantTokens[subIndex];
-      const name = this.subcommandAliases.get(rawName) ?? rawName;
+    const relevantTokens = (sentinelIdx >= 0 ? argv.slice(0, sentinelIdx) : argv)
+                             .map((x, idx) => [x, idx] as Candidate)
+                             .filter(([arg, ]) => !arg.startsWith("-"));
+
+    // Options, depending on type, may or may not consume adjacent positionals
+    // as values. We can't know unless we know the subcommand class, so this
+    // becomes a chicken-and-egg problem. We can only take our best guess...
+    const candidateScore = (positional: string, pos: number) => {
+      // Boost the candidates that look like subcommands
+
+      return (this.subcommands.has(positional) ? 2 : 0) + // exact match
+             (this.subcommandAliases.has(positional) ? 1 : 0) + // alias match
+             (-pos / relevantTokens.length) + // earlier in the argv, the better
+             ((/[^a-z]/i.exec(positional)) ? -1 : 0); // penalty for non-letter chars
+    };
+
+    const subcommandCandidates = relevantTokens.sort((a, b) => {
+      return candidateScore(...b) - candidateScore(...a); // highest score goes first
+    });
+
+    for (const [positional, pos] of subcommandCandidates) {
+      const name = this.subcommandAliases.get(positional) ?? positional;
       const sub = this.detectedSubcommand = this.subcommands.get(name);
+
       if (sub) {
         // delegate everything after the sub-command name
-        return sub.exec(argv.slice(subIndex + 1));
+        return sub.exec(argv.toSpliced(pos, 1));
       }
     }
 
-    if (this.defaultSubcommand && !relevantTokens.find(arg => !!(arg.startsWith("--help") || arg === "-h"))) {
+    if (this.defaultSubcommand && !argv.find(arg => !!(arg.startsWith("--help") || arg === "-h"))) {
       return this.defaultSubcommand.exec(argv);
     }
 
-    // no sub-command matched → fall back to normal parsing
+    // no sub-command matched -> fall back to normal parsing
     return super.exec(argv);
   }
 
