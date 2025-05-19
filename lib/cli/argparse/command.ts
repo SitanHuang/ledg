@@ -1,5 +1,5 @@
 import { chainMaybesAsync, hasError, isOk, Maybe, Ok, Result } from "../../core/types.ts";
-import { ArgParseError, Positionals, Token } from "./argparse.ts";
+import { ArgParseError, HelpRequested, Positionals, Token } from "./argparse.ts";
 import { HelpFormatter } from "./helpFormatter.ts";
 import { Option, OptionValue } from "./option.ts";
 
@@ -92,7 +92,7 @@ export abstract class Command {
         }
 
         if (!opt) {
-          throw new ArgParseError(`Unknown option --${longName}`);
+          return new ArgParseError(`Unknown option --${longName}`);
         }
 
         let val: string | undefined;
@@ -105,7 +105,7 @@ export abstract class Command {
           val = argv[i + 1];
 
           if (val === undefined) {
-            throw new ArgParseError(`Option --${longName} expects a value.`);
+            return new ArgParseError(`Option --${longName} expects a value.`);
           }
 
           ++i; // consume look‑ahead
@@ -128,7 +128,7 @@ export abstract class Command {
           const longName = this.shortOptions.get(ch);
           const opt = longName ? this.longOptions.get(longName) : undefined;
           if (!opt) {
-            throw new ArgParseError(`Unknown option -${ch}`);
+            return new ArgParseError(`Unknown option -${ch}`);
           }
 
           let val: string | undefined;
@@ -138,12 +138,12 @@ export abstract class Command {
             val = argv[i + 1];
 
             if (val === undefined) {
-              throw new ArgParseError(`Option -${ch} expects a value.`);
+              return new ArgParseError(`Option -${ch} expects a value.`);
             }
 
             ++i;
           } else {
-            throw new ArgParseError(`Option -${ch} must be last in cluster as it expects a value.`);
+            return new ArgParseError(`Option -${ch} must be last in cluster as it expects a value.`);
           }
 
           const result = this.parseOption(opt, val);
@@ -184,8 +184,7 @@ export abstract class Command {
     }
 
     if (option === this.helpOption) {
-      this.help();
-      return new ArgParseError("Help requested.");
+      return new HelpRequested();
     }
 
     const err = this.consumeOption(option, result);

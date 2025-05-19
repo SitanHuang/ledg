@@ -1,4 +1,3 @@
-import { execSync } from "node:child_process";
 import { createReadStream } from "node:fs";
 import { AmountFormatOptions } from "../../core/accounting/amount.ts";
 import { InputStreamJournalReader } from "../../core/parsing/journal/inputStreamJournalReader.ts";
@@ -274,23 +273,10 @@ export abstract class LedgCommand extends ConfigurableCommand {
     return error ?? Ok;
   }
 
-
-  private _old_console_log?: typeof console.log;
-  private _console_buffer: string[] = [];
-  private _console_buffer_lines = 0;
-
   override exec(argv: readonly string[]): Result<Positionals, ArgParseError> {
     const result = super.exec(argv);
 
-    if ((this.pipeConsoleLongOptionVal || this.pipeConsoleShortOptionVal) && process.stdout.isTTY) {
-      this._old_console_log = console.log;
-
-      console.log = (...strs) => {
-        const str = strs.join(" ");
-        this._console_buffer.push(str, "\n");
-        this._console_buffer_lines += (str.match(/\r\n|\r|\n/g) ?? []).length + 1;
-      };
-    }
+    this._cliContext.pipeConsoleBuffer(this.pipeConsoleLongOptionVal, this.pipeConsoleShortOptionVal);
 
     if (!hasResult(result)) {
       return result;
@@ -299,7 +285,7 @@ export abstract class LedgCommand extends ConfigurableCommand {
     return result;
   }
 
-  private readonly _cliContext: LedgCLIContext = new LedgCLIContext();
+  private readonly _cliContext: LedgCLIContext = LedgCLIContext.getCurrentContext();
   private _journalLoaded = false;
 
   async getCLIContext(): Promise<Result<LedgCLIContext>> {
@@ -325,42 +311,6 @@ export abstract class LedgCommand extends ConfigurableCommand {
     this._journalLoaded = true;
 
     return this._cliContext;
-  }
-
-  override async cleanup(): Promise<Maybe> {
-    const spawnChild = (cmd: string): Maybe => {
-      try {
-        execSync(cmd, {
-          input: this._console_buffer.join(""),
-          stdio: ['pipe', process.stdout, process.stderr]
-        });
-      } catch (e) {
-        return e as Error;
-      }
-      return Ok;
-    };
-    if (this.pipeConsoleLongOptionVal && this._console_buffer_lines > process.stdout.rows) {
-      const child = spawnChild(this.pipeConsoleLongOptionVal);
-      if (child instanceof Error) {
-        return child;
-      }
-    } else if (this.pipeConsoleShortOptionVal && this._console_buffer_lines <= process.stdout.rows) {
-      const child = spawnChild(this.pipeConsoleShortOptionVal);
-      if (child instanceof Error) {
-        return child;
-      }
-    } else if (this.pipeConsoleLongOptionVal || this.pipeConsoleShortOptionVal) {
-      process.stdout.write(this._console_buffer.join(""));
-    }
-
-    this._console_buffer.length = 0;
-    this._console_buffer_lines = 0;
-
-    if (this._old_console_log) {
-      console.log = this._old_console_log;
-    }
-
-    return Ok;
   }
 
   override async run(positionals: Positionals): Promise<Maybe> {

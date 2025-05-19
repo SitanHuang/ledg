@@ -1,6 +1,8 @@
 import { chainMaybesAsync } from "../core/types.ts";
 import { getErrorMessages } from "../core/utils/debugErrorTools.ts";
+import { HelpRequested } from "./argparse/argparse.ts";
 import { RootCommand } from "./commands/root.ts";
+import { LedgCLIContext } from "./context.ts";
 
 export const DEBUG = process.argv.includes('--debug');
 
@@ -8,6 +10,12 @@ export const DEBUG = process.argv.includes('--debug');
   try {
     const root = new RootCommand();
     const result = root.build().exec(process.argv.slice(2));
+
+    if (result instanceof HelpRequested) {
+      root.help();
+      LedgCLIContext.getCurrentContext().releaseConsoleBuffer();
+      return;
+    }
 
     if (result instanceof Error) {
       throw result;
@@ -33,5 +41,7 @@ export const DEBUG = process.argv.includes('--debug');
     }
 
     process.exit(1);
+  } finally {
+    LedgCLIContext.getCurrentContext().releaseConsoleBuffer();
   }
 })();

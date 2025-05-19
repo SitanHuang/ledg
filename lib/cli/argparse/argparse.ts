@@ -1,6 +1,9 @@
 export class ArgParseError extends Error {
   protected readonly __argParseErrorBrand = undefined;
 }
+export class HelpRequested extends ArgParseError {
+  protected readonly __helpRequestedBrand = undefined;
+}
 
 export class Token {
   constructor(

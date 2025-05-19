@@ -1,4 +1,6 @@
-import { ExtensibleCommand } from "../argparse/command.ts";
+import { Result } from "../../core/types.ts";
+import { ArgParseError, Positionals } from "../argparse/argparse.ts";
+import { Command, ExtensibleCommand } from "../argparse/command.ts";
 import { HelpFormatter } from "../argparse/helpFormatter.ts";
 import { AccountsCommand } from "./accounts/accounts.ts";
 import { BalancesheetCommand } from "./compound_reports/balancesheet.ts";
@@ -23,12 +25,28 @@ export class RootCommand extends ExtensibleCommand {
     super("ledg", "Accounting software.");
   }
 
-  override help() {
-    this.clearOptions();
+  override exec(argv: readonly string[]): Result<Positionals, ArgParseError> {
     const sham = new RootHelpCommand();
-    Object.assign(this, sham);
-    sham.build.bind(this)();
-    console.log(HelpFormatter.format(this));
+    sham.build();
+    // We need LedgCommand to set the piping commands so that --help works
+    sham.exec(argv);
+    return super.exec(argv);
+  }
+
+  override help() {
+    let target: Command;
+
+    if (this.detectedSubcommand) {
+      target = this.detectedSubcommand;
+    } else {
+      this.clearOptions();
+      const sham = new RootHelpCommand();
+      Object.assign(this, sham);
+      sham.build.bind(this)();
+      target = this;
+    }
+
+    console.log(HelpFormatter.format(target));
   }
 
   override build() {
