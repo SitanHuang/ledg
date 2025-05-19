@@ -12,17 +12,59 @@ export type AccountAcceptor = IteratorCallback<Account, void>;
 export class QueryEngineExecutor {
   constructor(
     protected readonly query: Query
-  ) {}
+  ) { }
 
+  /**
+  * Executes query against transaction data only.
+  */
   executeTransactions(journal: Journal, transactionAcceptor: TransactionAcceptor): void {
     const { acceptLedgObject } = this.query;
 
     journal.transactionStore.iterateAll(transaction => {
-      if (!acceptLedgObject(transaction)) {
-        return;
+      if (acceptLedgObject(transaction)) {
+        return transactionAcceptor(transaction);
+      }
+    });
+  }
+
+  /**
+   * Executes the query against transactions and their postings in the journal.
+   * Transactions are accepted if either the transaction itself or any of its postings matches the query.
+   */
+  executeTransactionsAndRelated(journal: Journal, transactionAcceptor: TransactionAcceptor): void {
+    const { acceptLedgObject } = this.query;
+
+    journal.transactionStore.iterateAll(transaction => {
+      if (acceptLedgObject(transaction)) {
+        return transactionAcceptor(transaction);
       }
 
-      return transactionAcceptor(transaction);
+      for (let i = 0; i < transaction.postings.length; i++) {
+        const posting = transaction.postings[i];
+
+        if (acceptLedgObject(posting)) {
+          return transactionAcceptor(transaction);
+        }
+      }
+    });
+  }
+
+  /**
+   * Executes the query against transaction postings in the journal.
+   * Transactions are accepted only if at least one of their postings matches the query.
+   * Accepted transactions are passed to the provided acceptor.
+   */
+  executeRelatedTransactions(journal: Journal, transactionAcceptor: TransactionAcceptor): void {
+    const { acceptLedgObject } = this.query;
+
+    journal.transactionStore.iterateAll(transaction => {
+      for (let i = 0; i < transaction.postings.length; i++) {
+        const posting = transaction.postings[i];
+
+        if (acceptLedgObject(posting)) {
+          return transactionAcceptor(transaction);
+        }
+      }
     });
   }
 
@@ -32,7 +74,7 @@ export class QueryEngineExecutor {
     const { accountManager, transactionStore } = journal;
     const accounts = accountManager.getAccountsList();
 
-    for (let i = 0;i < accounts.length;i++) {
+    for (let i = 0; i < accounts.length; i++) {
       if (!acceptAccount(accounts[i])) {
         continue;
       }

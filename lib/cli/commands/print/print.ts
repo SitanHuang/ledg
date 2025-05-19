@@ -122,7 +122,7 @@ export class PrintCommand extends QueryCommand {
 
     const transactions: Transaction[] = [];
 
-    QueryEngine.create(policy).compile().executeTransactions(journal, txn => {
+    QueryEngine.create(policy).compile().executeTransactionsAndRelated(journal, txn => {
       transactions.push(txn);
     });
 
