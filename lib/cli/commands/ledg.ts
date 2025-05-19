@@ -1,10 +1,11 @@
+import { execSync } from "node:child_process";
 import { createReadStream } from "node:fs";
 import { AmountFormatOptions } from "../../core/accounting/amount.ts";
 import { InputStreamJournalReader } from "../../core/parsing/journal/inputStreamJournalReader.ts";
 import { isValidCurrencyCode, ValueExpressionParser } from "../../core/parsing/valueExpressionParser.ts";
 import { JournalReaderAdapter } from "../../core/pipelines/adapters/journalReaderAdapter.ts";
 import { DefaultTransactionPipeline } from "../../core/pipelines/transactionPipeline.ts";
-import { isOk, Maybe, Ok, Result } from "../../core/types.ts";
+import { hasResult, isOk, Maybe, Ok, Result } from "../../core/types.ts";
 import { ArgParseError, Positionals } from "../argparse/argparse.ts";
 import { Option, OptionValue } from "../argparse/option.ts";
 import { LedgCLIContext } from "../context.ts";
@@ -26,6 +27,38 @@ export abstract class LedgCommand extends ConfigurableCommand {
     description: "Sets the default currency code.",
     inputStringRegex: ValueExpressionParser.CURRENCY_REGEX_FULL,
   });
+
+  protected readonly pipeConsoleLongOption = new Option({
+    name: "pipe-console-long",
+    type: "string",
+    description: "Redirect process.stdout to the piped command if the buffered output is longer than terminal height.",
+    longDescription: [
+      "An useful example is to put the following into your ~/.ledg2rc:",
+      "  ```.ledg2rc",
+      "  pipe-console-long = \"less -X -r -S +G -~ -F -\"",
+      "  ```",
+    ].join("\n")
+  });
+  protected readonly pipeConsoleShortOption = new Option({
+    name: "pipe-console-short",
+    type: "string",
+    description: "Redirect process.stdout to the piped command if the buffered output is shorter than terminal height.",
+    longDescription: [
+      "An useful example is to put the following into your ~/.ledg2rc:",
+      "  ```.ledg2rc",
+      "  pipe-console-short = \"less -X -r -S -F -\"",
+      "  ```",
+    ].join("\n")
+  });
+
+  protected _pipeConsoleLongOptionVal?: string;
+  get pipeConsoleLongOptionVal(): string | undefined {
+    return this._pipeConsoleLongOptionVal;
+  }
+  set pipeConsoleLongOptionVal(val: string | undefined) {
+    this._pipeConsoleLongOptionVal = val;
+  }
+  protected pipeConsoleShortOptionVal?: string;
 
   protected readonly lightThemeOption = new Option({
     name: "light-theme",
@@ -133,6 +166,8 @@ export abstract class LedgCommand extends ConfigurableCommand {
     this.setOption(this.lightThemeOption);
     this.setOption(this.dpOption);
     this.setOption(this.formatOption);
+    this.setOption(this.pipeConsoleLongOption);
+    this.setOption(this.pipeConsoleShortOption);
   }
 
   protected override consumeOption(option: Option, value: OptionValue): Maybe<ArgParseError> {
@@ -141,6 +176,9 @@ export abstract class LedgCommand extends ConfigurableCommand {
     if (!isOk(result)) {
       return result;
     }
+
+    this.pipeConsoleLongOptionVal = this.pipeConsoleLongOption.extractValue(option, value) ?? this.pipeConsoleLongOptionVal;
+    this.pipeConsoleShortOptionVal = this.pipeConsoleShortOption.extractValue(option, value) ?? this.pipeConsoleShortOptionVal;
 
     this.showDefaultCurrencyOption.extractValue(option, value, (val) => {
       this._cliContext.amountDisplayPolicy.showDefaultCurrency = val;
@@ -236,6 +274,31 @@ export abstract class LedgCommand extends ConfigurableCommand {
     return error ?? Ok;
   }
 
+
+  private _old_console_log?: typeof console.log;
+  private _console_buffer: string[] = [];
+  private _console_buffer_lines = 0;
+
+  override exec(argv: readonly string[]): Result<Positionals, ArgParseError> {
+    const result = super.exec(argv);
+
+    if ((this.pipeConsoleLongOptionVal || this.pipeConsoleShortOptionVal) && process.stdout.isTTY) {
+      this._old_console_log = console.log;
+
+      console.log = (...strs) => {
+        const str = strs.join(" ");
+        this._console_buffer.push(str, "\n");
+        this._console_buffer_lines += (str.match(/\r\n|\r|\n/g) ?? []).length + 1;
+      };
+    }
+
+    if (!hasResult(result)) {
+      return result;
+    }
+
+    return result;
+  }
+
   private readonly _cliContext: LedgCLIContext = new LedgCLIContext();
   private _journalLoaded = false;
 
@@ -262,6 +325,42 @@ export abstract class LedgCommand extends ConfigurableCommand {
     this._journalLoaded = true;
 
     return this._cliContext;
+  }
+
+  override async cleanup(): Promise<Maybe> {
+    const spawnChild = (cmd: string): Maybe => {
+      try {
+        execSync(cmd, {
+          input: this._console_buffer.join(""),
+          stdio: ['pipe', process.stdout, process.stderr]
+        });
+      } catch (e) {
+        return e as Error;
+      }
+      return Ok;
+    };
+    if (this.pipeConsoleLongOptionVal && this._console_buffer_lines > process.stdout.rows) {
+      const child = spawnChild(this.pipeConsoleLongOptionVal);
+      if (child instanceof Error) {
+        return child;
+      }
+    } else if (this.pipeConsoleShortOptionVal && this._console_buffer_lines <= process.stdout.rows) {
+      const child = spawnChild(this.pipeConsoleShortOptionVal);
+      if (child instanceof Error) {
+        return child;
+      }
+    } else if (this.pipeConsoleLongOptionVal || this.pipeConsoleShortOptionVal) {
+      process.stdout.write(this._console_buffer.join(""));
+    }
+
+    this._console_buffer.length = 0;
+    this._console_buffer_lines = 0;
+
+    if (this._old_console_log) {
+      console.log = this._old_console_log;
+    }
+
+    return Ok;
   }
 
   override async run(positionals: Positionals): Promise<Maybe> {

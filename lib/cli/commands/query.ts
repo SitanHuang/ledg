@@ -1,8 +1,8 @@
 import { QueryPolicy } from "../../core/reports/query/queryPolicy.ts";
-import { Maybe, timestamp } from "../../core/types.ts";
-import { LedgCommand } from "./ledg.ts";
+import { isOk, Maybe, Ok, timestamp } from "../../core/types.ts";
 import { ArgParseError } from "../argparse/argparse.ts";
 import { Option, OptionValue } from "../argparse/option.ts";
+import { LedgCommand } from "./ledg.ts";
 
 export abstract class QueryCommand extends LedgCommand {
 
@@ -113,6 +113,9 @@ export abstract class QueryCommand extends LedgCommand {
   }
 
   protected override consumeOption(option: Option, value: OptionValue): Maybe<ArgParseError> {
+    const parent = super.consumeOption(option, value);
+    if (!isOk(parent)) return parent;
+
     let error: ArgParseError | undefined;
 
     this.fromOption.extractValue(option, value, (from: timestamp) => {
@@ -165,7 +168,7 @@ export abstract class QueryCommand extends LedgCommand {
       }
     });
 
-    return error ?? super.consumeOption(option, value);
+    return error ?? Ok;
   }
 
   protected getQueryPolicy(): QueryPolicy {

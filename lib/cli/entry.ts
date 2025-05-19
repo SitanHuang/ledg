@@ -1,3 +1,4 @@
+import { chainMaybesAsync } from "../core/types.ts";
 import { getErrorMessages } from "../core/utils/debugErrorTools.ts";
 import { RootCommand } from "./commands/root.ts";
 
@@ -12,7 +13,10 @@ export const DEBUG = process.argv.includes('--debug');
       throw result;
     }
 
-    const status = await root.run(result);
+    const status = await chainMaybesAsync(
+      () => root.run(result),
+      () => root.cleanup(),
+    );
 
     if (status instanceof Error) {
       throw status;

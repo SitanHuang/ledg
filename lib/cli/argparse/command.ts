@@ -1,4 +1,4 @@
-import { hasError, isOk, Maybe, Ok, Result } from "../../core/types.ts";
+import { chainMaybesAsync, hasError, isOk, Maybe, Ok, Result } from "../../core/types.ts";
 import { ArgParseError, Positionals, Token } from "./argparse.ts";
 import { HelpFormatter } from "./helpFormatter.ts";
 import { Option, OptionValue } from "./option.ts";
@@ -223,6 +223,8 @@ export abstract class Command {
   protected abstract consumeOption(option: Option, value: OptionValue): Maybe<ArgParseError>;
 
   abstract run(positionals: Positionals): Promise<Maybe>;
+
+  async cleanup(): Promise<Maybe> { return Ok; }
 }
 
 // The ExtensibleCommand is a **NON-PROCESSING** command that does NOT raise any
@@ -313,6 +315,13 @@ export abstract class ExtensibleCommand extends Command {
     }
 
     return this.runDefault(positionals);
+  }
+
+  override async cleanup(): Promise<Maybe> {
+    return chainMaybesAsync(
+      () => super.cleanup(),
+      async () => this.detectedSubcommand ? await this.detectedSubcommand.cleanup() : Ok,
+    );
   }
 
   consumeOption(): Maybe<ArgParseError> {
