@@ -14,6 +14,7 @@ export class CompoundTreeRenderer {
     public report: CompoundReport,
     public displayPolicy: AmountDisplayPolicy,
     public dateFormat: DateFormat,
+    public displayAvgs = false,
   ) {}
 
   render(results: readonly MultiperiodTreeItem[]): Renderable {
@@ -52,8 +53,8 @@ export class CompoundTreeRenderer {
       treeRenderer.displayPolicy.positiveIsGreen = subreport.positiveIsGreen;
       treeRenderer.displayPolicy.showPlus = subreport.showPlus;
 
-      treeRenderer.renderBalances(subreportTree, table);
-      treeRenderer.renderSum(subreportTree, table, "", { header: false, boldline: false, topline: true, underline: true });
+      treeRenderer.renderBalances(subreportTree, table, this.displayAvgs);
+      treeRenderer.renderSum(subreportTree, table, "", { header: false, boldline: false, topline: true, underline: true }, this.displayAvgs);
 
       grandTotal.addBucketsFrom(
         subreportTree.displayedAmounts,
@@ -78,6 +79,11 @@ export class CompoundTreeRenderer {
     for (const period of this.report.reportPolicy.periods()) {
       justify.push("right");
       titleRow.push(this.dateFormat.formatDate(period.to ?? Infinity));
+    }
+
+    if (this.displayAvgs) {
+      justify.push("right");
+      titleRow.push("Avg");
     }
 
     return new Table({ justify }).addRow(titleRow, { header: true });

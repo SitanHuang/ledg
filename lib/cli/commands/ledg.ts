@@ -41,6 +41,13 @@ export abstract class LedgCommand extends ConfigurableCommand {
     inputStringRegex: /^ascii|csv|html$/
   });
 
+  protected readonly dpOption = new Option({
+    name: "display-precision",
+    alias: "dp",
+    type: "int",
+    description: `Alias for "--amount-format=displayPrecision=<val>"`,
+  });
+
   protected readonly amountFormatOption = new Option({
     name: "amount-format",
     type: "spec",
@@ -124,6 +131,7 @@ export abstract class LedgCommand extends ConfigurableCommand {
     this.setOption(this.datetimeFormatOption);
     this.setOption(this.localeOption);
     this.setOption(this.lightThemeOption);
+    this.setOption(this.dpOption);
     this.setOption(this.formatOption);
   }
 
@@ -155,6 +163,9 @@ export abstract class LedgCommand extends ConfigurableCommand {
       }
     });
 
+    this.dpOption.extractValue(option, value, (dp) => {
+      this._cliContext.amountDisplayPolicy.displayPrecision = dp;
+    });
 
     this.amountFormatOption.extractValue(option, value, (specGroups) => {
       const { amountDisplayPolicy, journal } = this._cliContext;
@@ -181,7 +192,7 @@ export abstract class LedgCommand extends ConfigurableCommand {
                 error = new ArgParseError(`Spec "--${option.name}" expects integer for modifier ${mod}, got ${val}.`);
                 return;
               }
-              targetPolicy.useGrouping = val;
+              targetPolicy[mod == 'groupInterval' ? 'useGrouping' : mod] = val;
               break;
             case 'currencyCodeLocation':
               if (val !== 'left' && val !== 'right' && val !== 'none') {

@@ -8,7 +8,7 @@ import { LedgCLIContext } from "../../context.ts";
 import { DEBUG } from "../../entry.ts";
 import { ReportCommand } from "../report.ts";
 
-export abstract class CompoundCommand extends ReportCommand {
+export abstract class CompoundReportCommand extends ReportCommand {
 
   protected readonly incomeAccOption = new Option({
     name: "income",
@@ -50,6 +50,15 @@ export abstract class CompoundCommand extends ReportCommand {
   });
   protected equityAccPattern = "\\v^equity";
 
+  protected readonly avgOption = new Option({
+    name: "average",
+    alias: "avg",
+    type: "boolean",
+    defaultValue: false,
+    description: "Display averages across the periods.",
+  });
+  protected avgOptionValue = false;
+
   // TODO: avg
 
   override build(): void {
@@ -73,27 +82,20 @@ export abstract class CompoundCommand extends ReportCommand {
     this.setOption(this.assetAccOption);
     this.setOption(this.liabilityAccOption);
     this.setOption(this.equityAccOption);
+    this.setOption(this.avgOption);
   }
 
   protected override consumeOption(option: Option, value: OptionValue): Maybe<ArgParseError> {
     const parent = super.consumeOption(option, value);
     if (!isOk(parent)) return parent;
 
-    this.incomeAccOption.extractValue(option, value, acc => {
-      this.incomeAccPattern = acc;
-    });
-    this.expenseAccOption.extractValue(option, value, acc => {
-      this.expenseAccPattern = acc;
-    });
-    this.assetAccOption.extractValue(option, value, acc => {
-      this.assetAccPattern = acc;
-    });
-    this.liabilityAccOption.extractValue(option, value, acc => {
-      this.liabilityAccPattern = acc;
-    });
-    this.equityAccOption.extractValue(option, value, acc => {
-      this.equityAccPattern = acc;
-    });
+    this.incomeAccPattern = this.incomeAccOption.extractValue(option, value) ?? this.incomeAccPattern;
+    this.expenseAccPattern = this.expenseAccOption.extractValue(option, value) ?? this.expenseAccPattern;
+    this.assetAccPattern = this.assetAccOption.extractValue(option, value) ?? this.assetAccPattern;
+    this.liabilityAccPattern = this.liabilityAccOption.extractValue(option, value) ?? this.liabilityAccPattern;
+    this.equityAccPattern = this.equityAccOption.extractValue(option, value) ?? this.equityAccPattern;
+
+    this.avgOptionValue = this.avgOption.extractValue(option, value) ?? this.avgOptionValue;
 
     return Ok;
   }
@@ -125,7 +127,8 @@ export abstract class CompoundCommand extends ReportCommand {
       new CompoundTreeRenderer(
         report,
         context.amountDisplayPolicy,
-        context.dateFormat
+        context.dateFormat,
+        this.avgOptionValue,
       ).render(result).render(context.renderFormat)
     );
 

@@ -164,8 +164,8 @@ export class Rational {
       showPlus = false,
     }: RationalFormatOptions = opts;
 
-    const minFrac = minFractionDigits;
     const maxFrac = displayPrecision;
+    const minFrac = Math.min(maxFrac, minFractionDigits);
 
     // Round to maxFrac decimal places
     const q = this.round(maxFrac);

@@ -2,9 +2,9 @@ import { Rational } from "../../../core/math/rational.ts";
 import { CompoundReport, CompoundSubReport } from "../../../core/reports/compoundReport.ts";
 import { hasResult, isOk, Maybe, Ok } from "../../../core/types.ts";
 import { Positionals } from "../../argparse/argparse.ts";
-import { CompoundCommand } from "./compound.ts";
+import { CompoundReportCommand } from "./compound.ts";
 
-export class BalancesheetCommand extends CompoundCommand {
+export class BalancesheetCommand extends CompoundReportCommand {
   constructor() {
     super("balancesheet", "Produce an balance sheet report.");
   }
