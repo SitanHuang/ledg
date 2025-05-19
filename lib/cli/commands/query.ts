@@ -43,7 +43,7 @@ export abstract class QueryCommand extends LedgCommand {
     type: "string",
     description: "Account glob pattern.",
     longDescription: [
-      'AccountGlob performs Unix‑style globbing of account names.',
+      'AccountGlob performs Unix-style globbing of account names.',
       '  ex: ..cash =~ Account.Current.Cash',
       '      .cash =~ Account.Cash',
       '      exp$ =~ Expense',

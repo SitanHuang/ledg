@@ -137,7 +137,8 @@ export abstract class ConfigurableCommand extends Command {
       const opt = this.getLongOptions().get(key);
 
       if (!opt) {
-        return new ArgParseError(`Config file contains an unrecognized long option name "--${key}"`);
+        // return new ArgParseError(`Config file contains an unrecognized long option name "--${key}"`);
+        continue; // just ignore
       }
 
       // Must use = so that the "true" sticks with the flag because boolean

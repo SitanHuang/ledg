@@ -30,7 +30,13 @@ export function serializeTransaction(
     useSourceText: true,
   };
 
-  const { ledgerCompatible, useSourceText, lineDelimiter } = Object.assign(defaults, opts);
+  const useOpt = Object.assign(defaults, opts);
+
+  if (useOpt.ledgerCompatible) {
+    useOpt.useSourceText = false;
+  }
+
+  const { ledgerCompatible, useSourceText, lineDelimiter } = useOpt;
 
   const builder: string[] = [];
 

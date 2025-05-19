@@ -1,5 +1,6 @@
 import { Account } from "../../accounting/account.ts";
 import { BoundPosting, Posting } from "../../accounting/posting.ts";
+import { Transaction } from "../../accounting/transaction.ts";
 import { LedgObject } from "../../data/ledgObject.ts";
 import { Query } from "./query.ts";
 import { QueryEngineExecutor } from "./queryEngineExecutor.ts";
@@ -36,8 +37,28 @@ export class QueryEngine {
           return false;
         }
 
-        if (ledgObject instanceof Posting && account?.execute(ledgObject.account) === false) {
-          return false;
+        if (account) {
+          if (ledgObject instanceof Posting && account.execute(ledgObject.account) === false) {
+            return false;
+          } else if (ledgObject instanceof Transaction) {
+            // Like ledg, we will return transaction as long as one of the postings match.
+
+            let matched = false;
+
+            const postings = ledgObject.postings;
+
+            for (let i = 0; i < postings.length;i++) {
+              const posting = postings[i];
+              if (account.execute(posting.account)) {
+                matched = true;
+                break;
+              }
+            }
+
+            if (!matched) {
+              return false;
+            }
+          }
         }
 
         if (realOnly && ledgObject.metadata.virt === true) {
