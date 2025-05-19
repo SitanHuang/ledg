@@ -276,17 +276,20 @@ export class ReportPolicy extends QueryPolicy {
   override copy(): ReportPolicy {
     const copy = new ReportPolicy();
 
-    copy.from = this.from;
-    copy.to = this.to;
-    copy.useDate = this.useDate;
-    copy.realOnly = this.realOnly;
+    // copy.from = this.from;
+    // copy.to = this.to;
+    // copy.useDate = this.useDate;
+    // copy.realOnly = this.realOnly;
+    // copy.clearedOnly = this.clearedOnly;
+    // copy.pendingOnly = this.pendingOnly;
+    Object.assign(copy, this);
     copy.modifiers = new Map(this.modifiers);
     if (this.accountGlob) {
       copy.accountGlob = new AccountGlob(this.accountGlob.pattern);
     }
 
-    copy.reportFrom = this.reportFrom;
-    copy.reportTo = this.reportTo;
+    // copy.reportFrom = this.reportFrom;
+    // copy.reportTo = this.reportTo;
     copy.reportPeriodInterval = this.reportPeriodInterval
       ? new ReportPeriodInterval(
         this.reportPeriodInterval.dayInterval,
@@ -294,16 +297,16 @@ export class ReportPolicy extends QueryPolicy {
         this.reportPeriodInterval.yearInterval,
       )
       : undefined;
-    copy.valuationCurrencyId = this.valuationCurrencyId;
-    copy.valuationStrategy = this.valuationStrategy;
-    copy.cumulative = this.cumulative;
-    copy.sumParent = this.sumParent;
-    copy.maxDepth = this.maxDepth;
-    copy.minDepth = this.minDepth;
-    copy.hideZero = this.hideZero;
-    copy.tree = this.tree;
-    copy.sortStrategy = this.sortStrategy;
-    copy.inversion = this.inversion;
+    // copy.valuationCurrencyId = this.valuationCurrencyId;
+    // copy.valuationStrategy = this.valuationStrategy;
+    // copy.cumulative = this.cumulative;
+    // copy.sumParent = this.sumParent;
+    // copy.maxDepth = this.maxDepth;
+    // copy.minDepth = this.minDepth;
+    // copy.hideZero = this.hideZero;
+    // copy.tree = this.tree;
+    // copy.sortStrategy = this.sortStrategy;
+    // copy.inversion = this.inversion;
     return copy;
   }
 }

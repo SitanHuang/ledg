@@ -107,10 +107,13 @@ export class QueryPolicy {
 
   copy(): QueryPolicy {
     const copy = new QueryPolicy();
-    copy.from = this.from;
-    copy.to = this.to;
-    copy.useDate = this.useDate;
-    copy.realOnly = this.realOnly;
+    // copy.from = this.from;
+    // copy.to = this.to;
+    // copy.useDate = this.useDate;
+    // copy.realOnly = this.realOnly;
+    // copy.clearedOnly = this.clearedOnly;
+    // copy.pendingOnly = this.pendingOnly;
+    Object.assign(copy, this);
     copy.modifiers = new Map(this.modifiers);
     if (this.accountGlob) {
       copy.accountGlob = new AccountGlob(this.accountGlob.pattern);

@@ -66,7 +66,7 @@ export class CompoundTreeRenderer {
     treeRenderer.displayPolicy.positiveIsGreen = report.positiveIsGreen;
     treeRenderer.displayPolicy.showPlus = report.showPlus;
 
-    treeRenderer.renderSum(grandTotal.buckets, table, "  Net", { header: true, topline: true });
+    treeRenderer.renderSum(grandTotal.buckets, table, "  Net", { header: true, topline: true }, this.displayAvgs);
 
     return builder;
   }
