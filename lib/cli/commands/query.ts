@@ -41,6 +41,11 @@ export abstract class QueryCommand extends LedgCommand {
     type: "boolean",
     description: "Exclude pending txns/postings."
   });
+  protected readonly pendingOption = new Option({
+    name: "pending",
+    type: "boolean",
+    description: "Exclude non-pending txns/postings."
+  });
 
   protected readonly accountOption = new Option({
     name: "account",
@@ -102,6 +107,7 @@ export abstract class QueryCommand extends LedgCommand {
     this.setOption(this.useDate2Option);
     this.setOption(this.realOption);
     this.setOption(this.clearedOption);
+    this.setOption(this.pendingOption);
     this.setOption(this.accountOption);
     this.setOption(this.modifierOption);
   }
@@ -135,6 +141,9 @@ export abstract class QueryCommand extends LedgCommand {
     });
     this.clearedOption.extractValue(option, value, (val: boolean) => {
       this.queryPolicy.withClearedOnly(val);
+    });
+    this.pendingOption.extractValue(option, value, (val: boolean) => {
+      this.queryPolicy.withPendingOnly(val);
     });
 
     this.modifierOption.extractValue(option, value, (pattern: string) => {

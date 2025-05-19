@@ -44,6 +44,11 @@ export class QueryPolicy {
   clearedOnly = false;
 
   /**
+   * Exclusively select pending postings
+   */
+  pendingOnly = false;
+
+  /**
    * Account glob pattern search.
    */
   accountGlob?: AccountGlob;
@@ -62,8 +67,14 @@ export class QueryPolicy {
     this.realOnly = realOnly;
     return this; // TODO: test cases
   }
+
   withClearedOnly(clearedOnly: boolean): this {
     this.clearedOnly = clearedOnly;
+    return this; // TODO: test cases
+  }
+
+  withPendingOnly(pendingOnly: boolean): this {
+    this.pendingOnly = pendingOnly;
     return this; // TODO: test cases
   }
 

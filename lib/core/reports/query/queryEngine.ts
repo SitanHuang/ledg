@@ -18,7 +18,7 @@ export class QueryEngine {
   compile(): QueryEngineExecutor {
     // Array has faster iteration
     const modifierList: [string, ModifierQuery][] = Array.from(this.queryPolicy.modifiers.entries());
-    const { from, to, accountGlob: account, realOnly, clearedOnly } = this.queryPolicy;
+    const { from, to, accountGlob: account, realOnly, clearedOnly, pendingOnly } = this.queryPolicy;
     const useLedgObjDate = this.queryPolicy.useLedgObjDate.bind(this.queryPolicy);
 
     const testModQuery = (modQuery: ModifierQuery, target: unknown): boolean =>
@@ -65,6 +65,9 @@ export class QueryEngine {
           return false;
         }
         if (clearedOnly && ledgObject.metadata.pending === true) {
+          return false;
+        }
+        if (pendingOnly && ledgObject.metadata.pending !== true) {
           return false;
         }
 
