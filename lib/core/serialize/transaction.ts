@@ -138,7 +138,7 @@ function sanitizeAccount(acc: Account | string, opts: SerializationOptions) {
     acc instanceof Account ? acc.identifier : acc;
 }
 
-function serializeTransactionDate(ts: timestamp) {
+export function serializeTransactionDate(ts: timestamp) {
   const date = new Date(ts);
 
   return isUtcMidnight(date) ? toUTCDateString(date) : toUTCDatetimeString(date);

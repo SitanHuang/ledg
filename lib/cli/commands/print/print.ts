@@ -1,6 +1,6 @@
 import { Transaction } from "../../../core/accounting/transaction.ts";
 import { QueryEngine } from "../../../core/reports/query/queryEngine.ts";
-import { SerializationOptions, serializeTransaction } from "../../../core/serialize/transaction.ts";
+import { SerializationOptions, serializeTransaction, serializeTransactionDate } from "../../../core/serialize/transaction.ts";
 import { hasResult, isOk, Maybe, Ok } from "../../../core/types.ts";
 import { ArgParseError, Positionals } from "../../argparse/argparse.ts";
 import { Option, OptionValue } from "../../argparse/option.ts";
@@ -19,7 +19,7 @@ export class PrintCommand extends QueryCommand {
   protected readonly ledgerOption = new Option({
     name: "ledger",
     type: "boolean",
-    description: `Outputs ledger-compatible format. Sets --resolve-amounts = true.`,
+    description: `Output ledger-compatible format. Sets --resolve-amounts = true.`,
     defaultValueDisplay: "false",
   });
   protected readonly resolveOption = new Option({
@@ -29,7 +29,22 @@ export class PrintCommand extends QueryCommand {
                  ` When set to false, --ledger is forced to be false.`,
     defaultValueDisplay: "false",
   });
+  protected readonly pricesOption = new Option({
+    name: "prices",
+    type: "boolean",
+    description: `Prepend all pricing directives.`,
+    defaultValueDisplay: "false",
+  });
 
+  protected readonly pricesOnlyOption = new Option({
+    name: "prices-only",
+    type: "boolean",
+    description: `Print all pricing directives only.`,
+    defaultValueDisplay: "false",
+  });
+
+  protected printPricing = false;
+  protected printPricingOnly = false;
   protected sortOptionValue = "insertion-order";
   protected serializationOptions: Partial<SerializationOptions> = {
     useSourceText: true,
@@ -55,6 +70,8 @@ export class PrintCommand extends QueryCommand {
     this.setOption(this.sortOption);
     this.setOption(this.resolveOption);
     this.setOption(this.ledgerOption);
+    this.setOption(this.pricesOption);
+    this.setOption(this.pricesOnlyOption);
   }
 
   protected override consumeOption(option: Option, value: OptionValue): Maybe<ArgParseError> {
@@ -77,6 +94,9 @@ export class PrintCommand extends QueryCommand {
         this.serializationOptions.useSourceText = false;
       }
     });
+
+    this.printPricing = this.pricesOption.extractValue(option, value) ?? this.printPricing;
+    this.printPricingOnly = this.pricesOnlyOption.extractValue(option, value) ?? this.printPricingOnly;
 
     return Ok;
   }
@@ -116,11 +136,31 @@ export class PrintCommand extends QueryCommand {
       );
     }
 
-    const opts: SerializationOptions = Object.assign({ lineDelimiter: context.lineDelimiter }, this.serializationOptions);
+    if (this.printPricing || this.printPricingOnly) {
+      const records = journal.currencyConversionService.registrationRecords;
 
-    for (let i = 0;i < transactions.length;i++) {
-      console.log(serializeTransaction(transactions[i], opts));
+      for (let i = 0; i < records.length; i++) {
+        const record = records[i];
+
+        console.log(`P ${serializeTransactionDate(record.timestamp)} ${record.from.id} ${record.rate.toString({
+          minFractionDigits: 2,
+          useGrouping: 0,
+          groupSeparator: '',
+          decimalSeparator: '.',
+          displayPrecision: 10,
+          showPlus: false,
+        }).padStart(20, ' ')} ${record.to.id}`)
+      }
     }
+
+    if (!this.printPricingOnly) {
+      const opts: SerializationOptions = Object.assign({ lineDelimiter: context.lineDelimiter }, this.serializationOptions);
+
+      for (let i = 0;i < transactions.length;i++) {
+        console.log(serializeTransaction(transactions[i], opts));
+      }
+    }
+
 
     return Ok;
   }

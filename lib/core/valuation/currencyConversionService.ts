@@ -23,12 +23,16 @@ interface ConversionRegistration {
  */
 export class CurrencyConversionService {
   // Map from currency id to Currency instance.
-  private currencies = new Map<string, Currency>();
+  private readonly currencies = new Map<string, Currency>();
 
   // The conversion graph is stored as a nested Map.
   // edges.get(fromId)?.get(toId) returns a sorted array (by timestamp ascending)
   // of registrations for conversion from currency "fromId" to "toId".
-  private edges = new Map<string, Map<string, ConversionRegistration[]>>();
+  private readonly edges = new Map<string, Map<string, ConversionRegistration[]>>();
+
+  public readonly registrationRecords: {
+    from: Currency, to: Currency, rate: Rational, timestamp: timestamp
+  }[] = [];
 
   /**
    * Optionally registers a Currency if it isn’t already known.
@@ -53,6 +57,8 @@ export class CurrencyConversionService {
     // Ensure both currencies are registered.
     this.registerCurrency(from);
     this.registerCurrency(to);
+
+    this.registrationRecords.push({ from, to, rate, timestamp });
 
     // Insert the registration for from -> to.
     this.insertEdgeRegistration(from.id, to.id, { timestamp, rate });
