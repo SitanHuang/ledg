@@ -318,6 +318,8 @@ describe('Posting parsing', () => {
       '2025-02-01 override primary',
       '  TestPost\tAssets:Cash',
       '  ; 2025-05-01',
+      '  \tAssets:Cash',
+      '  ; !',
     ];
 
     const [t1, t2] = await readAll(new InputStreamJournalReader({
@@ -332,11 +334,12 @@ describe('Posting parsing', () => {
     expect(p1.metadata.pending).toBe(true);
     expect(t1.metadata.pending).toBeUndefined();
 
-    const [p2] = t2.getPostingBuilders();
+    const [p2, p3] = t2.getPostingBuilders();
     expect(p2.getDate()).toBe(Date.parse('2025-05-01Z'));
 
-    expect(p2.metadata.pending).toBeUndefined();
     expect(t2.metadata.pending).toBeUndefined();
+    expect(p2.metadata.pending).toBeUndefined();
+    expect(p3.metadata.pending).toBe(true);
 
     expect(p2.getDate2()).toBe(Date.parse('2025-02-01Z')); // retain txn date2
 
@@ -417,7 +420,7 @@ describe('Posting parsing', () => {
     }));
 
     const [p] = txn.getPostingBuilders();
-    expect(p.getAmountString()).toBeUndefined();
+    expect(p.getAmountString()).toBe('');
   });
 
   it('trims posting description correctly', async () => {

@@ -16,6 +16,7 @@ export class InputStreamSourceDescriptor implements SourceDescriptor {
   constructor(
     public readonly sourceText: string,
     public readonly filePath: string,
+    public readonly delimiter: LINE_ENDING,
     public readonly lineStart: number,
     public readonly lineEnd: number,
     public readonly modifiable = true,
@@ -27,7 +28,7 @@ export class InputStreamJournalReaderParseError extends SourceableError {
     public readonly filePath: string,
     public readonly source: string,
     public readonly line: number,
-    public readonly message: string,
+    message: string,
     public readonly cause?: Error
   ) {
     super(
@@ -38,7 +39,7 @@ export class InputStreamJournalReaderParseError extends SourceableError {
   }
 }
 
-type LINE_ENDING = "\r" | "\n" | "\r\n";
+export type LINE_ENDING = "\r" | "\n" | "\r\n";
 
 /**
  * Parses a Journal input file.
@@ -202,6 +203,7 @@ export class InputStreamJournalReader extends JournalReader {
     this.currentPosting.withSource(new InputStreamSourceDescriptor(
       finalText,
       this.originalFilePath,
+      this.detectedDelimiter,
       this.currentPostingLine, this.lastMeaningfulLine,
       this.sourceModifiable
     ));
@@ -220,6 +222,7 @@ export class InputStreamJournalReader extends JournalReader {
     this.currentTxn.withSource(new InputStreamSourceDescriptor(
       finalText,
       this.originalFilePath,
+      this.detectedDelimiter,
       this.currentTxnLine, this.lastMeaningfulLine,
       this.sourceModifiable
     ));
@@ -261,6 +264,11 @@ export class InputStreamJournalReader extends JournalReader {
 
     const inner = line.substring(3).trim();
     const firstChar = inner.charCodeAt(0);
+
+    if (inner === '!') {
+      currentPosting.metadata.pending = true;
+      return Ok;
+    }
 
     //  desc\tExpense\t1USD
     //   ; ! 2025-01-01
@@ -381,9 +389,8 @@ export class InputStreamJournalReader extends JournalReader {
 
     posting.withAccountIdentifier(accId).withDescription(desc.trim());
 
-    if (amntString) {
-      posting.withAmountString(amntString);
-    }
+    // Per spec, when user leaves empty, it is "".
+    posting.withAmountString(amntString ?? "");
 
     currentTxn.appendPostingBuilder(posting);
 
@@ -506,7 +513,7 @@ export class InputStreamJournalReader extends JournalReader {
         return this.raiseError(line, "Account closing directives cannot have an auxiliary date.");
       }
 
-      txn.withAccountClosed(desc.substring(5).trim());
+      txn.withAccountClosed(desc.substring(6).trim());
     } else {
       if (desc.startsWith("! ")) {
         metadata.pending = true;

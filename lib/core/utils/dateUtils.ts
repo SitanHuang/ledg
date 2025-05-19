@@ -19,9 +19,9 @@ export function parseSmartDate(date: string): Result<timestamp> {
   return relabelLocalDateAsUtc(result);
 }
 
-export function relabelLocalDateAsUtc(date: Date): timestamp {
-  const pad = (n: number, width = 2) => n.toString().padStart(width, '0');
+const pad = (n: number, width = 2) => n.toString().padStart(width, '0');
 
+export function relabelLocalDateAsUtc(date: Date): timestamp {
   const year = date.getFullYear();
   const month = pad(date.getMonth() + 1);
   const day = pad(date.getDate());
@@ -36,12 +36,27 @@ export function relabelLocalDateAsUtc(date: Date): timestamp {
   return Date.parse(utcIso);
 }
 
-export function isUtcMidnight(ts: timestamp): boolean {
-  const date = new Date(ts);
+export function isUtcMidnight(ts: timestamp | Date): boolean {
+  const date = ts instanceof Date ? ts : new Date(ts);
   return (
     date.getUTCHours() === 0 &&
     date.getUTCMinutes() === 0 &&
     date.getUTCSeconds() === 0 &&
     date.getUTCMilliseconds() === 0
   );
+}
+
+export function toUTCDateString(ts: timestamp | Date) {
+  const date = ts instanceof Date ? ts : new Date(ts);
+  return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}`;
+}
+
+export function toUTCTimeString(ts: timestamp | Date) {
+  const date = ts instanceof Date ? ts : new Date(ts);
+  return `${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}:${pad(date.getUTCSeconds())}`;
+}
+
+export function toUTCDatetimeString(ts: timestamp | Date) {
+  const date = ts instanceof Date ? ts : new Date(ts);
+  return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())} ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}:${pad(date.getUTCSeconds())}`;
 }

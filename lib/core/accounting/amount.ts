@@ -50,10 +50,15 @@ export interface DisplayContentEntry {
  * as a map keyed by currency id.
  */
 export class Amount {
-  public readonly sourceString?: string;
+  public sourceString?: string;
 
   private constructor(
     private readonly amounts: ReadonlyMap<string, { currency: Currency; value: Rational }>,
+    /**
+     * When user leaves empty, it is "".
+     *
+     * When Amount is dynamically created, it is undefined.
+     */
     sourceString?: string
   ) {
     this.sourceString = sourceString;

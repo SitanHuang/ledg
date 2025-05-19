@@ -1,16 +1,30 @@
 import { Account } from "../../accounting/account.ts";
 import { BoundPosting } from "../../accounting/posting.ts";
+import { Transaction } from "../../accounting/transaction.ts";
 import { Journal } from "../../data/journal.ts";
 import { IteratorCallback } from "../../data/transactionStore.ts";
 import { Query } from "./query.ts";
 
 export type PostingAcceptor = IteratorCallback<BoundPosting, void>;
+export type TransactionAcceptor = IteratorCallback<Transaction, void>;
 export type AccountAcceptor = IteratorCallback<Account, void>;
 
 export class QueryEngineExecutor {
   constructor(
     protected readonly query: Query
   ) {}
+
+  executeTransactions(journal: Journal, transactionAcceptor: TransactionAcceptor): void {
+    const { acceptLedgObject } = this.query;
+
+    journal.transactionStore.iterateAll(transaction => {
+      if (!acceptLedgObject(transaction)) {
+        return;
+      }
+
+      return transactionAcceptor(transaction);
+    });
+  }
 
   executePostings(journal: Journal, postingAcceptor: PostingAcceptor): void {
     const { query } = this;

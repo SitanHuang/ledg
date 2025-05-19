@@ -3,6 +3,8 @@ import { Journal } from "../core/data/journal.ts";
 import { DateFormat } from "../core/reports/dateFormat.ts";
 import { AmountDisplayPolicy } from "../render/amount.ts";
 import { RenderFormat } from "../render/renderable.ts";
+import { LINE_ENDING } from "../core/parsing/journal/inputStreamJournalReader.ts";
+import { EOL } from "os";
 
 export class LedgCLIContext {
 
@@ -26,5 +28,9 @@ export class LedgCLIContext {
           supportsColor.stdout.has256 ? 256 : 16
         : 16
     }
+  }
+
+  get lineDelimiter(): LINE_ENDING {
+    return EOL as LINE_ENDING;
   }
 }

@@ -206,6 +206,7 @@ export class Rational {
 
     const sign = neg ? "-" : (showPlus ? "+" : "");
     if (maxFrac === 0) return sign + intPart;
+    if (fracPart.length == 0) return sign + intPart;
     return sign + intPart + decimalSeparator + fracPart;
   }
 

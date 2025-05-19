@@ -57,7 +57,7 @@ export class DefaultTransactionPipeline implements TransactionProcessor, PriceDi
 
       const amntString = pb.getAmountString();
 
-      // convert [amountString] only if an explicit Amount is not yet set
+      // evaluate amountString only if an explicit Amount object is not yet set
       if (!pb.getAmount() && amntString) {
         const amtRes = this.valueParser.evaluateValueExpression(
           amntString,

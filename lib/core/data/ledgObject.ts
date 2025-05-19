@@ -6,10 +6,13 @@ import { CommitRegistry } from "./commitRegistry.ts";
 
 export interface Metadata {
   [index: string]: unknown;
-  virt?: true;
-  pending?: true;
+  virt?: boolean;
+  pending?: boolean;
   event?: string;
+  tags?:string;
 }
+
+export type MetadataReservedKey = 'virt' | 'pending' | 'event' | 'tags';
 
 /**
  * Validates whether a key/val pair can be put into Metadata. Returns an error message or null.
@@ -38,6 +41,10 @@ export function validateMetadataKeyValPair(key: string, val: unknown): string | 
     case "event":
       if (typeof val !== 'string')
         return "The field `event` must be of string type.";
+      break;
+    case "tags":
+      if (typeof val !== 'string')
+        return "The field `tags` must be of string type.";
       break;
   }
   return null;

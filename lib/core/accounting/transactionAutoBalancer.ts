@@ -52,6 +52,9 @@ export class TransactionAutoBalancer {
     // Slow path: inferred posting exists
     const balance = this.sumPostingAmounts(postingBuilders).times(Rational.NEGATIVE_ONE);
 
+    // IMPORTANT:
+    balance.sourceString = inferredPostingBuilder.getAmountString();
+
     if (this.valuationConfig.autoBalanceTargetCurrency === false) {
       // No conversion
       return inferredPostingBuilder.withAmount(balance).setModified("Posting amount is automatically inferred.");
