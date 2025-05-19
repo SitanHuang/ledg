@@ -34,9 +34,14 @@ export class QueryPolicy {
   modifiers = new Map<string, ModifierQuery>();
 
   /**
-   * Exclusively select virtual/non-virtual postings
+   * Exclusively select non-virtual postings
    */
   realOnly = false;
+
+  /**
+   * Exclusively select non-pending postings
+   */
+  clearedOnly = false;
 
   /**
    * Account glob pattern search.
@@ -55,6 +60,10 @@ export class QueryPolicy {
 
   withRealOnly(realOnly: boolean): this {
     this.realOnly = realOnly;
+    return this; // TODO: test cases
+  }
+  withClearedOnly(clearedOnly: boolean): this {
+    this.clearedOnly = clearedOnly;
     return this; // TODO: test cases
   }
 

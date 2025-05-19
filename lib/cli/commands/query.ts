@@ -34,7 +34,12 @@ export abstract class QueryCommand extends LedgCommand {
   protected readonly realOption = new Option({
     name: "real",
     type: "boolean",
-    description: "Exclude virtual accounts."
+    description: "Exclude virtual txns/postings."
+  });
+  protected readonly clearedOption = new Option({
+    name: "cleared",
+    type: "boolean",
+    description: "Exclude pending txns/postings."
   });
 
   protected readonly accountOption = new Option({
@@ -96,6 +101,7 @@ export abstract class QueryCommand extends LedgCommand {
     this.setOption(this.useDateOption);
     this.setOption(this.useDate2Option);
     this.setOption(this.realOption);
+    this.setOption(this.clearedOption);
     this.setOption(this.accountOption);
     this.setOption(this.modifierOption);
   }
@@ -126,6 +132,9 @@ export abstract class QueryCommand extends LedgCommand {
     });
     this.realOption.extractValue(option, value, (val: boolean) => {
       this.queryPolicy.withRealOnly(val);
+    });
+    this.clearedOption.extractValue(option, value, (val: boolean) => {
+      this.queryPolicy.withClearedOnly(val);
     });
 
     this.modifierOption.extractValue(option, value, (pattern: string) => {
