@@ -1,3 +1,4 @@
+import { timestamp } from "../../../core/types.ts";
 import { BoundPosting } from "../../../core/accounting/posting.ts";
 import { Transaction } from "../../../core/accounting/transaction.ts";
 import { Metadata, MetadataReservedKey } from "../../../core/data/ledgObject.ts";
@@ -33,9 +34,14 @@ export function printTransactions(
   for (const txn of aggr.txnGroups) {
     println(
       txn.header,
-      new Span(' '.repeat(Math.max(0, uuidAlignRight - txn.header.displayWidth - txn.uuid.displayWidth))),
+      new Span(' '.repeat(Math.max(1, uuidAlignRight - txn.header.displayWidth - txn.uuid.displayWidth))),
       txn.uuid
     );
+
+    for (const mod of txn.mods) {
+      println(mod);
+    }
+
     for (const posting of txn.postingGroups) {
       const headerWidth = 2 + maxPostingDescWidth + posting.acc.displayWidth;
 
@@ -47,7 +53,13 @@ export function printTransactions(
         new Span(' '.repeat(Math.max(0, maxPostingWidth - headerWidth - posting.amount.displayWidth))),
         posting.amount
       );
+
+      for (const mod of posting.mods) {
+        println(mod);
+      }
     }
+
+    println();
   }
 }
 
@@ -99,23 +111,26 @@ function aggregateComponents(
   return specs;
 }
 
+const spaceSpan = new Span(' ');
+const pendingMark = new Stylable(' !').color('redBright').bold(true);
+const fmtDate = (ts: timestamp) => new Stylable(serializeTransactionDate(ts)).color('cyanBright').bold(true);
+const fmtDate2 = (ts: timestamp) => new Stylable('=' + serializeTransactionDate(ts)).color('cyanBright');
+
 function procTxn(txn: Transaction, specs: AggregateComponents): TxnGroup {
-  const uuid = new Stylable('#' + txn.id).color('cyan');
+  const uuid = new Stylable('#' + txn.id).color('cyan').dim(true);
 
   let headerWidth = 0;
 
-  const header = new JoinedEmbeddable([
-    new Stylable(serializeTransactionDate(txn.date)).color('cyanBright').bold(true)
-  ]);
+  const header = new JoinedEmbeddable([fmtDate(txn.date)]);
 
   if (txn.date2 !== txn.date) {
-    const date2 = '=' + serializeTransactionDate(txn.date2);
-    header.append(new Stylable(date2).color('cyanBright'))
-    headerWidth -= date2.length;
+    const date2 = fmtDate2(txn.date2);
+    header.append(date2);
+    headerWidth -= date2.displayWidth;
   }
 
   if (txn.metadata.pending === true) {
-    header.append(new Stylable(' !').color('redBright').bold(true))
+    header.append(pendingMark)
   }
   if (txn.metadata.event?.length) {
     header.append(new Stylable(' event ').color('cyanBright').bold(true))
@@ -150,6 +165,8 @@ function procPosting(
   cliContext: LedgCLIContext,
 ): PostingGroup {
 
+  const txn = posting.transaction;
+
   let amount: Renderable;
 
   if (useSourceText && posting.amount.sourceString !== undefined) {
@@ -168,15 +185,34 @@ function procPosting(
 
   specs.postingsAccWidths = Math.max(specs.postingsAccWidths, acc.displayWidth);
 
-  const desc = new Span(posting.description);
+  const desc = new Span(posting.description !== txn.description ? posting.description : '');
 
   specs.postingsDescWidths = Math.max(specs.postingsDescWidths, desc.displayWidth);
+
+  const mods = procMods(posting.metadata, txn);
+
+  const pendingHeader = posting.metadata.pending === true && txn.metadata.pending !== posting.metadata.pending;
+  const date1Header = posting.date !== txn.date;
+  const date2Header = posting.date2 !== txn.date2;
+
+  if (pendingHeader || date1Header || date2Header) {
+    const header = new JoinedEmbeddable([new Stylable('  ;').dim(true).color('green')]);
+
+    if (pendingHeader) header.append(pendingMark);
+
+    if (date1Header) header.append(spaceSpan, fmtDate(posting.date));
+    else if (date2Header) header.append(spaceSpan);
+
+    if (date2Header) header.append(fmtDate2(posting.date2));
+
+    mods.unshift(header);
+  }
 
   return {
     amount,
     acc,
     desc,
-    mods: procMods(posting.metadata, posting.transaction),
+    mods,
   };
 }
 

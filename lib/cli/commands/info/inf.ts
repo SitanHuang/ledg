@@ -29,20 +29,18 @@ export class InfoCommand extends QueryCommand {
   protected resolveValue = false;
 
   constructor() {
-    super("Info", "Pretty prints transactions.");
+    super("info", "Pretty prints transactions.");
   }
 
   override build(): void {
     super.build();
 
-    const thisMonthMidnight = new Date(unwrapResult(parseSmartDate('beginning of this month')));
-
     this.fromOption.required = false;
-    this.fromOption.defaultValue = thisMonthMidnight.getTime();
+    // this.fromOption.defaultValue = thisMonthMidnight.getTime();
     this.fromOption.defaultValueDisplay = "beginning of this month";
 
     this.toOption.required = false;
-    this.toOption.defaultValue = undefined;
+    // this.toOption.defaultValue = undefined;
     this.toOption.defaultValueDisplay = "inf";
 
     this.accountOption.description += " For the Info command, transactions are matched as long as one of the posting accounts match.";
@@ -51,6 +49,8 @@ export class InfoCommand extends QueryCommand {
     this.setOption(this.resolveOption);
   }
 
+  private _anyModUsed = false;
+
   protected override consumeOption(option: Option, value: OptionValue): Maybe<ArgParseError> {
     const parent = super.consumeOption(option, value);
     if (!isOk(parent)) return parent;
@@ -58,6 +58,10 @@ export class InfoCommand extends QueryCommand {
     this.sortOptionValue = this.sortOption.extractValue(option, value) ?? this.sortOptionValue;
 
     this.resolveValue = this.resolveOption.extractValue(option, value) ?? this.resolveValue;
+
+    if (this.queryOptions.includes(option)) {
+      this._anyModUsed = true;
+    }
 
     return Ok;
   }
@@ -68,17 +72,24 @@ export class InfoCommand extends QueryCommand {
       return result;
     }
 
+    const context = await this.getCLIContext();
+    if (!hasResult(context)) {
+      return context;
+    }
+
     const policy = this.getQueryPolicy();
+
+    if (!this._anyModUsed) {
+      console.log(`No modifiers, querying from beginning of this month.\n`);
+
+      const thisMonthMidnight = unwrapResult(parseSmartDate('beginning of this month'));
+      policy.from = thisMonthMidnight;
+    }
 
     if (DEBUG) {
       console.debug(policy);
       if (policy.from) console.debug(toUTCDatetimeString(policy.from));
       if (policy.to) console.debug(toUTCDatetimeString(policy.to));
-    }
-
-    const context = await this.getCLIContext();
-    if (!hasResult(context)) {
-      return context;
     }
 
     const { journal } = context;

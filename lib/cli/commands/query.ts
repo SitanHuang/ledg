@@ -99,12 +99,23 @@ export abstract class QueryCommand extends LedgCommand {
       "",
       "The `id` refers to `transactionID` for Posting objects. ",
       "The `description` will be searched in an OR condition for both the " +
-      "transaction and posting descriptions.",
+      "transaction and posting descriptions. `desc` is an alias for `description`.",
       "   *",
-      "If `modifierName` was previously set, " +
-      "the new `query` overrides it.",
+      "If `modifierName` was previously set, the new `query` overrides it.",
     ].join("\n")
   });
+
+  protected readonly queryOptions: Option[] = [
+    this.fromOption,
+    this.toOption,
+    this.useDateOption,
+    this.useDate2Option,
+    this.realOption,
+    this.clearedOption,
+    this.pendingOption,
+    this.accountOption,
+    this.modifierOption,
+  ];
 
   protected queryPolicy = new QueryPolicy();
 
