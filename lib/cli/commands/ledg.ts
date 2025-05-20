@@ -9,6 +9,7 @@ import { ArgParseError, Positionals } from "../argparse/argparse.ts";
 import { Option, OptionValue } from "../argparse/option.ts";
 import { LedgCLIContext } from "../context.ts";
 import { ConfigurableCommand } from "./config.ts";
+import { dirname, resolve } from "node:path";
 
 export abstract class LedgCommand extends ConfigurableCommand {
 
@@ -288,12 +289,20 @@ export abstract class LedgCommand extends ConfigurableCommand {
   private readonly _cliContext: LedgCLIContext = LedgCLIContext.getCurrentContext();
   private _journalLoaded = false;
 
+  getBookCwd(): string {
+    return this.isFromStdin || !this.inputFile ? this.cwd : resolve(dirname(this.inputFile));
+  }
+
+  get isFromStdin() {
+    return !this.inputFile || this.inputFile === "-";
+  }
+
   async getCLIContext(): Promise<Result<LedgCLIContext>> {
     if (this._journalLoaded) return this._cliContext;
 
     const journal = this._cliContext.journal;
 
-    const fromStdin = !this.inputFile || this.inputFile === "-";
+    const fromStdin = this.isFromStdin;
 
     const journalReader = new InputStreamJournalReader({
       filePath: fromStdin ? "<stdin>" : this.inputFile!,
