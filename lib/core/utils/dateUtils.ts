@@ -1,4 +1,4 @@
-import * as chrono from 'chrono-node';
+import Sugar from "../../../external/sugar.js";
 import { Result, timestamp } from "../types.ts";
 
 export class SmartDateParseError extends Error {
@@ -6,23 +6,23 @@ export class SmartDateParseError extends Error {
 }
 
 export function parseSmartDate(date: string): Result<timestamp> {
-  if (/^[\d]{4}$/.exec(date)) {
-    date += '-01-01 00:00:00';
-  }
+  // if (/^[\d]{4}$/.exec(date)) {
+  //   date += '-01-01 00:00:00';
+  // }
 
-  const isoResult = Date.parse(date + 'Z');
+  // const isoResult = Date.parse(date + 'Z');
 
-  if (!Number.isNaN(isoResult)) {
-    return isoResult;
-  }
+  // if (!Number.isNaN(isoResult)) {
+  //   return isoResult;
+  // }
 
-  const result = chrono.parseDate(date);
+  const result = Sugar.Date.create(date).getTime();
 
-  if (!result) {
+  if (isNaN(result)) {
     return new SmartDateParseError(`"${date}" cannot be parsed as a smart date.`);
   }
 
-  return relabelLocalDateAsUtc(result);
+  return relabelLocalDateAsUtc(new Date(result));
 }
 
 const pad = (n: number, width = 2) => n.toString().padStart(width, '0');

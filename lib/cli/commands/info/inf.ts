@@ -35,11 +35,11 @@ export class InfoCommand extends QueryCommand {
   override build(): void {
     super.build();
 
-    const thisMonthMidnight = new Date(unwrapResult(parseSmartDate('this month midnight')));
+    const thisMonthMidnight = new Date(unwrapResult(parseSmartDate('beginning of this month')));
 
     this.fromOption.required = false;
     this.fromOption.defaultValue = thisMonthMidnight.getTime();
-    this.fromOption.defaultValueDisplay = "this month midnight";
+    this.fromOption.defaultValueDisplay = "beginning of this month";
 
     this.toOption.required = false;
     this.toOption.defaultValue = undefined;

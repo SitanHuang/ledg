@@ -63,15 +63,12 @@ export abstract class CompoundReportCommand extends ReportCommand {
     super.build();
 
     this.fromOption.required = false;
-    this.fromOption.defaultValue = unwrapResult(parseSmartDate('this year midnight'));
-    this.fromOption.defaultValueDisplay = "this year midnight";
+    this.fromOption.defaultValue = unwrapResult(parseSmartDate('beginning of this year'));
+    this.fromOption.defaultValueDisplay = "beginning of this year";
     this.toOption.required = false;
 
-    const thisMonthMidnight = new Date(unwrapResult(parseSmartDate('this month midnight')));
-    thisMonthMidnight.setUTCMonth(thisMonthMidnight.getUTCMonth() + 1);
-
-    this.toOption.defaultValue = thisMonthMidnight.getTime();
-    this.toOption.defaultValueDisplay = "next month midnight";
+    this.toOption.defaultValue = unwrapResult(parseSmartDate('beginning of next month'));
+    this.toOption.defaultValueDisplay = 'beginning of next month';
 
     this.reportPolicy.withReportPeriodInterval(0, 1, 0);
 

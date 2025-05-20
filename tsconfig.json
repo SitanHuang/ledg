@@ -28,7 +28,8 @@
     "strict": true,                                   /* Enable all strict type-checking options. */
   },
   "include": [
-    "lib/**/*.ts"
+    "lib/**/*.ts",
+    "external/sugar.js",
   ],
   "exclude": [
     "**/~*"
