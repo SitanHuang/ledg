@@ -76,10 +76,11 @@ export function serializeTransaction(
   };
 
   for (const posting of txn.postings) {
+    const ownDesc = posting.description === txn.description ? '' : posting.description.replaceAll("\t", ' ');
     if (ledgerCompatible) {
       builder.push('  ');
     } else {
-      builder.push('  ', posting.description.replaceAll("\t", ' '), '\t');
+      builder.push('  ', ownDesc, '\t');
     }
 
     const account = sanitizeAccount(posting.account, opts);
@@ -103,7 +104,7 @@ export function serializeTransaction(
       LN
     );
 
-    if (ledgerCompatible && posting.description.trim().length) {
+    if (ledgerCompatible && ownDesc) {
       builder.push('  ; ', posting.description, LN);
     }
 
