@@ -36,13 +36,13 @@ export function serializeTransaction(
     newLineAtEnd: true,
   };
 
-  const useOpt = Object.assign(defaults, opts);
+  opts = Object.assign(defaults, opts);
 
-  if (useOpt.ledgerCompatible) {
-    useOpt.useSourceText = false;
+  if (opts.ledgerCompatible) {
+    opts.useSourceText = false;
   }
 
-  const { ledgerCompatible, useSourceText, lineDelimiter } = useOpt;
+  const { ledgerCompatible, useSourceText, lineDelimiter } = opts;
 
   const builder: string[] = [];
 

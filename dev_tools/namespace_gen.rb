@@ -47,7 +47,9 @@ def generate(dir)
 
   return false if exports.empty?
 
-  File.write(File.join(dir, 'namespace.ts'), exports.join(DELIM) + DELIM)
+  unless dir == ROOT
+    File.write(File.join(dir, 'namespace.ts'), exports.join(DELIM) + DELIM)
+  end
   true
 end
 

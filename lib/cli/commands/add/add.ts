@@ -65,6 +65,12 @@ export class AddCommand extends LedgCommand {
     type: "boolean",
     description: `Set pending.`,
   });
+  protected readonly clearedOption = new Option({
+    name: "cleared",
+    alias: "*",
+    type: "boolean",
+    description: `Set pending = false.`,
+  });
   protected readonly virtualOption = new Option({
     name: "virtual",
     alias: "virt",
@@ -110,6 +116,7 @@ export class AddCommand extends LedgCommand {
     this.setOption(this.date2Option);
     this.setOption(this.resolveOption);
     this.setOption(this.pendingOption);
+    this.setOption(this.clearedOption);
     this.setOption(this.virtualOption);
     this.setOption(this.modifierOption);
 
@@ -126,6 +133,12 @@ export class AddCommand extends LedgCommand {
     this.resolveVal = this.resolveOption.extractValue(opt, val) ?? this.resolveVal;
     this.pendingVal = this.pendingOption.extractValue(opt, val) ?? this.pendingVal;
     this.virtualVal = this.virtualOption.extractValue(opt, val) ?? this.virtualVal;
+
+    this.clearedOption.extractValue(opt, val, opt => {
+      if (opt) {
+        this.pendingVal = false;
+      }
+    });
 
     const modSpec = this.modifierOption.extractValue(opt, val);
 
@@ -253,10 +266,10 @@ export class AddCommand extends LedgCommand {
 
         printlnRenderable(renderable``);
 
-        matchedAcc = await context.promptLine("Choose one: ", {
+        matchedAcc = accounts[Number(await context.promptLine("Choose one: ", {
           validator: (ans: string) => !!(ans && accounts[Number(ans) - 1]),
           outputReplacer: (ans: string) => new Stylable(new Span(accounts[Number(ans) - 1].identifier)).color('greenBright'),
-        });
+        })) - 1].identifier;
 
         printlnRenderable(renderable``);
       } else {
