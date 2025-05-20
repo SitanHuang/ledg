@@ -14,8 +14,8 @@ export class JoinedEmbeddable extends Embeddable {
     return this.embeds.map(embed => embed.render(format)).join('');
   }
 
-  append(embed: Embeddable): this {
-    this.embeds.push(embed);
+  append(...embed: Embeddable[]): this {
+    this.embeds.push(...embed);
     return this;
   }
 

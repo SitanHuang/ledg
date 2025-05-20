@@ -19,11 +19,11 @@ export class PrintCommand extends QueryCommand {
   protected readonly ledgerOption = new Option({
     name: "ledger",
     type: "boolean",
-    description: `Output ledger-compatible format. Sets --resolve-amounts = true.`,
+    description: `Output ledger-compatible format. Sets --resolve = true.`,
     defaultValueDisplay: "false",
   });
   protected readonly resolveOption = new Option({
-    name: "resolve-amounts",
+    name: "resolve",
     type: "boolean",
     description: `Instead of outputting the user's amount source text, resolve the numerical amount put to 10 decimal places.` +
                  ` When set to false, --ledger is forced to be false.`,

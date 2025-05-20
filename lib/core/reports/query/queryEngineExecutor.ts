@@ -53,6 +53,9 @@ export class QueryEngineExecutor {
    * Executes the query against transaction postings in the journal.
    * Transactions are accepted only if at least one of their postings matches the query.
    * Accepted transactions are passed to the provided acceptor.
+   *
+   * PS: Even though executePostings can probably do the same thing under less
+   * time, this function guarantees **insertion order**.
    */
   executeRelatedTransactions(journal: Journal, transactionAcceptor: TransactionAcceptor): void {
     const { acceptLedgObject } = this.query;

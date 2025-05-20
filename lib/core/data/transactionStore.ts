@@ -28,6 +28,9 @@ export abstract class TransactionStore {
 
   abstract insertTransaction(transaction: Transaction): Maybe<TransactionStoreError>;
 
+  /**
+   * Iterates all transactions in **insertion order**
+   */
   abstract iterateAll(callback: IteratorCallback<Transaction, void>): void;
 
   abstract size(): number;

@@ -157,7 +157,7 @@ export function serializeTransactionDate(ts: timestamp) {
   return isUtcMidnight(date) ? toUTCDateString(date) : toUTCDatetimeString(date);
 }
 
-function serializeModifiers(
+export function serializeModifiers(
   builder: string[],
   meta: Metadata,
   opts: SerializationOptions,

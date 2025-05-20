@@ -9,6 +9,7 @@ import { BalancesheetequityCommand } from "./compound_reports/balancesheetequity
 import { CashflowCommand } from "./compound_reports/cashflow.ts";
 import { IncomestatementCommand } from "./compound_reports/incomestatement.ts";
 import { GitCommand } from "./git/git.ts";
+import { InfoCommand } from "./info/inf.ts";
 import { LedgCommand } from "./ledg.ts";
 import { PrintCommand } from "./print/print.ts";
 
@@ -18,6 +19,7 @@ import { PrintCommand } from "./print/print.ts";
 export class RootCommand extends ExtensibleCommand {
   readonly accountsSubcommand = new AccountsCommand();
   readonly addSubcommand = new AddCommand();
+  readonly infoSubcommand = new InfoCommand();
   readonly incomestatementSubcommand = new IncomestatementCommand();
   readonly balancesheetSubcommand = new BalancesheetCommand();
   readonly balancesheetequitySubcommand = new BalancesheetequityCommand();
@@ -56,6 +58,7 @@ export class RootCommand extends ExtensibleCommand {
   override build() {
     this.setSubcommand("accounts", ["acc"], this.accountsSubcommand);
     this.setSubcommand("add", [], this.addSubcommand);
+    this.setSubcommand("info", ["inf"], this.infoSubcommand);
     this.setSubcommand("incomestatement", ["is"], this.incomestatementSubcommand);
     this.setSubcommand("balancesheet", ["bs"], this.balancesheetSubcommand);
     this.setSubcommand("balancesheetequity", ["bse"], this.balancesheetequitySubcommand);

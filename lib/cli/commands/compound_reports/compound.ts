@@ -59,8 +59,6 @@ export abstract class CompoundReportCommand extends ReportCommand {
   });
   protected avgOptionValue = false;
 
-  // TODO: avg
-
   override build(): void {
     super.build();
 
