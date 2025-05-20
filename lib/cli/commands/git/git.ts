@@ -7,7 +7,11 @@ import { LedgCommand } from "../ledg.ts";
 
 export class GitCommand extends LedgCommand {
   constructor() {
-    super("git", "Passthrough command for executing git in the directory of the input file.");
+    super(
+      "git",
+      "Passthrough command for executing git in the directory of the input file.",
+      "<git arguments passthrough>"
+    );
   }
 
   override build(): void {

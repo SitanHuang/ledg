@@ -91,7 +91,19 @@ export abstract class QueryCommand extends LedgCommand {
     name: "modifier",
     alias: "m",
     type: "string",
-    description: "modifierName:regex | modifierName:false"
+    description: "modifierName:regex | modifierName:false",
+    longDescription: [
+      "Modifiers include LedgObject.{description, id}, and other user-specified metadata. " +
+      "The value of `false` strictly requires that the " +
+      "modifier is undefined for the LedgObject (transaction/posting).",
+      "",
+      "The `id` refers to `transactionID` for Posting objects. ",
+      "The `description` will be searched in an OR condition for both the " +
+      "transaction and posting descriptions.",
+      "   *",
+      "If `modifierName` was previously set, " +
+      "the new `query` overrides it.",
+    ].join("\n")
   });
 
   protected queryPolicy = new QueryPolicy();
@@ -158,8 +170,12 @@ export abstract class QueryCommand extends LedgCommand {
         return;
       }
 
-      const name = pattern.substring(0, colonIdx);
+      let name = pattern.substring(0, colonIdx);
       const value = pattern.substring(colonIdx + 1);
+
+      if (name === 'desc') {
+        name = 'description';
+      }
 
       if (value === 'false') {
         this.queryPolicy.withModifier(name, false);

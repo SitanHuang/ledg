@@ -46,6 +46,9 @@ export function validateMetadataKeyValPair(key: string, val: unknown): string | 
       if (typeof val !== 'string')
         return "The field `tags` must be of string type.";
       break;
+    case "description":
+    case "id":
+      return "The field `" + key + "` is not allowed.";
   }
   return null;
 }

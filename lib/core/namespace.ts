@@ -6,6 +6,7 @@ export * from './math/namespace.ts';
 export * from './parsing/namespace.ts';
 export * from './pipelines/namespace.ts';
 export * from './reports/namespace.ts';
+export * from './serialize/namespace.ts';
 export * from './utils/namespace.ts';
 export * from './valuation/namespace.ts';
 export * from './errors.ts';

@@ -3,6 +3,7 @@ import { ArgParseError, Positionals } from "../argparse/argparse.ts";
 import { Command, ExtensibleCommand } from "../argparse/command.ts";
 import { HelpFormatter } from "../argparse/helpFormatter.ts";
 import { AccountsCommand } from "./accounts/accounts.ts";
+import { AddCommand } from "./add/add.ts";
 import { BalancesheetCommand } from "./compound_reports/balancesheet.ts";
 import { BalancesheetequityCommand } from "./compound_reports/balancesheetequity.ts";
 import { CashflowCommand } from "./compound_reports/cashflow.ts";
@@ -16,6 +17,7 @@ import { PrintCommand } from "./print/print.ts";
 // and sends that argv downstream.
 export class RootCommand extends ExtensibleCommand {
   readonly accountsSubcommand = new AccountsCommand();
+  readonly addSubcommand = new AddCommand();
   readonly incomestatementSubcommand = new IncomestatementCommand();
   readonly balancesheetSubcommand = new BalancesheetCommand();
   readonly balancesheetequitySubcommand = new BalancesheetequityCommand();
@@ -53,6 +55,7 @@ export class RootCommand extends ExtensibleCommand {
 
   override build() {
     this.setSubcommand("accounts", ["acc"], this.accountsSubcommand);
+    this.setSubcommand("add", [], this.addSubcommand);
     this.setSubcommand("incomestatement", ["is"], this.incomestatementSubcommand);
     this.setSubcommand("balancesheet", ["bs"], this.balancesheetSubcommand);
     this.setSubcommand("balancesheetequity", ["bse"], this.balancesheetequitySubcommand);

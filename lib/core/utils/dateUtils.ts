@@ -52,6 +52,16 @@ export function isUtcMidnight(ts: timestamp | Date): boolean {
   );
 }
 
+export function getUTCTodayMidnight(): timestamp {
+  return toUTCMidnight(relabelLocalDateAsUtc(new Date()));
+}
+
+export function toUTCMidnight(ts: timestamp | Date): timestamp {
+  const date = ts instanceof Date ? ts : new Date(ts);
+
+  return Date.parse(toUTCDateString(date) + ' 00:00:00Z');
+}
+
 export function toUTCDateString(ts: timestamp | Date) {
   const date = ts instanceof Date ? ts : new Date(ts);
   return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}`;

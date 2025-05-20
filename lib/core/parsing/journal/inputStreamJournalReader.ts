@@ -1,5 +1,6 @@
 import { globSync } from "glob";
 import { createReadStream } from "node:fs";
+import { open } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { createInterface, Interface } from "node:readline";
 import { Readable, Transform } from "node:stream";
@@ -387,7 +388,14 @@ export class InputStreamJournalReader extends JournalReader {
       return this.raiseError(line, "Empty account identifier.");
     }
 
-    posting.withAccountIdentifier(accId).withDescription(desc.trim());
+    const trimmedDesc = desc.trim();
+
+    posting.withAccountIdentifier(accId);
+
+    if (trimmedDesc) {
+      // don't want to override the description we inherited from the transaction
+      posting.withDescription(trimmedDesc);
+    }
 
     // Per spec, when user leaves empty, it is "".
     posting.withAmountString(amntString ?? "");
@@ -676,5 +684,26 @@ class DelimiterSniffer extends Transform {
     this.push(chunk);
 
     cb();
+  }
+}
+
+export async function sniffLineEnding(
+  filePath: string,
+  maxBytes = 1024 * 4,
+): Promise<LINE_ENDING | undefined> {
+  try {
+    const fh = await open(filePath, "r");
+    const buffer = Buffer.allocUnsafe(maxBytes);
+    const { bytesRead } = await fh.read(buffer, 0, maxBytes, 0);
+    const slice = buffer.subarray(0, bytesRead).toString("utf8");
+
+    await fh.close();
+
+    if (slice.includes("\r\n")) return "\r\n";
+    if (slice.includes("\n")) return "\n";
+    if (slice.includes("\r")) return "\r";
+    return "\n";
+  } catch {
+    return undefined;
   }
 }

@@ -5,6 +5,8 @@ import { Option, OptionValue } from "./option.ts";
 
 export abstract class Command {
 
+  protected unknownOptsAsPositional = false;
+
   protected readonly longOptions = new Map<string, Option>();
   protected readonly shortOptions = new Map<string, string>();
 
@@ -22,6 +24,7 @@ export abstract class Command {
   constructor(
     public readonly name: string,
     public readonly description: string,
+    public readonly synopsis?: string,
   ) { }
 
   protected setOption(opt: Option): this {
@@ -81,6 +84,8 @@ export abstract class Command {
       if (raw == '--') { bypass = true; continue; }
       if (bypass) { positionals.push(new Token(raw, true)); continue; }
 
+      let positionalAdded = false;
+
       if (raw.startsWith("--")) {
         // Long form: --name or --name=value
         const eq = raw.indexOf("=");
@@ -92,6 +97,13 @@ export abstract class Command {
         }
 
         if (!opt) {
+          if (this.unknownOptsAsPositional) {
+            if (!positionalAdded) {
+              positionals.push(new Token(raw, false));
+              positionalAdded = true;
+            }
+            continue;
+          }
           return new ArgParseError(`Unknown option --${longName}`);
         }
 
@@ -128,6 +140,13 @@ export abstract class Command {
           const longName = this.shortOptions.get(ch);
           const opt = longName ? this.longOptions.get(longName) : undefined;
           if (!opt) {
+            if (this.unknownOptsAsPositional) {
+              if (!positionalAdded) {
+                positionals.push(new Token(raw, false));
+                positionalAdded = true;
+              }
+              continue;
+            }
             return new ArgParseError(`Unknown option -${ch}`);
           }
 

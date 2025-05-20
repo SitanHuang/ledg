@@ -19,6 +19,10 @@ export type SerializationOptions = ({
   useSourceText?: false;
 }) & {
   lineDelimiter: LINE_ENDING;
+  /** default false */
+  newLineAtStart?: boolean;
+  /** default true */
+  newLineAtEnd?: boolean;
 };
 
 export function serializeTransaction(
@@ -28,6 +32,8 @@ export function serializeTransaction(
   const defaults: Partial<SerializationOptions> = {
     ledgerCompatible: false,
     useSourceText: true,
+    newLineAtStart: false,
+    newLineAtEnd: true,
   };
 
   const useOpt = Object.assign(defaults, opts);
@@ -41,6 +47,10 @@ export function serializeTransaction(
   const builder: string[] = [];
 
   const LN = lineDelimiter;
+
+  if (opts.newLineAtStart) {
+    builder.push(LN);
+  }
 
   builder.push(serializeTransactionDate(txn.date));
 
@@ -128,7 +138,9 @@ export function serializeTransaction(
     serializeModifiers(builder, posting.metadata, opts, txn);
   }
 
-  builder.push(LN);
+  if (opts.newLineAtEnd) {
+    builder.push(LN);
+  }
 
   return builder.join("");
 }

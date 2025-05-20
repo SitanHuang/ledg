@@ -2,7 +2,7 @@ import { chainMaybesAsync } from "../core/types.ts";
 import { getErrorMessages } from "../core/utils/debugErrorTools.ts";
 import { HelpRequested } from "./argparse/argparse.ts";
 import { RootCommand } from "./commands/root.ts";
-import { LedgCLIContext } from "./context.ts";
+import { ExitCode, LedgCLIContext } from "./context.ts";
 
 export const DEBUG = process.argv.includes('--debug');
 
@@ -26,10 +26,19 @@ export const DEBUG = process.argv.includes('--debug');
       () => root.cleanup(),
     );
 
+    if (result instanceof HelpRequested) {
+      root.help();
+      LedgCLIContext.getCurrentContext().releaseConsoleBuffer();
+      return;
+    }
+
     if (status instanceof Error) {
       throw status;
     }
   } catch (e) {
+    if (e instanceof ExitCode) {
+      process.exit(e.exitCode);
+    }
     if ((e as Error).message?.includes("Help requested.")) {
       process.exit(1);
     }

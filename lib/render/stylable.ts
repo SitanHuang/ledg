@@ -1,6 +1,7 @@
 
 import ansis, { Ansis } from 'ansis';
 import { Embeddable, RenderFormat, TerminalColorSpace } from './renderable.ts';
+import { Span } from './span.ts';
 
 type RGB = [number, number, number];
 
@@ -26,22 +27,42 @@ export type Color = RGB
 const isRGB = (c: Color): c is RGB => Array.isArray(c);
 
 const rgbToAnsi16 = ([r, g, b]: [number, number, number]): number => {
-  // First pick the bright set if the colour is “light”.
-  const value = Math.max(r, g, b);
-  const isBright = value > 0x7f;
+  const ANSI16_PALETTE: [number, number, number][] = [
+    [0, 0, 0],     // 0  black
+    [128, 0, 0],     // 1  red
+    [0, 128, 0],     // 2  green
+    [128, 128, 0],     // 3  yellow
+    [0, 0, 128],   // 4  blue
+    [128, 0, 128],   // 5  magenta
+    [0, 128, 128],   // 6  cyan
+    [192, 192, 192],   // 7  white  (light-gray)
+    [128, 128, 128],   // 8  bright-black (dark-gray)
+    [255, 0, 0],     // 9  bright-red
+    [0, 255, 0],     // 10 bright-green
+    [255, 255, 0],     // 11 bright-yellow
+    [0, 0, 255],   // 12 bright-blue
+    [255, 0, 255],   // 13 bright-magenta
+    [0, 255, 255],   // 14 bright-cyan
+    [255, 255, 255],   // 15 bright-white
+  ];
 
-  // Rough hue buckets: red, green, blue, yellow, magenta, cyan.
-  const hue =
-    value === r && value === g && value === b ? 7 : // white / gray
-      r >= g && r >= b ? 1 : // red
-        g >= r && g >= b ? 2 : // green
-          b >= r && b >= g ? 4 : // blue
-            r > g && b > g ? 5 : // magenta
-              g > r && b > r ? 6 : // cyan
-                3; // yellow (fall-back)
+  let closest = 0;
+  let minDist = Infinity;
 
-  // Lower 3 bits are the colour, high bit is "bright".
-  return (isBright ? 8 : 0) + hue;
+  for (let i = 0; i < ANSI16_PALETTE.length; i++) {
+    const [pr, pg, pb] = ANSI16_PALETTE[i];
+    const dist =
+      (r - pr) * (r - pr) +
+      (g - pg) * (g - pg) +
+      (b - pb) * (b - pb);
+
+    if (dist < minDist) {
+      minDist = dist;
+      closest = i;
+    }
+  }
+
+  return closest;
 };
 
 const rgbToAnsi256 = ([r, g, b]: [number, number, number]): number => {
@@ -78,9 +99,15 @@ export class Stylable extends Embeddable {
   private _htmlStyles: string[] = [];
   private _htmlTag = 'span';
 
+  public target: Embeddable
+
   constructor(
-    public target: Embeddable
-  ) { super(); }
+    target: Embeddable | string
+  ) {
+    super();
+
+    this.target = typeof target == 'string' ? new Span(target) : target;
+  }
 
   bold(opt: boolean): this {
     this._bold = opt;

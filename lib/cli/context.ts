@@ -1,11 +1,27 @@
-import supportsColor from "supports-color";
+import { execSync } from "child_process";
+import { createInterface } from "node:readline/promises";
+import { EOL } from "os";
 import { Journal } from "../core/data/journal.ts";
+import { LINE_ENDING } from "../core/parsing/journal/inputStreamJournalReader.ts";
 import { DateFormat } from "../core/reports/dateFormat.ts";
 import { AmountDisplayPolicy } from "../render/amount.ts";
-import { RenderFormat } from "../render/renderable.ts";
-import { LINE_ENDING } from "../core/parsing/journal/inputStreamJournalReader.ts";
-import { EOL } from "os";
-import { execSync } from "child_process";
+import { Renderable, RenderFormat } from "../render/renderable.ts";
+
+export class ExitCode extends Error {
+  private readonly __exitCodeBrand = undefined;
+
+  constructor(
+    public readonly exitCode: number
+  ) { super(); }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-namespace
+namespace LedgCLIContext {
+  export interface PromptLineOptions {
+    outputReplacer?: (answer: string) => string | Renderable,
+    validator?: (answer: string) => boolean,
+  }
+};
 
 export class LedgCLIContext {
 
@@ -27,12 +43,19 @@ export class LedgCLIContext {
   }
 
   public static getCLIRenderFormat(): Extract<RenderFormat, { target: "ascii" }> {
+    /*
+    1 for 2,
+    4 for 16,
+    8 for 256,
+    24 for 16,777,216 colors supported.
+    */
+    const depth = process.stdout.getColorDepth();
     return {
       target: "ascii",
-      colorSpace: supportsColor.stdout ?
-        supportsColor.stdout.has16m ?
+      colorSpace: depth >= 4 ?
+        depth >= 24 ?
           'rgb' :
-          supportsColor.stdout.has256 ? 256 : 16
+          depth >= 8 ? 256 : 16
         : 16
     }
   }
@@ -47,6 +70,44 @@ export class LedgCLIContext {
 
   private pipeCmdLong?: string;
   private pipeCmdShort?: string;
+
+  async promptLine(prompt: string, opts?: LedgCLIContext.PromptLineOptions) {
+    const useOpts: LedgCLIContext.PromptLineOptions = Object.assign({}, opts);
+
+    process.stdout.write(prompt);
+
+    const rl = createInterface({ input: process.stdin, output: process.stdout });
+
+    try {
+      while (true) {
+        const answer = await rl.question(prompt);
+
+        if (useOpts.validator && !(useOpts.validator(answer))) {
+          process.stdout.write('\x1b[1A');
+          continue;
+        }
+
+        if (useOpts.outputReplacer) {
+          const replaced = useOpts.outputReplacer(answer);
+          process.stdout.write('\x1b[1A' + prompt);
+          process.stdout.write(
+            replaced instanceof Renderable ?
+              replaced.render(this.renderFormat) :
+              replaced
+          );
+          process.stdout.write('\n');
+        }
+
+        return answer;
+      }
+    } finally {
+      rl.close();
+    }
+  }
+
+  printlnRenderable(renderable: Renderable, method: 'log' | 'error' | 'debug' = 'log') {
+    console[method](renderable.render(this.renderFormat));
+  }
 
   pipeConsoleBuffer(
     longCmd?: string,
@@ -69,13 +130,13 @@ export class LedgCLIContext {
   }
 
   releaseConsoleBuffer(skipCommand = false) {
-    if (!this._console_buffer.length) return;
-
-    const content = this._console_buffer.join("");
-
-    const cmd = this._console_buffer_lines >= process.stdout.rows ? this.pipeCmdLong : this.pipeCmdShort;
-
     try {
+      if (!this._console_buffer.length) return;
+
+      const content = this._console_buffer.join("");
+
+      const cmd = this._console_buffer_lines >= process.stdout.rows ? this.pipeCmdLong : this.pipeCmdShort;
+
       if (skipCommand || (!this.pipeCmdLong && !this.pipeCmdShort) || (!cmd)) {
         process.stdout.write(content);
       } else {

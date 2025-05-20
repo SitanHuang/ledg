@@ -58,7 +58,7 @@ export class HelpFormatter {
       cmd instanceof ExtensibleCommand && cmd.getSubcommands().size > 0;
 
     lines.push(
-      renderable`${heading("Usage:")} ${nameChain}${hasSub ? " <command>" : ""} [options]`
+      renderable`${heading("Usage:")} [options] ${nameChain}${hasSub ? " <command>" : ""} ${cmd.synopsis ?? ""}`
     );
 
     if (cmd.description) {
