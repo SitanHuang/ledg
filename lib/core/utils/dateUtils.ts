@@ -10,6 +10,12 @@ export function parseSmartDate(date: string): Result<timestamp> {
     date += '-01-01 00:00:00';
   }
 
+  const isoResult = Date.parse(date + 'Z');
+
+  if (!Number.isNaN(isoResult)) {
+    return isoResult;
+  }
+
   const result = chrono.parseDate(date);
 
   if (!result) {
