@@ -495,6 +495,10 @@ describe('Rational', () => {
     expect(qFraction.toString({ displayPrecision: 4 })).toBe("12.34");
   });
 
+  test('regression case where high dp causes loss of precision', () => {
+    expect(new Rational(217641n, 40n).toString({ displayPrecision: 50 })).toBe("5441.025");
+  });
+
   test('toString returns the same result as valueOf', () => {
     const q = Rational.fromNumber(3.14159);
     expect(q.toString()).toBe(q.valueOf());

@@ -83,7 +83,7 @@ export class Rational {
     } else {
       const integerPart: string = str.substring(0, dotIndex);
       const fractionalPart: string = str.substring(dotIndex + 1);
-      const denominator: bigint = this.scale(fractionalPart.length);
+      const denominator: bigint = this.scale(BigInt(fractionalPart.length));
       const numerator = BigInt(integerPart + fractionalPart);
       return new Rational(numerator, denominator);
     }
@@ -139,8 +139,8 @@ export class Rational {
    * Rounds this Rational to the given number of decimal places.
    * The rounding is performed in a fixed-point style.
    */
-  public round(precision: number): Rational {
-    const factor: bigint = Rational.scale(precision);
+  public round(precision: number | bigint): Rational {
+    const factor: bigint = Rational.scale(BigInt(precision));
     // Multiply numerator by factor, then divide by the denominator with rounding.
     const scaled: bigint = this.numerator * factor;
     const halfDenom: bigint = this.denominator / 2n;
@@ -244,8 +244,8 @@ export class Rational {
    * Returns 10^precision as a bigint.
    * @param precision The number of decimal places.
    */
-  private static scale(precision: number): bigint {
-    return BigInt(Math.pow(10, precision));
+  private static scale(precision: bigint): bigint {
+    return 10n ** precision;
   }
 
   /**
