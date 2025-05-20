@@ -1,4 +1,5 @@
 import { createReadStream } from "node:fs";
+import { dirname, resolve } from "node:path";
 import { AmountFormatOptions } from "../../core/accounting/amount.ts";
 import { InputStreamJournalReader } from "../../core/parsing/journal/inputStreamJournalReader.ts";
 import { isValidCurrencyCode, ValueExpressionParser } from "../../core/parsing/valueExpressionParser.ts";
@@ -8,8 +9,8 @@ import { hasResult, isOk, Maybe, Ok, Result } from "../../core/types.ts";
 import { ArgParseError, Positionals } from "../argparse/argparse.ts";
 import { Option, OptionValue } from "../argparse/option.ts";
 import { LedgCLIContext } from "../context.ts";
+import { DEBUG } from "../entry.ts";
 import { ConfigurableCommand } from "./config.ts";
-import { dirname, resolve } from "node:path";
 
 export abstract class LedgCommand extends ConfigurableCommand {
 
@@ -77,8 +78,8 @@ export abstract class LedgCommand extends ConfigurableCommand {
   protected readonly dpOption = new Option({
     name: "display-precision",
     alias: "dp",
-    type: "int",
-    description: `Alias for "--amount-format=displayPrecision=<val>"`,
+    type: "string",
+    description: `Alias for "--amount-format=displayPrecision=<val>". "inf" for exact fractions.`,
   });
 
   protected readonly amountFormatOption = new Option({
@@ -94,7 +95,7 @@ export abstract class LedgCommand extends ConfigurableCommand {
       "Modifiers:",
       "- minFractionDigits: (integer) Minimum decimal places displayed.",
       "- groupInterval: (integer) Digit grouping size.",
-      "- displayPrecision: (integer) Maximum decimal places for display.",
+      "- displayPrecision: (integer) Maximum decimal places for display. \"inf\" for exact fractions.",
       "- currencyCodeLocation: ('left'|'right'|'none') Position of the currency code relative to amount.",
       "- groupSeparator: (string) Separator character between digit groups.",
       "- decimalSeparator: (string) Character used for decimal points.",
@@ -202,7 +203,14 @@ export abstract class LedgCommand extends ConfigurableCommand {
     });
 
     this.dpOption.extractValue(option, value, (dp) => {
-      this._cliContext.amountDisplayPolicy.displayPrecision = dp;
+      const val = dp.toLowerCase() === 'inf' ? Infinity : Number(dp);
+
+      if (val !== Infinity && !Number.isInteger(val)) {
+        error = new ArgParseError(`Spec "--${option.name}" expects integer or "inf", got ${val}.`);
+        return;
+      }
+
+      this._cliContext.amountDisplayPolicy.displayPrecision = val;
     });
 
     this.amountFormatOption.extractValue(option, value, (specGroups) => {
@@ -227,6 +235,10 @@ export abstract class LedgCommand extends ConfigurableCommand {
             case 'groupInterval':
             case 'displayPrecision':
               if (typeof val !== 'number' || !Number.isInteger(val)) {
+                if (mod === 'displayPrecision' && val.toString().toLowerCase() === 'inf') {
+                  targetPolicy.displayPrecision = Infinity;
+                  break;
+                }
                 error = new ArgParseError(`Spec "--${option.name}" expects integer for modifier ${mod}, got ${val}.`);
                 return;
               }
@@ -294,18 +306,20 @@ export abstract class LedgCommand extends ConfigurableCommand {
   }
 
   get isFromStdin() {
-    return !this.inputFile || this.inputFile === "-";
+    return this.inputFile === "-";
   }
 
   async getCLIContext(): Promise<Result<LedgCLIContext>> {
     if (this._journalLoaded) return this._cliContext;
+
+    const begin = performance.now();
 
     const journal = this._cliContext.journal;
 
     const fromStdin = this.isFromStdin;
 
     const journalReader = new InputStreamJournalReader({
-      filePath: fromStdin ? "<stdin>" : this.inputFile!,
+      filePath: !this.inputFile || fromStdin ? "<stdin>" : this.inputFile,
       readStream: fromStdin ? process.stdin : createReadStream(this.inputFile!),
       sourceModifiable: !fromStdin,
     });
@@ -318,6 +332,11 @@ export abstract class LedgCommand extends ConfigurableCommand {
     }
 
     this._journalLoaded = true;
+
+    if (DEBUG) {
+      const dur = performance.now() - begin;
+      console.debug(`Journal loaded in ${dur} ms (${(journal.transactionStore.size() / (dur / 1000)).toFixed(1)} txn/sec).`);
+    }
 
     return this._cliContext;
   }

@@ -164,6 +164,10 @@ export class Rational {
       showPlus = false,
     }: RationalFormatOptions = opts;
 
+    if (displayPrecision === Infinity) {
+      return this.toFractionString();
+    }
+
     const maxFrac = displayPrecision;
     const minFrac = Math.min(maxFrac, minFractionDigits);
 
