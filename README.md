@@ -10,7 +10,7 @@ V2 adds new features including:
 5. Account open/close directives along with rigorous balance assertions.
 6. Unlike V1's arbitrary,precision, *fixed-point* arithmetics, `ledg2`supports **infinite precision** by default: this means you can store amounts like `1/3 HOUR` in **exact form**.
 
-V2 is backwards compatible with V1 syntax. Major commands (`register`, `incomestatement`, `balancesheet`, etc.) are functionally identical. Due to much more rigorous internal validations, performance is about 30% to 100% slower than V1, but still order-of-magnitudes faster than `hledger` on files with 50k+ transactions.
+V2 is backwards compatible with V1 syntax. Major commands (`register`, `incomestatement`, `balancesheet`, etc.) are functionally identical. Due to much more rigorous internal validations, performance is about 30% to 100% slower than V1, but [~3x faster](https://github.com/SitanHuang/ledg/blob/ledg2/benchmarks/benchmark.md) than `hledger` on files with 50k+ transactions.
 
 ## ledg
 
