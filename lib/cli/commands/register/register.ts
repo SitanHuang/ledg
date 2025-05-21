@@ -1,6 +1,6 @@
 
 import { Amount, getDefault, hasResult, isOk, Maybe, Ok, Posting, QueryEngine, Rational, timestamp, toUTCDatetimeString } from "../../../core/namespace.ts";
-import { AmountSpan, Stylable, Table } from "../../../render/namespace.ts";
+import { AmountSpan, renderable, Stylable, Table } from "../../../render/namespace.ts";
 import { ArgParseError, Positionals } from "../../argparse/argparse.ts";
 import { Option, OptionValue } from "../../argparse/option.ts";
 import { DEBUG } from "../../entry.ts";
@@ -165,12 +165,15 @@ export class RegisterCommand extends ValuationQueryCommand {
       const dispPolicy = context.amountDisplayPolicy.naiveCopy();
       dispPolicy.showPlus = true;
 
+      const pendingMark = new Stylable('!').color('redBright').bold(true);
+      const desc = new Stylable(posting.description).color('whiteBright');
+
       table.addRow([
         new Stylable(posting.transactionID).color('cyan'),
         new Stylable(context.dateFormat.formatDate(date) ).color('cyanBright'),
-        new Stylable(posting.description).color('whiteBright'),
-
-
+        posting.metadata.pending === true ?
+          renderable`${pendingMark} ${desc}` :
+          desc,
         posting.metadata.virt === true ?
           new Stylable(`[${posting.account.identifier}]`).italic(true) :
           new Stylable(posting.account.identifier),
