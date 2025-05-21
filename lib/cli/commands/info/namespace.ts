@@ -1,2 +1,2 @@
 export * from './ascii.ts';
-export * from './inf.ts';
+export * from './info.ts';

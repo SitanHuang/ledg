@@ -1,6 +1,10 @@
 import { hasResult, isOk, Maybe, Ok, parseSmartDate, toUTCDatetimeString, ValuationFunction, ValuationPolicy, ValuationStrategy } from "../../core/namespace.ts";
-import { ArgParseError, DEBUG, LedgCLIContext, Option, OptionValue } from "../namespace.ts";
 import { QueryCommand } from "./query.ts";
+
+import { ArgParseError } from "../argparse/argparse.ts";
+import { Option, OptionValue } from "../argparse/option.ts";
+import { LedgCLIContext } from "../context.ts";
+import { DEBUG } from "../entry.ts";
 
 export abstract class ValuationQueryCommand extends QueryCommand {
   protected readonly currencyOption = new Option({
@@ -26,7 +30,7 @@ export abstract class ValuationQueryCommand extends QueryCommand {
     const { currencyProvider, currencyConversionService } = context.journal;
 
     if (!this.currencyOptionVal || !this.valuationStrategyOptionVal) {
-      return x => x;
+      return (_, x) => x;
     }
 
     const currency = currencyProvider.getOrCreateCurrencyById(this.currencyOptionVal);

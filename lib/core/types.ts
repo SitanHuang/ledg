@@ -48,6 +48,10 @@ function isOk(maybe: Maybe): maybe is OkType {
   return maybe === Ok;
 }
 
+function getDefault<T>(opt: Optional<T>, def: T): T {
+  return isNone(opt) ? def : opt;
+}
+
 function chainMaybes(...funcs: (() => Maybe)[]): Maybe {
   for (const func of funcs) {
     const result = func();
@@ -86,4 +90,4 @@ function unwrap<T>(opt: Optional<T>): T {
   throw new Error("PANIC: Called unwrap on a None value");
 }
 
-export { timestamp, Optional, Some, None, isSome, isNone, hasResult, hasError, unwrap, unwrapResult, chainMaybes, chainMaybesAsync, Result, Ok, Maybe, NoneType, OkType, isOk };
+export { timestamp, Optional, Some, None, isSome, isNone, hasResult, hasError, unwrap, unwrapResult, getDefault, chainMaybes, chainMaybesAsync, Result, Ok, Maybe, NoneType, OkType, isOk };

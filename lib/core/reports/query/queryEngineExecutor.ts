@@ -11,7 +11,7 @@ export type AccountAcceptor = IteratorCallback<Account, void>;
 
 export class QueryEngineExecutor {
   constructor(
-    protected readonly query: Query
+    public readonly query: Query
   ) { }
 
   /**

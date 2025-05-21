@@ -155,11 +155,47 @@ export class Table extends Renderable {
     };
   }
 
+  drop(cols: number[]): this {
+    if (!cols || cols.length === 0) return this;
+
+    // Keep only positive integers, deduplicate, convert to 0-based and sort
+    const idxs = [...new Set(
+      cols.filter(n => Number.isInteger(n) && n > 0).map(n => n - 1)
+    )].sort((a, b) => b - a); // descending so splice indices stay valid
+
+    if (idxs.length === 0) return this;
+
+    // Remove the requested column(s) from every row
+    for (const row of this.rows) {
+      for (const i of idxs) {
+        if (i < row.cells.length) row.cells.splice(i, 1);
+      }
+    }
+
+    // Wipe the cached width calculations so they'll be recomputed on next render
+    this._colWidths = null;
+
+    // Drop the matching entries from per-column option arrays
+    const arrays = [this.opts.justify, this.opts.minWidths, this.opts.maxWidths];
+    for (const arr of arrays) {
+      for (const i of idxs) {
+        if (i < arr.length) arr.splice(i, 1);
+      }
+    }
+
+    return this;
+  }
+
   /**
    * Append a row to the table.
    */
   addRow(cells: (Embeddable | string)[], opts: RowOptions = {}): this {
     const colCount = Math.max(this.columnCount, cells.length);
+
+    if (opts.header === undefined && this.rows.length === 0 && this.opts.firstRowIsHeader) {
+      opts.header = true;
+    }
+
     this.rows.push(new TableRow(cells, opts, colCount));
     return this;
   }

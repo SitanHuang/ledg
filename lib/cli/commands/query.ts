@@ -174,7 +174,7 @@ export abstract class QueryCommand extends LedgCommand {
 
     this.modifierOption.extractValue(option, value, (pattern: string) => {
       const colonIdx = pattern.indexOf(':');
-      const modError = new ArgParseError(`Option "--${ this.useDate2Option.name }" requires "modifierName:regex | modifierName:false" syntax.`);
+      const modError = new ArgParseError(`Option "--${ option.name }" requires "modifierName:regex | modifierName:false" syntax.`);
 
       if (colonIdx < 1) {
         error = modError;

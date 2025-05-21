@@ -9,9 +9,10 @@ import { BalancesheetequityCommand } from "./compound_reports/balancesheetequity
 import { CashflowCommand } from "./compound_reports/cashflow.ts";
 import { IncomestatementCommand } from "./compound_reports/incomestatement.ts";
 import { GitCommand } from "./git/git.ts";
-import { InfoCommand } from "./info/inf.ts";
+import { InfoCommand } from "./info/info.ts";
 import { LedgCommand } from "./ledg.ts";
 import { PrintCommand } from "./print/print.ts";
+import { RegisterCommand } from "./register/register.ts";
 
 // The ExtensibleCommand is a **NON-PROCESSING** command that does NOT raise any
 // errors on option parsing. It simply takes the argv, guesses the subcommand,
@@ -20,6 +21,7 @@ export class RootCommand extends ExtensibleCommand {
   readonly accountsSubcommand = new AccountsCommand();
   readonly addSubcommand = new AddCommand();
   readonly infoSubcommand = new InfoCommand();
+  readonly registerSubcommand = new RegisterCommand();
   readonly incomestatementSubcommand = new IncomestatementCommand();
   readonly balancesheetSubcommand = new BalancesheetCommand();
   readonly balancesheetequitySubcommand = new BalancesheetequityCommand();
@@ -59,6 +61,7 @@ export class RootCommand extends ExtensibleCommand {
     this.setSubcommand("accounts", ["acc"], this.accountsSubcommand);
     this.setSubcommand("add", [], this.addSubcommand);
     this.setSubcommand("info", ["inf"], this.infoSubcommand);
+    this.setSubcommand("register", ["reg"], this.registerSubcommand);
     this.setSubcommand("incomestatement", ["is"], this.incomestatementSubcommand);
     this.setSubcommand("balancesheet", ["bs"], this.balancesheetSubcommand);
     this.setSubcommand("balancesheetequity", ["bse"], this.balancesheetequitySubcommand);
