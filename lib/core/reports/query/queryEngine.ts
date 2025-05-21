@@ -106,3 +106,16 @@ export class QueryEngine {
     return new QueryEngineExecutor(query);
   }
 }
+
+export function extractUserSpecifiedModifierVal(
+  ledgObject: LedgObject,
+  modId: string,
+): unknown {
+  if (modId == 'description' || modId == 'desc') {
+    return ledgObject.description;
+  } else if (modId == 'id') {
+    return ledgObject instanceof Posting ? ledgObject.transactionID : ledgObject.id;
+  } else {
+    return ledgObject.metadata[modId];
+  }
+}

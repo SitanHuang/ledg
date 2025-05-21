@@ -13,6 +13,7 @@ import { InfoCommand } from "./info/info.ts";
 import { LedgCommand } from "./ledg.ts";
 import { PrintCommand } from "./print/print.ts";
 import { RegisterCommand } from "./register/register.ts";
+import { TagsCommand } from "./tags/tags.ts";
 
 // The ExtensibleCommand is a **NON-PROCESSING** command that does NOT raise any
 // errors on option parsing. It simply takes the argv, guesses the subcommand,
@@ -28,6 +29,7 @@ export class RootCommand extends ExtensibleCommand {
   readonly cashflowSubcommand = new CashflowCommand();
   readonly printSubcommand = new PrintCommand();
   readonly gitSubcommand = new GitCommand();
+  readonly tagsSubcommand = new TagsCommand();
 
   constructor() {
     super("ledg", "Accounting software.");
@@ -68,6 +70,7 @@ export class RootCommand extends ExtensibleCommand {
     this.setSubcommand("cashflow", ["cf"], this.cashflowSubcommand);
     this.setSubcommand("print", [], this.printSubcommand);
     this.setSubcommand("git", [], this.gitSubcommand);
+    this.setSubcommand("tags", ["tag"], this.tagsSubcommand);
 
     this.defaultSubcommand = this.accountsSubcommand;
 

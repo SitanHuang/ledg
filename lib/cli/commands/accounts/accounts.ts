@@ -97,7 +97,7 @@ export class AccountsCommand extends ReportCommand {
       renderer.renderSum(rootItem, table);
     }
 
-    console.log(table.render(context.renderFormat));
+    context.printlnRenderable(table);
 
     return Ok;
   }

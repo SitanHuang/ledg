@@ -6,7 +6,6 @@ bin
 bin/*
 node_modules
 package-lock.json
-tags
 *.kdev4
 .kdev4
 *.json
