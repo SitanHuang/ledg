@@ -99,7 +99,15 @@ export class QueryPolicy {
     return this;
   }
 
-  // TODO: tags
+  /**
+   * Set the modifier query only if hasn't been set before.
+   */
+  withDefaultModifier(modifierName: string, query: ModifierQuery): this {
+    return this.withModifier(
+      modifierName,
+      this.modifiers.get(modifierName) ?? query
+    );
+  }
 
   useLedgObjDate(obj: LedgObject): timestamp {
     return this.useDate == 'date' ? obj.date : obj.date2;

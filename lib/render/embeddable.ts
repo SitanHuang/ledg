@@ -1,4 +1,4 @@
-import { Embeddable, RenderFormat } from "./renderable.ts";
+import { Embeddable, Renderable, RenderFormat } from "./renderable.ts";
 import { Span } from "./span.ts";
 
 export class JoinedEmbeddable extends Embeddable {
@@ -74,7 +74,7 @@ export function renderable(
     if (i < expressions.length) {
       const expr = expressions[i];
 
-      if (expr instanceof Embeddable) {
+      if (expr instanceof Renderable) {
         embeds.push(expr);
       } else {
         // Fallback: treat primitive value as literal text.

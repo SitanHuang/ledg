@@ -8,6 +8,7 @@ import { BalancesheetCommand } from "./compound_reports/balancesheet.ts";
 import { BalancesheetequityCommand } from "./compound_reports/balancesheetequity.ts";
 import { CashflowCommand } from "./compound_reports/cashflow.ts";
 import { IncomestatementCommand } from "./compound_reports/incomestatement.ts";
+import { EventsCommand } from "./events/events.ts";
 import { GitCommand } from "./git/git.ts";
 import { InfoCommand } from "./info/info.ts";
 import { LedgCommand } from "./ledg.ts";
@@ -30,6 +31,7 @@ export class RootCommand extends ExtensibleCommand {
   readonly printSubcommand = new PrintCommand();
   readonly gitSubcommand = new GitCommand();
   readonly tagsSubcommand = new TagsCommand();
+  readonly eventsSubcommand = new EventsCommand();
 
   constructor() {
     super("ledg", "Accounting software.");
@@ -71,6 +73,7 @@ export class RootCommand extends ExtensibleCommand {
     this.setSubcommand("print", [], this.printSubcommand);
     this.setSubcommand("git", [], this.gitSubcommand);
     this.setSubcommand("tags", ["tag"], this.tagsSubcommand);
+    this.setSubcommand("events", ["eve"], this.eventsSubcommand);
 
     this.defaultSubcommand = this.accountsSubcommand;
 
