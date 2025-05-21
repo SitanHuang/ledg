@@ -1,6 +1,17 @@
 
 ## 🚧 2025 Update: ledg is actively being rewritten in the [ledg2](https://github.com/SitanHuang/ledg/tree/ledg2) branch. v1.0 is under maintenance mode.
 
+V2 adds new features including:
+
+1. **Traceable** source descriptors: `ledg2` edits are now **scoped** strictly to the transactions you're modifying, preserving all unrelated comments and other annotations. You can combine price directives, account openings, and cross-file references in a unified syntax.
+2. **Value-expression support**: you can now put `[1EUR] + round([1 USD] * 1.075, 2)` directly as the amount expression.
+3. Auxiliary date support.
+4. V2 supports queries and metadata at the **posting level**, complementing transaction-level functionality. Postings can have their own metadata that can override that of the transaction.
+5. Account open/close directives along with rigorous balance assertions.
+6. Unlike V1's arbitrary,precision, *fixed-point* arithmetics, `ledg2`supports **infinite precision** by default: this means you can store amounts like `1/3 HOUR` in **exact form**.
+
+V2 is backwards compatible with V1 syntax. Major commands (`register`, `incomestatement`, `balancesheet`, etc.) are functionally identical. Due to much more rigorous internal validations, performance is about 30% to 100% slower than V1, but still order-of-magnitudes faster than `hledger` on files with 50k+ transactions.
+
 ## ledg
 
 - [About](#about)
