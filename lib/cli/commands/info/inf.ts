@@ -5,10 +5,10 @@ import { parseSmartDate, toUTCDatetimeString } from "../../../core/utils/dateUti
 import { ArgParseError, Positionals } from "../../argparse/argparse.ts";
 import { Option, OptionValue } from "../../argparse/option.ts";
 import { DEBUG } from "../../entry.ts";
-import { QueryCommand } from "../query.ts";
+import { ValuationQueryCommand } from "../valuation_query.ts";
 import { printTransactions } from "./ascii.ts";
 
-export class InfoCommand extends QueryCommand {
+export class InfoCommand extends ValuationQueryCommand {
   protected readonly sortOption = new Option({
     name: "sort",
     type: "string",
@@ -43,7 +43,8 @@ export class InfoCommand extends QueryCommand {
     // this.toOption.defaultValue = undefined;
     this.toOption.defaultValueDisplay = "inf";
 
-    this.accountOption.description += " For the Info command, transactions are matched as long as one of the posting accounts match.";
+    this.accountOption.description += " For the info command, transactions are matched as long as one of the posting accounts match.";
+    this.currencyOption.description += " For the info command, specifying this option forces --resolve.";
 
     this.setOption(this.sortOption);
     this.setOption(this.resolveOption);
@@ -75,6 +76,10 @@ export class InfoCommand extends QueryCommand {
     const context = await this.getCLIContext();
     if (!hasResult(context)) {
       return context;
+    }
+
+    if (this.currencyOptionVal) {
+      this.resolveValue = true;
     }
 
     const policy = this.getQueryPolicy();
@@ -110,7 +115,7 @@ export class InfoCommand extends QueryCommand {
       );
     }
 
-    printTransactions(transactions, !this.resolveValue, context);
+    printTransactions(transactions, !this.resolveValue, context, this.getValuationFunction(context));
 
     return Ok;
   }

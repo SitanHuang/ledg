@@ -7,7 +7,7 @@ import {
   ACCOUNT_CLOSED,
   ACCOUNT_UNOPEN,
 } from './accountManager.ts';
-import { Option, Ok, None, OkType } from '../types.ts';
+import { Optional, Ok, None, OkType } from '../types.ts';
 import { Account } from '../accounting/account.ts';
 import { BalanceAssertionService } from '../accounting/balanceAssertionService.ts';
 import { LedgObject } from '../data/ledgObject.ts';
@@ -21,7 +21,7 @@ class ShamAccountManager extends DefaultAccountManager {
     identifier: string,
     time: number,
     _balanceAssertionService: BalanceAssertionService
-  ): Option<OkType> {
+  ): Optional<OkType> {
     const accounts = this.accounts as Map<
       string,
       { account: Account; events: { time: number; type: "open" | "close" }[] }

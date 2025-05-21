@@ -69,6 +69,7 @@ export abstract class ReportCommand extends QueryCommand {
     type: "string",
     description: "Valuation strategy: eop | txnDate | <datetime>.",
   });
+
   protected readonly eopOption = new Option({
     name: "eop",
     type: "boolean",

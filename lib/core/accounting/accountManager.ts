@@ -1,4 +1,4 @@
-import { None, Ok, OkType, Option, Result, timestamp, unwrap } from "../types.ts";
+import { None, Ok, OkType, Optional, Result, timestamp, unwrap } from "../types.ts";
 import { Account, AccountIdentifier } from "./account.ts";
 import { BalanceAssertionService } from "./balanceAssertionService.ts";
 
@@ -36,13 +36,13 @@ export class AccountClosureAssertionError extends Error {
 export abstract class AccountManager {
   abstract getAccountsList(): readonly Account[];
 
-  abstract getAccount(identifier: AccountIdentifier): Option<Account>;
+  abstract getAccount(identifier: AccountIdentifier): Optional<Account>;
 
   /**
    * Opens an unopened account or reopens a closed account. Returns None if
    * account is already open.
    */
-  abstract openAccount(identifier: AccountIdentifier, time: timestamp): Option<OkType>;
+  abstract openAccount(identifier: AccountIdentifier, time: timestamp): Optional<OkType>;
 
   /**
    * An account can only be closed if the balance at the time of closure is
@@ -54,7 +54,7 @@ export abstract class AccountManager {
     identifier: AccountIdentifier,
     time: timestamp,
     balanceAssertionService: BalanceAssertionService
-  ): Result<Option<OkType>, AccountClosureAssertionError>;
+  ): Result<Optional<OkType>, AccountClosureAssertionError>;
 
   getOrOpenAccount(identifier: AccountIdentifier, time: timestamp): Account {
     this.openAccount(identifier, time);
@@ -143,12 +143,12 @@ export class DefaultAccountManager extends AccountManager {
     return this.knownAccounts;
   }
 
-  override getAccount(identifier: AccountIdentifier): Option<Account> {
+  override getAccount(identifier: AccountIdentifier): Optional<Account> {
     const entry = this.accounts.get(identifier);
     return entry ? entry.account : None;
   }
 
-  override openAccount(identifier: AccountIdentifier, time: timestamp): Option<OkType> {
+  override openAccount(identifier: AccountIdentifier, time: timestamp): Optional<OkType> {
     const entry = this.accounts.get(identifier);
     if (!entry) {
       // Create new account and record open event.
@@ -183,7 +183,7 @@ export class DefaultAccountManager extends AccountManager {
     identifier: AccountIdentifier,
     time: timestamp,
     balanceAssertionService: BalanceAssertionService,
-  ): Result<Option<OkType>, AccountClosureAssertionError> {
+  ): Result<Optional<OkType>, AccountClosureAssertionError> {
     const entry = this.accounts.get(identifier);
     if (!entry) return None; // never opened
 

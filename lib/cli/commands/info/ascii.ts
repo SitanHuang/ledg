@@ -1,8 +1,9 @@
-import { timestamp } from "../../../core/types.ts";
 import { BoundPosting } from "../../../core/accounting/posting.ts";
 import { Transaction } from "../../../core/accounting/transaction.ts";
 import { Metadata, MetadataReservedKey } from "../../../core/data/ledgObject.ts";
 import { serializeTransactionDate } from "../../../core/serialize/transaction.ts";
+import { isNone, timestamp } from "../../../core/types.ts";
+import { ValuationFunction } from "../../../core/valuation/valuationFunction.ts";
 import { AmountSpan } from "../../../render/amount.ts";
 import { JoinedEmbeddable, renderable } from "../../../render/embeddable.ts";
 import { Embeddable, Renderable } from "../../../render/renderable.ts";
@@ -14,10 +15,11 @@ export function printTransactions(
   txns: Transaction[],
   useSourceText: boolean,
   cliContext: LedgCLIContext,
+  valuationFunction: ValuationFunction
 ) {
   const println = (...str: Embeddable[]) => cliContext.printlnRenderable(JoinedEmbeddable.join(str));
 
-  const aggr = aggregateComponents(txns, useSourceText, cliContext);
+  const aggr = aggregateComponents(txns, useSourceText, cliContext, valuationFunction);
 
   const maxPostingDescWidth = aggr.postingsDescWidths > 0 ? aggr.postingsDescWidths + 2 : 0;
 
@@ -90,6 +92,7 @@ function aggregateComponents(
   txns: Transaction[],
   useSourceText: boolean,
   cliContext: LedgCLIContext,
+  valuationFunction: ValuationFunction
 ): AggregateComponents {
 
   const specs: AggregateComponents = {
@@ -103,7 +106,7 @@ function aggregateComponents(
   for (const txn of txns) {
     const txnGroup = procTxn(txn, specs);
     txnGroup.postingGroups = txn.postings.map(
-      posting => procPosting(posting, specs, useSourceText, cliContext)
+      posting => procPosting(posting, specs, useSourceText, cliContext, valuationFunction)
     );
     specs.txnGroups.push(txnGroup);
   }
@@ -163,6 +166,7 @@ function procPosting(
   specs: AggregateComponents,
   useSourceText: boolean,
   cliContext: LedgCLIContext,
+  valuationFunction: ValuationFunction
 ): PostingGroup {
 
   const txn = posting.transaction;
@@ -172,7 +176,11 @@ function procPosting(
   if (useSourceText && posting.amount.sourceString !== undefined) {
     amount = new Stylable(posting.amount.sourceString).color([255, 172, 28]);
   } else {
-    amount = new AmountSpan(posting.amount, cliContext.amountDisplayPolicy);
+    const converted = valuationFunction(txn, posting.amount);
+    amount = new AmountSpan(
+      isNone(converted) ? posting.amount : converted,
+      cliContext.amountDisplayPolicy
+    );
   }
 
   specs.amountWidths = Math.max(specs.amountWidths, amount.displayWidth);

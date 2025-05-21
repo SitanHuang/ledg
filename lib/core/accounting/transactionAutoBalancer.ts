@@ -1,5 +1,5 @@
 import { ValuationConfiguration } from "../config/valuationConfigs.ts";
-import { Amount, CurrencyConversionService, isNone, None, NoneType, Option, PostingBuilder, Rational, Result } from "../namespace.ts";
+import { Amount, CurrencyConversionService, isNone, None, NoneType, Optional, PostingBuilder, Rational, Result } from "../namespace.ts";
 import { CurrencyProvider } from "../valuation/currencyProvider.ts";
 import { ValuationPolicy } from "../valuation/policy.ts";
 
@@ -28,7 +28,7 @@ export class TransactionAutoBalancer {
    * @returns None if no posting has inferred amounts, PostingBuilder for the
    * posting with inferred amount, or TransactionAutoBalanceError
    */
-  autoBalanceTransaction(postingBuilders: readonly PostingBuilder[]): Result<Option<PostingBuilder>, TransactionAutoBalanceError> {
+  autoBalanceTransaction(postingBuilders: readonly PostingBuilder[]): Result<Optional<PostingBuilder>, TransactionAutoBalanceError> {
     let inferredPosting: PostingBuilder | NoneType = None;
 
     for (let i = 0;i < postingBuilders.length;i++) {

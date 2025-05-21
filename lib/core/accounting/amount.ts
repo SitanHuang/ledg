@@ -1,6 +1,6 @@
 import { Currency } from "../valuation/currency.ts";
 import { Rational, RationalFormatOptions } from "../math/rational.ts";
-import { Option, None, isNone } from "../types.ts";
+import { Optional, None, isNone } from "../types.ts";
 import { ValuationPolicy } from "../valuation/policy.ts";
 import { CurrencyConversionService } from "../valuation/currencyConversionService.ts";
 
@@ -181,14 +181,14 @@ export class Amount {
    * conversion fails, returns None. Otherwise, returns the total converted
    * value as a Rational.
    */
-  public convertTo(target: Currency, provider: CurrencyConversionService, valuationPolicy: ValuationPolicy): Option<Rational> {
+  public convertTo(target: Currency, provider: CurrencyConversionService, valuationPolicy: ValuationPolicy): Optional<Rational> {
     let total: Rational = Rational.ZERO;
     for (const { currency, value } of this.amounts.values()) {
       let converted: Rational;
       if (currency.id === target.id) {
         converted = value;
       } else {
-        const convOpt: Option<Rational> = provider.resolveConversion(currency, target, valuationPolicy.valuationDate);
+        const convOpt: Optional<Rational> = provider.resolveConversion(currency, target, valuationPolicy.valuationDate);
         if (isNone(convOpt)) {
           return None;
         }
@@ -201,7 +201,7 @@ export class Amount {
     return total;
   }
 
-  public convertToAmount(target: Currency, provider: CurrencyConversionService, valuationPolicy: ValuationPolicy): Option<this> {
+  public convertToAmount(target: Currency, provider: CurrencyConversionService, valuationPolicy: ValuationPolicy): Optional<this> {
     const result = this.convertTo(target, provider, valuationPolicy);
 
     if (isNone(result)) {

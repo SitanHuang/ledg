@@ -1,6 +1,6 @@
 import { Rational } from "../math/rational.ts";
 import { Currency } from "./currency.ts";
-import { timestamp, Option, None } from "../types.ts";
+import { timestamp, Optional, None } from "../types.ts";
 
 
 /**
@@ -83,7 +83,7 @@ export class CurrencyConversionService {
    * @param timestamp Unix timestamp in ms.
    * @returns The composite conversion rate (a Rational) such that (value in from)*rate = value in to. None if resolution failed.
    */
-  public resolveConversion(from: Currency, to: Currency, timestamp: timestamp): Option<Rational> {
+  public resolveConversion(from: Currency, to: Currency, timestamp: timestamp): Optional<Rational> {
     if (from.id === to.id) {
       return Rational.ONE;
     }
