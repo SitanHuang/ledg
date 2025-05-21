@@ -88,7 +88,7 @@ export class AddCommand extends LedgCommand {
   constructor() {
     super(
       "add",
-      "Append a transaction to file.",
+      "Append a transaction to file. Wrap account glob in brackets (\"[...]\") for virtual postings.",
       "<txn desc> [ [<account glob> [desc:<posting desc>] <amount expr>] ... ] [<account glob> [desc:<posting desc>] [amount expr]]]"
     );
   }
@@ -230,15 +230,21 @@ export class AddCommand extends LedgCommand {
       .withDate2(date2)
       .withDescription(positionals[0].raw);
 
-    for (let i = 1; i < positionals.length;i++) {
-
-      // Match Account
-
-      const acc = positionals[i].raw;
-      const accStylable = new Stylable(new Span(acc)).bold(true);
+    for (let i = 1; i < positionals.length; i++) {
 
       const posting = new PostingBuilder()
         .fromTransaction(txnBuilder); // copy over all metadata, including description
+
+      // Match Account
+
+      let acc = positionals[i].raw;
+
+      if (acc.startsWith('[') && acc.endsWith(']')) {
+        acc = acc.slice(1, -1);
+        posting.metadata.virt = true;
+      }
+
+      const accStylable = new Stylable(new Span(acc)).bold(true);
 
       const accounts = QueryEngine.create(
         new QueryPolicy().withAccount(acc)
