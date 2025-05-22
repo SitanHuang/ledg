@@ -2,6 +2,7 @@ import { Account } from "../../accounting/account.ts";
 import { BoundPosting, Posting } from "../../accounting/posting.ts";
 import { Transaction } from "../../accounting/transaction.ts";
 import { LedgObject } from "../../data/ledgObject.ts";
+import { AndQuery } from "./combinators.ts";
 import { Query } from "./query.ts";
 import { QueryEngineExecutor } from "./queryEngineExecutor.ts";
 import { ModifierQuery, QueryPolicy } from "./queryPolicy.ts";
@@ -104,6 +105,13 @@ export class QueryEngine {
       }
     };
     return new QueryEngineExecutor(query);
+  }
+
+  static and(left: QueryPolicy, right: QueryPolicy): QueryEngineExecutor {
+    return new QueryEngineExecutor(new AndQuery(
+      QueryEngine.create(left).compile().query,
+      QueryEngine.create(right).compile().query,
+    ));
   }
 }
 
