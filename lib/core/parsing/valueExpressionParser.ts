@@ -1,12 +1,14 @@
 
 import { Amount } from "../accounting/amount.ts";
+import { Rational } from "../math/rational.ts";
 import { Result } from "../types.ts";
 import { Currency } from "../valuation/currency.ts";
-import { Rational } from "../math/rational.ts";
 import { CurrencyProvider } from "../valuation/currencyProvider.ts";
 import { AmountParseError, ValueExpressionEvalError } from "./parseErrors.ts";
-import { RoundFunction } from "./value_expression_functions/round.ts";
+import { CeilFunction } from "./value_expression_functions/ceil.ts";
 import { DebugIdentityFunction } from "./value_expression_functions/debug.ts";
+import { FloorFunction } from "./value_expression_functions/floor.ts";
+import { RoundFunction } from "./value_expression_functions/round.ts";
 
 export type EvalValue =
   | { type: "scalar"; value: Rational }
@@ -529,11 +531,16 @@ class Parser {
         this.eat(); // consume ')'
 
         // Function evaluation:
-        if (ident === "DEBUG_IDENTITY") {
-          return new DebugIdentityFunction().evaluate(args, this.input)
-        }
-        if (ident === "round") {
-          return new RoundFunction().evaluate(args, this.input);
+
+        switch (ident) {
+          case "DEBUG_IDENTITY":
+            return new DebugIdentityFunction().evaluate(args, this.input);
+          case "round":
+            return new RoundFunction().evaluate(args, this.input);
+          case "ceil":
+            return new CeilFunction().evaluate(args, this.input);
+          case "floor":
+            return new FloorFunction().evaluate(args, this.input);
         }
 
         throw new ValueExpressionEvalError(`Unsupported function '${ident}'`, this.input);

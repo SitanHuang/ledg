@@ -150,6 +150,32 @@ export class Rational {
     return new Rational(rounded, factor);
   }
 
+  public floor(precision: number | bigint = 0): Rational {
+    const factor: bigint = Rational.scale(BigInt(precision));
+    const scaled: bigint = this.numerator * factor;
+
+    let q: bigint = scaled / this.denominator;   // truncated toward 0
+    const r: bigint = scaled % this.denominator; // remainder
+
+    // If negative and not already exact, step one farther from 0
+    if (r !== 0n && this.numerator < 0n) q -= 1n;
+
+    return new Rational(q, factor);
+  }
+
+  public ceil(precision: number | bigint = 0): Rational {
+    const factor: bigint = Rational.scale(BigInt(precision));
+    const scaled: bigint = this.numerator * factor;
+
+    let q: bigint = scaled / this.denominator;   // truncated toward 0
+    const r: bigint = scaled % this.denominator; // remainder
+
+    // If positive and not already exact, step one farther from 0
+    if (r !== 0n && this.numerator > 0n) q += 1n;
+
+    return new Rational(q, factor);
+  }
+
   public toNumber(): number {
     return Number(this.numerator) / Number(this.denominator);
   }

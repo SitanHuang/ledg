@@ -511,6 +511,7 @@ describe('Rational', () => {
   describe('Rounding Tests (should mimic JavaScript Math.round behavior)', () => {
     test('round: rounds positive number exactly at half upward', () => {
       const q = Rational.fromNumber(1.45);
+      expect(q.round(100).toNumber()).toBe(1.45);
       expect(q.round(1).toNumber()).toBe(1.5);
       expect(q.round(0).toNumber()).toBe(1);
       expect(q.plus(0.1).round(0).toNumber()).toBe(2);
@@ -543,6 +544,63 @@ describe('Rational', () => {
       const q = Rational.fromNumber(0);
       expect(q.round(3).toNumber()).toBe(0);
       expect(q.round(3).isZero()).toBe(true);
+    });
+  });
+
+  describe('Flooring tests', () => {
+    it('works', () => {
+      const q = Rational.fromNumber(1.55);
+      expect(q.floor(100).toNumber()).toBe(1.55);
+      expect(q.floor(3).toNumber()).toBe(1.55);
+      expect(q.floor(2).toNumber()).toBe(1.55);
+      expect(q.floor(1).toNumber()).toBe(1.5);
+      expect(q.floor(0).toNumber()).toBe(1);
+      expect(Rational.fromNumber(1.499).floor(1).toNumber()).toBe(1.4);
+    });
+
+    test('floors negative number with same behavior as Math.floor', () => {
+      const q = Rational.fromNumber(-1.79);
+      expect(q.floor(1).toNumber()).toBe(Math.floor(-1.79 * 10) / 10);
+      expect(q.floor(0).toNumber()).toBe(Math.floor(-1.79));
+      const q2 = Rational.fromNumber(-0.24);
+      expect(q2.floor(1).toNumber()).toBe(Math.floor(-0.24 * 10) / 10);
+      expect(q2.floor(0).toNumber()).toBe(Math.floor(-0.24));
+    });
+
+    test('returns zero when Rational is zero regardless of precision', () => {
+      const q = Rational.fromNumber(0);
+      expect(q.floor(3).toNumber()).toBe(0);
+      expect(q.floor(3).toNumber()).toBe(0);
+      expect(q.floor(0).isZero()).toBe(true);
+      expect(q.floor(0).isZero()).toBe(true);
+    });
+  });
+  describe('Ceiling tests', () => {
+    it('works', () => {
+      const q = Rational.fromNumber(1.11);
+      expect(q.ceil(100).toString({ displayPrecision: 100 })).toBe("1.11");
+      expect(q.ceil(3).toNumber()).toBe(1.11);
+      expect(q.ceil(2).toNumber()).toBe(1.11);
+      expect(q.ceil(1).toNumber()).toBe(1.2);
+      expect(q.ceil(0).toNumber()).toBe(2);
+      expect(Rational.fromNumber(1.99).ceil(1).toNumber()).toBe(2.0);
+    });
+
+    test('ceils negative number with same behavior as Math.ceil', () => {
+      const q = Rational.fromNumber(-1.23);
+      expect(q.ceil(1).toNumber()).toBe(Math.ceil(-1.23 * 10) / 10);
+      expect(q.ceil(0).toNumber()).toBe(Math.ceil(-1.23));
+      const q2 = Rational.fromNumber(-1.79);
+      expect(q2.ceil(1).toNumber()).toBe(Math.ceil(-1.79 * 10) / 10);
+      expect(q2.ceil(0).toNumber()).toBe(Math.ceil(-1.79));
+    });
+
+    test('returns zero when Rational is zero regardless of precision', () => {
+      const q = Rational.fromNumber(0);
+      expect(q.ceil(3).toNumber()).toBe(0);
+      expect(q.ceil(3).toNumber()).toBe(0);
+      expect(q.ceil(0).isZero()).toBe(true);
+      expect(q.ceil(0).isZero()).toBe(true);
     });
   });
 

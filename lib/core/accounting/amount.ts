@@ -389,6 +389,26 @@ export class Amount {
     }
     return Amount.fromMap(result);
   }
+  public floor(precision: number): Amount {
+    const result = new Map<string, { currency: Currency; value: Rational }>();
+    for (const [curId, { currency, value }] of this.amounts) {
+      const flooredValue = value.floor(precision);
+      if (!flooredValue.isZero()) {
+        result.set(curId, { currency, value: flooredValue });
+      }
+    }
+    return Amount.fromMap(result);
+  }
+  public ceil(precision: number): Amount {
+    const result = new Map<string, { currency: Currency; value: Rational }>();
+    for (const [curId, { currency, value }] of this.amounts) {
+      const ceiledValue = value.ceil(precision);
+      if (!ceiledValue.isZero()) {
+        result.set(curId, { currency, value: ceiledValue });
+      }
+    }
+    return Amount.fromMap(result);
+  }
 
   /**
    * Compares this Amount with another *strictly* by the per‑currency magnitudes
