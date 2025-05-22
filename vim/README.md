@@ -1,5 +1,7 @@
 # vim-ledg
 
+Compatible with and built from ledg v1.0.
+
 ### Installation
 *require VIM 8.2*
 
@@ -32,4 +34,3 @@ And provides features:
       - press 20 and hit space
     - in price files:
       - press P and hit space
-

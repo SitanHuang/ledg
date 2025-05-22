@@ -16,7 +16,7 @@ endfunction
 
 augroup ledg
   au!
-  au BufNewFile,BufRead *.\d\d\d\d.ledg,*.edit.ledg setf ledg
+  au BufNewFile,BufRead *.ledg,*.ledg2 setf ledg
   au BufNewFile,BufRead *.prices.ledg setf ledg_price
   au BufNewFile,BufRead *.budgets.ledg setf ledg_budget
   if index(GetFiletypes(), 'json') >= 0
