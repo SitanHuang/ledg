@@ -9,7 +9,7 @@ import { hasResult, isOk, Maybe, Ok, Result } from "../../core/types.ts";
 import { ArgParseError, Positionals } from "../argparse/argparse.ts";
 import { Option, OptionValue } from "../argparse/option.ts";
 import { LedgCLIContext } from "../context.ts";
-import { DEBUG } from "../entry.ts";
+import { DEBUG } from "../context.ts";
 import { ConfigurableCommand } from "./config.ts";
 
 export abstract class LedgCommand extends ConfigurableCommand {

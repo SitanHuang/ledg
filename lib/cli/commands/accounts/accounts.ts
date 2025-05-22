@@ -1,4 +1,4 @@
-import { DEBUG } from "../../entry.ts";
+import { DEBUG } from "../../context.ts";
 import { MultiperiodTreeAggregator, QueryEngine } from "../../../core/reports/namespace.ts";
 import { hasResult, isOk, Maybe, Ok } from "../../../core/types.ts";
 import { MultiperiodTreeRenderer } from "../../../render/multiperiodTree.ts";

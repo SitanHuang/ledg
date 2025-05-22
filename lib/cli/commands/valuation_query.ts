@@ -4,7 +4,7 @@ import { QueryCommand } from "./query.ts";
 import { ArgParseError } from "../argparse/argparse.ts";
 import { Option, OptionValue } from "../argparse/option.ts";
 import { LedgCLIContext } from "../context.ts";
-import { DEBUG } from "../entry.ts";
+import { DEBUG } from "../context.ts";
 
 export abstract class ValuationQueryCommand extends QueryCommand {
   protected readonly currencyOption = new Option({

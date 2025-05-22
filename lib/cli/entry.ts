@@ -2,9 +2,7 @@ import { chainMaybesAsync } from "../core/types.ts";
 import { getErrorMessages } from "../core/utils/debugErrorTools.ts";
 import { HelpRequested } from "./argparse/argparse.ts";
 import { RootCommand } from "./commands/root.ts";
-import { ExitCode, LedgCLIContext } from "./context.ts";
-
-export const DEBUG = process.argv.includes('--debug');
+import { DEBUG, ExitCode, LedgCLIContext } from "./context.ts";
 
 (async () => {
   try {

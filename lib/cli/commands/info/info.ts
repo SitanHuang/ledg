@@ -4,7 +4,7 @@ import { hasResult, isOk, Maybe, Ok, unwrapResult } from "../../../core/types.ts
 import { parseSmartDate, toUTCDatetimeString } from "../../../core/utils/dateUtils.ts";
 import { ArgParseError, Positionals } from "../../argparse/argparse.ts";
 import { Option, OptionValue } from "../../argparse/option.ts";
-import { DEBUG } from "../../entry.ts";
+import { DEBUG } from "../../context.ts";
 import { ValuationQueryCommand } from "../valuation_query.ts";
 import { printTransactions } from "./ascii.ts";
 

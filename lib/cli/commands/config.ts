@@ -5,7 +5,7 @@ import { ArgParseError, Positionals } from "../argparse/argparse.ts";
 import { Command } from "../argparse/command.ts";
 import { ConfigParser } from "../argparse/configparser.ts";
 import { Option, OptionValue } from "../argparse/option.ts";
-import { DEBUG } from "../entry.ts";
+import { DEBUG } from "../context.ts";
 
 export abstract class ConfigurableCommand extends Command {
 

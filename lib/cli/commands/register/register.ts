@@ -3,7 +3,7 @@ import { Amount, getDefault, hasResult, isOk, Maybe, Ok, Posting, QueryEngine, R
 import { AmountSpan, renderable, Stylable, Table } from "../../../render/namespace.ts";
 import { ArgParseError, Positionals } from "../../argparse/argparse.ts";
 import { Option, OptionValue } from "../../argparse/option.ts";
-import { DEBUG } from "../../entry.ts";
+import { DEBUG } from "../../context.ts";
 import { ValuationQueryCommand } from "../valuation_query.ts";
 
 export class RegisterCommand extends ValuationQueryCommand {

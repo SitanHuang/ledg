@@ -5,7 +5,7 @@ import { CompoundTreeRenderer } from "../../../render/compoundReport.ts";
 import { ArgParseError, Positionals } from "../../argparse/argparse.ts";
 import { Option, OptionValue } from "../../argparse/option.ts";
 import { LedgCLIContext } from "../../context.ts";
-import { DEBUG } from "../../entry.ts";
+import { DEBUG } from "../../context.ts";
 import { ReportCommand } from "../report.ts";
 
 export abstract class CompoundReportCommand extends ReportCommand {

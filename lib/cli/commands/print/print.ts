@@ -4,7 +4,7 @@ import { SerializationOptions, serializeTransaction, serializeTransactionDate } 
 import { hasResult, isOk, Maybe, Ok } from "../../../core/types.ts";
 import { ArgParseError, Positionals } from "../../argparse/argparse.ts";
 import { Option, OptionValue } from "../../argparse/option.ts";
-import { DEBUG } from "../../entry.ts";
+import { DEBUG } from "../../context.ts";
 import { QueryCommand } from "../query.ts";
 
 export class PrintCommand extends QueryCommand {

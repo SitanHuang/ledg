@@ -2,7 +2,7 @@ import { spawnSync } from "child_process";
 import { Maybe, Ok, Result } from "../../../core/types.ts";
 import { ArgParseError, Positionals } from "../../argparse/argparse.ts";
 import { Option } from "../../argparse/option.ts";
-import { DEBUG } from "../../entry.ts";
+import { DEBUG } from "../../context.ts";
 import { LedgCommand } from "../ledg.ts";
 
 export class GitCommand extends LedgCommand {

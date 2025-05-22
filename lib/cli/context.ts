@@ -1,3 +1,6 @@
+
+export const DEBUG = process.argv.includes('--debug');
+
 import { execSync } from "child_process";
 import { createInterface } from "node:readline/promises";
 import { EOL } from "os";

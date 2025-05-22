@@ -5,7 +5,7 @@ import { hasResult, isOk, Maybe, Ok } from "../../../core/types.ts";
 import { Table } from "../../../render/namespace.ts";
 import { ArgParseError, Positionals } from "../../argparse/argparse.ts";
 import { Option, OptionValue } from "../../argparse/option.ts";
-import { DEBUG } from "../../entry.ts";
+import { DEBUG } from "../../context.ts";
 import { QueryCommand } from "../query.ts";
 
 export class TagsCommand extends QueryCommand {
