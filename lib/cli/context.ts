@@ -52,7 +52,7 @@ export class LedgCLIContext {
     8 for 256,
     24 for 16,777,216 colors supported.
     */
-    const depth = process.stdout.getColorDepth();
+    const depth = process.stdout.getColorDepth ? process.stdout.getColorDepth() : 0;
     return {
       target: "ascii",
       colorSpace: depth >= 4 ?
