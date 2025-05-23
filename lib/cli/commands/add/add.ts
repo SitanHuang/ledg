@@ -8,7 +8,7 @@ import { sniffLineEnding } from "../../../core/parsing/journal/inputStreamJourna
 import { DefaultTransactionPipeline } from "../../../core/pipelines/transactionPipeline.ts";
 import { QueryEngine } from "../../../core/reports/query/queryEngine.ts";
 import { QueryPolicy } from "../../../core/reports/query/queryPolicy.ts";
-import { serializeTransaction, serializeTransactionDate } from "../../../core/serialize/transaction.ts";
+import { SerializationOptions, serializeTransaction, serializeTransactionDate } from "../../../core/serialize/transaction.ts";
 import { hasResult, isOk, Maybe, Ok, timestamp } from "../../../core/types.ts";
 import { getUTCTodayMidnight } from "../../../core/utils/dateUtils.ts";
 import { renderable } from "../../../render/embeddable.ts";
@@ -101,6 +101,8 @@ export class AddCommand extends LedgCommand {
       this.fileOption,
       this.noConfigOption,
       this.debugOption,
+      this.showDefaultCurrencyOption,
+      this.dpOption
     ];
 
     for (const key in this) {
@@ -314,13 +316,21 @@ export class AddCommand extends LedgCommand {
       return new Error("FATAL: New transaction is not found in memory!");
     }
 
-    const serialized = serializeTransaction(txn, {
+    const useSourceText = !this.resolveVal;
+
+    const format: SerializationOptions = {
       lineDelimiter: await sniffLineEnding(distFile) ?? context.lineDelimiter,
       ledgerCompatible: false,
-      useSourceText: !this.resolveVal,
+      useSourceText,
       newLineAtStart: true,
       newLineAtEnd: false,
-    });
+    };
+
+    if (format.useSourceText === false) {
+      format.amountFormat = context.amountDisplayPolicy;
+    }
+
+    const serialized = serializeTransaction(txn, format);
 
     printlnRenderable(renderable`Append to ${new Stylable(distFile).bold(true)}:`);
 

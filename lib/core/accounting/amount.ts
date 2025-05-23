@@ -19,6 +19,11 @@ export class AmountFormatOptions implements RationalFormatOptions {
 
   showPlus = false;
 
+  /**
+   * When set to true, features unsupported by amount parsing will be ignored.
+   */
+  forceSerializable = false;
+
   protected readonly currencyOverrides = new Map<string, AmountFormatOptions>();
 
   constructor(opts: RationalFormatOptions = {}) {

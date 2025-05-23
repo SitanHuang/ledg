@@ -14,6 +14,11 @@ export interface RationalFormatOptions {
 
   /** Shows plus sign for positive numbers. Default=false. */
   showPlus?: boolean;
+
+  /**
+  * When set to true, features unsupported by amount parsing will be ignored.
+  */
+  forceSerializable?: boolean;
 }
 
 export class Rational {
@@ -180,15 +185,21 @@ export class Rational {
     return Number(this.numerator) / Number(this.denominator);
   }
 
-  public valueOf(opts: RationalFormatOptions = {}): string {
-    const {
-      displayPrecision = 10,
-      minFractionDigits = 1,
-      useGrouping = 0,
-      groupSeparator = ",",
-      decimalSeparator = ".",
-      showPlus = false,
-    }: RationalFormatOptions = opts;
+  public valueOf({
+    displayPrecision = 10,
+    minFractionDigits = 1,
+    useGrouping = 0,
+    groupSeparator = ",",
+    decimalSeparator = ".",
+    showPlus = false,
+    forceSerializable = false,
+  }: RationalFormatOptions = {}): string {
+
+    if (forceSerializable) {
+      useGrouping = 0;
+      groupSeparator = '';
+      decimalSeparator = '.';
+    }
 
     if (displayPrecision === Infinity) {
       return this.toFractionString();

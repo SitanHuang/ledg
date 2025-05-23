@@ -1,4 +1,5 @@
 import { Account } from "../accounting/account.ts";
+import { AmountFormatOptions } from "../accounting/amount.ts";
 import { Transaction } from "../accounting/transaction.ts";
 import { Metadata, MetadataReservedKey } from "../data/ledgObject.ts";
 import { RationalFormatOptions } from "../math/rational.ts";
@@ -6,23 +7,49 @@ import { LINE_ENDING } from "../parsing/journal/inputStreamJournalReader.ts";
 import { timestamp } from "../types.ts";
 import { isUtcMidnight, toUTCDateString, toUTCDatetimeString } from "../utils/dateUtils.ts";
 
-export type SerializationOptions = ({
-  ledgerCompatible?: false;
-  /**
-   * When available, use Amount.sourceString (default).
-   *
-   * If set to false, the resolved values will be printed at 10 dp.
-   */
-  useSourceText?: boolean;
-} | {
-  ledgerCompatible: true;
-  useSourceText?: false;
-}) & {
+export type AmountSerializationOptions = Omit<
+  AmountFormatOptions,
+  "useGrouping" | "groupSeparator" | "decimalSeparator"
+>;
+
+interface _BaseOptions {
   lineDelimiter: LINE_ENDING;
   /** default false */
   newLineAtStart?: boolean;
   /** default true */
   newLineAtEnd?: boolean;
+}
+
+export type SerializationOptions =
+  | (_BaseOptions & {
+    /**
+     * When available, use Amount.sourceString (default).
+     *
+     * If set to false, the resolved values will be printed at 10 dp.
+     */
+    useSourceText: true;
+    ledgerCompatible?: false;
+
+    /** Not allowed when useSourceText = true */
+    amountFormat?: never;
+  })
+  | (_BaseOptions & ({
+    ledgerCompatible?: false;
+  } | {
+    ledgerCompatible: true;
+    useSourceText?: false;
+  }) & {
+    useSourceText?: false;
+    amountFormat?: AmountSerializationOptions;
+});
+
+const defaultAmountFormat: RationalFormatOptions = {
+  minFractionDigits: 0,
+  useGrouping: 0,
+  groupSeparator: '',
+  decimalSeparator: '.',
+  displayPrecision: 10,
+  showPlus: false,
 };
 
 export function serializeTransaction(
@@ -76,14 +103,17 @@ export function serializeTransaction(
 
   serializeModifiers(builder, txn.metadata, opts);
 
-  const amountFormat: RationalFormatOptions = {
-    minFractionDigits: 0,
-    useGrouping: 0,
-    groupSeparator: '',
-    decimalSeparator: '.',
-    displayPrecision: 10,
-    showPlus: false,
-  };
+  let amountFormat: RationalFormatOptions;
+
+  const savedforceSerializable = opts?.amountFormat?.forceSerializable;
+
+  if (opts.amountFormat) {
+    amountFormat = opts.amountFormat;
+    opts.amountFormat.forceSerializable = true;
+  } else {
+    amountFormat = defaultAmountFormat;
+  }
+
 
   for (const posting of txn.postings) {
     const ownDesc = posting.description === txn.description ? '' : posting.description.replaceAll("\t", ' ');
@@ -140,6 +170,10 @@ export function serializeTransaction(
 
   if (opts.newLineAtEnd) {
     builder.push(LN);
+  }
+
+  if (typeof savedforceSerializable === 'boolean' && opts.amountFormat) {
+    opts.amountFormat.forceSerializable = savedforceSerializable;
   }
 
   return builder.join("");
