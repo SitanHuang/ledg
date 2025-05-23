@@ -11,7 +11,7 @@
     "run": "node out/cli/entry.js",
     "buildrun": "npm run build && node out/cli/entry.js",
     "esbuild": "esbuild --bundle lib/cli/entry.ts --minify --platform=node --outfile=./bin/ledg2.cjs --legal-comments=none --tree-shaking=true && node dev_tools/package_binary.mjs",
-    "binary": "npm run buildtest && npm run esbuild && pkg --compress Brotli bin/ledg2.cjs --output bin/ledg2 --targets latest"
+    "binary": "npm run buildtest && npm run esbuild"
   },
   "devDependencies": {
     "@eslint/js": "^9.24.0",
@@ -21,7 +21,6 @@
     "esbuild": "0.25.4",
     "eslint": "^9.24.0",
     "node-sloc": "^0.2.1",
-    "pkg": "^5.8.1",
     "postject": "^1.0.0-alpha.6",
     "rimraf": "^6.0.1",
     "tar": "^7.4.3",
