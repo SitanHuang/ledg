@@ -25,6 +25,7 @@ export abstract class Command {
     public readonly name: string,
     public readonly description: string,
     public readonly synopsis?: string,
+    public readonly longDescription?: string,
   ) { }
 
   protected setOption(opt: Option): this {

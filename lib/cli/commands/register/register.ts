@@ -4,7 +4,7 @@ import { AmountSpan, renderable, Stylable, Table } from "../../../render/namespa
 import { ArgParseError, Positionals } from "../../argparse/argparse.ts";
 import { Option, OptionValue } from "../../argparse/option.ts";
 import { DEBUG } from "../../context.ts";
-import { ValuationQueryCommand } from "../valuation_query.ts";
+import { ValuationQueryCommand } from "../valuationQuery.ts";
 
 export class RegisterCommand extends ValuationQueryCommand {
   protected readonly skipToOption = new Option({

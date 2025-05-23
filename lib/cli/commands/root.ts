@@ -15,6 +15,7 @@ import { LedgCommand } from "./ledg.ts";
 import { PrintCommand } from "./print/print.ts";
 import { RegisterCommand } from "./register/register.ts";
 import { TagsCommand } from "./tags/tags.ts";
+import { MultiqueryCommand } from "./multiquery/multiquery.ts";
 
 // The ExtensibleCommand is a **NON-PROCESSING** command that does NOT raise any
 // errors on option parsing. It simply takes the argv, guesses the subcommand,
@@ -28,6 +29,7 @@ export class RootCommand extends ExtensibleCommand {
   readonly balancesheetSubcommand = new BalancesheetCommand();
   readonly balancesheetequitySubcommand = new BalancesheetequityCommand();
   readonly cashflowSubcommand = new CashflowCommand();
+  readonly multiquerySubcommand = new MultiqueryCommand();
   readonly printSubcommand = new PrintCommand();
   readonly gitSubcommand = new GitCommand();
   readonly tagsSubcommand = new TagsCommand();
@@ -70,6 +72,7 @@ export class RootCommand extends ExtensibleCommand {
     this.setSubcommand("balancesheet", ["bs"], this.balancesheetSubcommand);
     this.setSubcommand("balancesheetequity", ["bse"], this.balancesheetequitySubcommand);
     this.setSubcommand("cashflow", ["cf"], this.cashflowSubcommand);
+    this.setSubcommand("query", [], this.multiquerySubcommand);
     this.setSubcommand("print", [], this.printSubcommand);
     this.setSubcommand("git", [], this.gitSubcommand);
     this.setSubcommand("tags", ["tag"], this.tagsSubcommand);

@@ -66,6 +66,14 @@ export class HelpFormatter {
       lines.push(new Span(cmd.description.trim()));
     }
 
+    if (cmd.longDescription) {
+      lines.push(new Span("\n"));
+
+      wrapLines('      ' + cmd.longDescription, maxWidth, 2).forEach((span) => {
+        lines.push(new Span(' '.repeat(2) + span));
+      });
+    }
+
     const longOpts: ReadonlyMap<string, Option> = cmd.getLongOptions();
     const shortAlias: ReadonlyMap<string, string> = cmd.getShortOptions();
 

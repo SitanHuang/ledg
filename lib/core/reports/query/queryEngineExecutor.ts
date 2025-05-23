@@ -18,7 +18,7 @@ export class QueryEngineExecutor {
   * Executes query against transaction data only.
   */
   executeTransactions(journal: Journal, transactionAcceptor: TransactionAcceptor): void {
-    const { acceptLedgObject } = this.query;
+    const acceptLedgObject = this.query.acceptLedgObject.bind(this.query);
 
     journal.transactionStore.iterateAll(transaction => {
       if (acceptLedgObject(transaction)) {
@@ -32,7 +32,7 @@ export class QueryEngineExecutor {
    * Transactions are accepted if either the transaction itself or any of its postings matches the query.
    */
   executeTransactionsAndRelated(journal: Journal, transactionAcceptor: TransactionAcceptor): void {
-    const { acceptLedgObject } = this.query;
+    const acceptLedgObject = this.query.acceptLedgObject.bind(this.query);
 
     journal.transactionStore.iterateAll(transaction => {
       if (acceptLedgObject(transaction)) {
@@ -58,7 +58,7 @@ export class QueryEngineExecutor {
    * time, this function guarantees **insertion order**.
    */
   executeRelatedTransactions(journal: Journal, transactionAcceptor: TransactionAcceptor): void {
-    const { acceptLedgObject } = this.query;
+    const acceptLedgObject = this.query.acceptLedgObject.bind(this.query);
 
     journal.transactionStore.iterateAll(transaction => {
       for (let i = 0; i < transaction.postings.length; i++) {
@@ -72,8 +72,8 @@ export class QueryEngineExecutor {
   }
 
   executePostings(journal: Journal, postingAcceptor: PostingAcceptor): void {
-    const { query } = this;
-    const { acceptAccount, acceptLedgObject } = query;
+    const acceptLedgObject = this.query.acceptLedgObject.bind(this.query);
+    const acceptAccount = this.query.acceptAccount.bind(this.query);
     const { accountManager, transactionStore } = journal;
     const accounts = accountManager.getAccountsList();
 
@@ -98,7 +98,7 @@ export class QueryEngineExecutor {
   }
 
   queryAccounts(journal: Journal): Account[] {
-    const acceptAccount = this.query.acceptAccount;
+    const acceptAccount = this.query.acceptAccount.bind(this.query);
 
     return journal.accountManager.getAccountsList().filter(account => {
       return acceptAccount(account);

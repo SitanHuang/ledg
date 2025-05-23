@@ -5,7 +5,7 @@ import { parseSmartDate, toUTCDatetimeString } from "../../../core/utils/dateUti
 import { ArgParseError, Positionals } from "../../argparse/argparse.ts";
 import { Option, OptionValue } from "../../argparse/option.ts";
 import { DEBUG } from "../../context.ts";
-import { ValuationQueryCommand } from "../valuation_query.ts";
+import { ValuationQueryCommand } from "../valuationQuery.ts";
 import { printTransactions } from "./ascii.ts";
 
 export class InfoCommand extends ValuationQueryCommand {
