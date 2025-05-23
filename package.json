@@ -21,6 +21,7 @@
     "esbuild": "0.25.4",
     "eslint": "^9.24.0",
     "node-sloc": "^0.2.1",
+    "postject": "^1.0.0-alpha.6",
     "rimraf": "^6.0.1",
     "tar": "^7.4.3",
     "typescript": "^5.8.3",
