@@ -326,4 +326,38 @@ export class Rational {
     const q: Rational = typeof other === "number" ? Rational.fromNumber(other) : other;
     return this.compareTo(q) >= 0;
   }
+
+  public pow(exponent: bigint): Rational {
+    if (exponent === 0n) {
+      return Rational.ONE;
+    }
+
+    // Positive exponent: raise numerator and denominator
+    if (exponent > 0n) {
+      const newNum = this.numerator ** exponent;
+      const newDen = this.denominator ** exponent;
+      return new Rational(newNum, newDen).reduce();
+    }
+
+    // Negative exponent: reciprocal
+    if (this.numerator === 0n) {
+      throw new Error("Zero cannot be raised to a negative power.");
+    }
+    const posExp = -exponent;
+    const recNum = this.denominator ** posExp;
+    const recDen = this.numerator ** posExp;
+    return new Rational(recNum, recDen).reduce();
+  }
+
+  public static max(r1: Rational, r2: Rational): Rational {
+    return r2.gt(r1) ? r2 : r1;
+  }
+
+  public static min(r1: Rational, r2: Rational): Rational {
+    return r2.lt(r1) ? r2 : r1;
+  }
+
+  public static abs(r1: Rational): Rational {
+    return new Rational(r1.numerator < 0n ? -r1.numerator : r1.numerator, r1.denominator);
+  }
 }

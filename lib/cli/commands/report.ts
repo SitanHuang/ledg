@@ -34,6 +34,11 @@ export abstract class ReportCommand extends QueryCommand {
     type: "boolean",
     description: "Set period interval to daily.",
   });
+  protected readonly weeklyOption = new Option({
+    name: "weekly",
+    type: "boolean",
+    description: "Set period interval to weekly.",
+  });
   protected readonly monthlyOption = new Option({
     name: "monthly",
     type: "boolean",
@@ -149,6 +154,7 @@ export abstract class ReportCommand extends QueryCommand {
     this.setOption(this.periodYearOption);
 
     this.setOption(this.dailyOption);
+    this.setOption(this.weeklyOption);
     this.setOption(this.monthlyOption);
     this.setOption(this.quaterlyOption);
     this.setOption(this.yearlyOption);
@@ -201,6 +207,13 @@ export abstract class ReportCommand extends QueryCommand {
     this.dailyOption.extractValue(option, value, (opt: boolean) => {
       if (!opt) return;
       this.periodDays = 1;
+      this.periodMonths = 0;
+      this.periodYears = 0;
+      this.applyPeriodInterval();
+    });
+    this.weeklyOption.extractValue(option, value, (opt: boolean) => {
+      if (!opt) return;
+      this.periodDays = 7;
       this.periodMonths = 0;
       this.periodYears = 0;
       this.applyPeriodInterval();

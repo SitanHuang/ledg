@@ -2,6 +2,6 @@
   "main": "bin/ledg2.cjs",
   "output": "sea-prep.blob",
   "disableExperimentalSEAWarning": true,
-  "useCodeCache": true,
+  "useCodeCache": false,
   "useSnapshot": false
 }

@@ -5,6 +5,7 @@ import { parseArgvFromShellString } from "../../argparse/argvparse.ts";
 import { HelpFormatter } from "../../argparse/helpFormatter.ts";
 import { Option, OptionValue } from "../../argparse/option.ts";
 import { DEBUG } from "../../context.ts";
+import { BarChart } from "../burndown/legacy/chart.ts";
 import { ReportCommand } from "../report.ts";
 import { NamedReportPolicy, SubreportCommand } from "./subreport.ts";
 
@@ -18,11 +19,19 @@ export class MultiqueryCommand extends ReportCommand {
 
   protected queryHelpRequested = false;
 
+  protected readonly plotOption = new Option({
+    name: "plot",
+    type: "boolean",
+    description: "Plot the series in CLI.",
+  });
+
+  protected plotRequested = false;
+
   constructor() {
     super(
       "query",
       "Create multiperiod, multiquery reports.",
-      `<subreport query> [ [<subreport query>] ... ]`,
+      `[--plot] <subreport query> [ [<subreport query>] ... ]`,
       [
         "For each positional argument, pass in a string containing CLI reporting flags to create a subreport. ",
         "To see which query flags are available for a subreport, use the --query-help.",
@@ -40,6 +49,7 @@ export class MultiqueryCommand extends ReportCommand {
     super.build();
 
     this.setOption(this.queryHelpOption);
+    this.setOption(this.plotOption);
   }
 
   protected override consumeOption(option: Option, value: OptionValue): Maybe<ArgParseError> {
@@ -47,6 +57,7 @@ export class MultiqueryCommand extends ReportCommand {
     if (!isOk(parent)) return parent;
 
     this.queryHelpRequested = this.queryHelpOption.extractValue(option, value) ?? this.queryHelpRequested;
+    this.plotRequested = this.plotOption.extractValue(option, value) ?? this.plotRequested;
 
     return Ok;
   }
@@ -99,7 +110,7 @@ export class MultiqueryCommand extends ReportCommand {
       childPolicies.push(subCmd.getReportPolicy());
     }
 
-    const report = new MultipolicyReport(
+    const report = new MultipolicyReport<NamedReportPolicy>(
       journal,
       rootPolicy,
       childPolicies
@@ -118,27 +129,45 @@ export class MultiqueryCommand extends ReportCommand {
     const result = report.execute();
     if (!hasResult(result)) return result;
 
-    const table = new Table({
-      justify: [
-        'left',
-        ... Array(result.originalQueries.length).fill('right')
-      ],
-      firstRowIsHeader: true,
-    });
+    if (this.plotRequested) {
+      if (!rootPolicy.reportPeriodInterval?.isFinite()) {
+        return new ArgParseError("Cannot produce a plot without a finite reporting period interval.");
+      }
 
-    table.addRow([
-      '',
-      ...childPolicies.map(x => x.name)
-    ]);
+      const chart = new BarChart(result.periods, rootPolicy.reportPeriodInterval);
 
-    for (const { period, amounts } of result.byPeriods()) {
+      for (const { query, amounts } of result.byQueries()) {
+        const status = chart.addSeries(query.name, amounts);
+        if (!isOk(status)) return status;
+      }
+
+      const status = chart.build();
+      if (!isOk(status)) return status;
+
+      console.log(chart.render());
+    } else {
+      const table = new Table({
+        justify: [
+          'left',
+          ...Array(result.originalQueries.length).fill('right')
+        ],
+        firstRowIsHeader: true,
+      });
+
       table.addRow([
-        context.dateFormat.formatDate(period.to ?? Infinity),
-        ...amounts.map(x => new AmountSpan(x, context.amountDisplayPolicy))
+        '',
+        ...childPolicies.map(x => x.name)
       ]);
-    }
 
-    context.printlnRenderable(table);
+      for (const { period, amounts } of result.byPeriods()) {
+        table.addRow([
+          context.dateFormat.formatDate(period.to ?? Infinity),
+          ...amounts.map(x => new AmountSpan(x, context.amountDisplayPolicy))
+        ]);
+      }
+
+      context.printlnRenderable(table);
+    }
 
     return Ok;
   }

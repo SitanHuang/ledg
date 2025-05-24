@@ -390,6 +390,7 @@ complete -c ledg -n '__fish_seen_subcommand_from cashflow' -l avg -d 'Display av
 complete -c ledg -n '__fish_use_subcommand' -f -a query -d 'Create multiperiod, multiquery reports.'
 complete -c ledg -n '__fish_seen_subcommand_from query' -l help -s 'h' -d 'Show this help message.'
 complete -c ledg -n '__fish_seen_subcommand_from query' -l debug
+complete -c ledg -n '__fish_seen_subcommand_from query' -l plot -d 'Plot the series in CLI.'
 complete -c ledg -n '__fish_seen_subcommand_from query' -l file -s 'F' -r -d 'Ledg book entry file, or \'-\' to read from STDIN.'
 complete -c ledg -n '__fish_seen_subcommand_from query' -l no-config -d 'Disables the reading of ANY .ledg2rc files.'
 complete -c ledg -n '__fish_seen_subcommand_from query' -l show-default-currency -d 'Do not hide the default currency code.'

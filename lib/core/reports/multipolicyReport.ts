@@ -6,10 +6,10 @@ import { QueryEngine } from "./query/queryEngine.ts";
 import { QueryEngineExecutor } from "./query/queryEngineExecutor.ts";
 import { Period, ReportPolicy } from "./reportPolicy.ts";
 
-export class MultipolicyReport {
+export class MultipolicyReport<T extends ReportPolicy> {
   protected readonly periods: readonly Period[];
   public readonly rootPolicy: ReportPolicy;
-  public readonly originalPolicies: readonly ReportPolicy[];
+  public readonly originalPolicies: readonly T[];
   public readonly childPolicies: readonly ReportPolicy[];
 
   public readonly childExecutors: readonly QueryEngineExecutor[];
@@ -17,7 +17,7 @@ export class MultipolicyReport {
   constructor(
     public readonly journal: Journal,
     rootPolicy: Readonly<ReportPolicy>,
-    childPolicies: readonly Readonly<ReportPolicy>[],
+    childPolicies: readonly Readonly<T>[],
   ) {
     this.periods = rootPolicy.periods();
 
@@ -48,7 +48,7 @@ export class MultipolicyReport {
     );
   }
 
-  execute(): Result<MultipolicyReportResult> {
+  execute(): Result<MultipolicyReportResult<T>> {
     const rows = this.periods.length;
     const cols = this.childPolicies.length;
 
@@ -90,18 +90,18 @@ export class MultipolicyReport {
 
 export type AmountTable = readonly (readonly Amount[])[];
 
-export class MultipolicyReportResult {
+export class MultipolicyReportResult<T extends ReportPolicy> {
   /** Row headers (period buckets) */
   readonly periods: readonly Period[];
   /** User-provided policies */
-  readonly originalQueries: readonly ReportPolicy[];
+  readonly originalQueries: readonly T[];
   /** periods × queries amounts */
   readonly table: AmountTable;
 
   // --- constructor is package-private: users only get instances via execute() ---
   constructor(
     periods: readonly Period[],
-    queries: readonly ReportPolicy[],
+    queries: readonly T[],
     table: AmountTable,
   ) {
     this.periods = periods;
@@ -117,7 +117,7 @@ export class MultipolicyReportResult {
   *byPeriods(): IterableIterator<{
     period: Period;
     amounts: readonly Amount[];
-    queries: readonly ReportPolicy[];
+    queries: readonly T[];
   }> {
     for (let i = 0; i < this.periods.length; i++) {
       yield { period: this.periods[i], amounts: this.table[i], queries: this.originalQueries };
@@ -126,7 +126,7 @@ export class MultipolicyReportResult {
 
   /** Column-major view: iterate queries → periods */
   *byQueries(): IterableIterator<{
-    query: ReportPolicy;
+    query: T;
     amounts: readonly Amount[]; // length === periods.length
   }> {
     for (let j = 0; j < this.originalQueries.length; j++) {

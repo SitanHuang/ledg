@@ -36,6 +36,7 @@ export class AccountsCommand extends ReportCommand {
     this.removeOption(this.periodYearOption);
     this.removeOption(this.singlePeriodOption);
     this.removeOption(this.dailyOption);
+    this.removeOption(this.weeklyOption);
     this.removeOption(this.monthlyOption);
     this.removeOption(this.yearlyOption);
     this.removeOption(this.quaterlyOption);
