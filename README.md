@@ -5,10 +5,11 @@ V2 adds new features including:
 
 1. **Traceable** source descriptors: `ledg2` edits are now **scoped** strictly to the transactions you're modifying, preserving all unrelated comments and other annotations. You can combine price directives, account openings, and cross-file references in a unified syntax.
 2. **Value-expression support**: you can now put `[1EUR] + round([1 USD] * 1.075, 2)` directly as the amount expression.
-3. Auxiliary date support.
-4. V2 supports queries and metadata at the **posting level**, complementing transaction-level functionality. Postings can have their own metadata that can override that of the transaction.
-5. Account open/close directives along with rigorous balance assertions.
-6. Unlike V1's arbitrary,precision, *fixed-point* arithmetics, `ledg2`supports **infinite precision** by default: this means you can store amounts like `1/3 HOUR` in **exact form**.
+3. **Chronological-order** processing: balance assertions, account date validations and etc. are processed in chronological order rather than parse order, allowing the user to split up directives in multiple files however you want without worrying about unintended effects.
+5. V2 supports queries and metadata at the **posting level**, complementing transaction-level functionality. Postings can have their own metadata that can override that of the transaction.
+7. Account open/close directives along with rigorous balance assertions.
+8. Unlike V1's arbitrary,precision, *fixed-point* arithmetics, `ledg2`supports **infinite precision** by default: this means you can store amounts like `1/3 HOUR` in **exact form**.
+9. Auxiliary date support.
 
 V2 is backwards compatible with V1 syntax. Major commands (`register`, `incomestatement`, `balancesheet`, etc.) are functionally identical. Due to much more rigorous internal validations, performance is about 30% to 100% slower than V1, but [~3x faster](https://github.com/SitanHuang/ledg/blob/ledg2/benchmarks/benchmark.md) than `hledger` on files with 50k+ transactions.
 
