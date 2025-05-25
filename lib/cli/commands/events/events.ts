@@ -117,7 +117,7 @@ export class EventsCommand extends QueryCommand {
           this.squashVal.includes('w') ? w ? w.toString().padStart(2, " ") + ' weeks' : '' : undefined,
           this.squashVal.includes('d') ? d ? d.toString().padStart(2, " ") + ' days' : '' : undefined,
           this.squashVal.includes('h') ? h ? h.toString().padStart(2, " ") + ' hours' : '' : undefined
-        ].filter(x => typeof x === 'string').map((x, id) => id === 0 ? (date > this.todayVal ? '-' : '' + x) : x),
+        ].filter(x => typeof x === 'string').map((x, id) => id === 0 ? ((date > this.todayVal ? '-' : '') + x) : x),
       ]);
     }
 
