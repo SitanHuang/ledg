@@ -16,37 +16,62 @@ export class QueryEngineExecutor {
 
   /**
   * Executes query against transaction data only.
+  *
+  * This function guarantees **insertion order**.
   */
   executeTransactions(journal: Journal, transactionAcceptor: TransactionAcceptor): void {
     const acceptLedgObject = this.query.acceptLedgObject.bind(this.query);
 
+    const filtered: Transaction[] = [];
+
     journal.transactionStore.iterateAll(transaction => {
       if (acceptLedgObject(transaction)) {
-        return transactionAcceptor(transaction);
+        filtered.push(transaction);
       }
     });
+    filtered.sort((a, b) => a.insertionOrder - b.insertionOrder);
+
+    for (let i = 0; i < filtered.length; i++) {
+      const result = transactionAcceptor(filtered[i]);
+
+      if (result === "stop") break;
+    }
   }
 
   /**
    * Executes the query against transactions and their postings in the journal.
    * Transactions are accepted if either the transaction itself or any of its postings matches the query.
+   *
+   * This function guarantees **insertion order**.
    */
   executeTransactionsAndRelated(journal: Journal, transactionAcceptor: TransactionAcceptor): void {
     const acceptLedgObject = this.query.acceptLedgObject.bind(this.query);
 
+    const filtered: Transaction[] = [];
+
     journal.transactionStore.iterateAll(transaction => {
       if (acceptLedgObject(transaction)) {
-        return transactionAcceptor(transaction);
+        filtered.push(transaction);
+        return;
       }
 
       for (let i = 0; i < transaction.postings.length; i++) {
         const posting = transaction.postings[i];
 
         if (acceptLedgObject(posting)) {
-          return transactionAcceptor(transaction);
+          filtered.push(transaction);
+          return;
         }
       }
     });
+
+    filtered.sort((a, b) => a.insertionOrder - b.insertionOrder);
+
+    for (let i = 0; i < filtered.length; i++) {
+      const result = transactionAcceptor(filtered[i]);
+
+      if (result === "stop") break;
+    }
   }
 
   /**
@@ -60,15 +85,24 @@ export class QueryEngineExecutor {
   executeRelatedTransactions(journal: Journal, transactionAcceptor: TransactionAcceptor): void {
     const acceptLedgObject = this.query.acceptLedgObject.bind(this.query);
 
+    const filtered: Transaction[] = [];
     journal.transactionStore.iterateAll(transaction => {
       for (let i = 0; i < transaction.postings.length; i++) {
         const posting = transaction.postings[i];
 
         if (acceptLedgObject(posting)) {
-          return transactionAcceptor(transaction);
+          filtered.push(transaction);
         }
       }
     });
+
+    filtered.sort((a, b) => a.insertionOrder - b.insertionOrder);
+
+    for (let i = 0; i < filtered.length; i++) {
+      const result = transactionAcceptor(filtered[i]);
+
+      if (result === "stop") break;
+    }
   }
 
   executePostings(journal: Journal, postingAcceptor: PostingAcceptor): void {

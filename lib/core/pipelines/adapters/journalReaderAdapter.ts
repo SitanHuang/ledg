@@ -1,7 +1,9 @@
-import { Maybe, Ok } from "../../types.ts";
+import { TransactionBuilder } from "../../accounting/transaction.ts";
+import { InputStreamJournalReaderParseError, InputStreamSourceDescriptor } from "../../parsing/journal/inputStreamJournalReader.ts";
 import { JournalReader } from "../../parsing/journal/journalReader.ts";
-import { TransactionProcessor } from "../transactionProcessor.ts";
+import { isOk, Maybe, Ok } from "../../types.ts";
 import { PriceDirectiveProcessor } from "../priceDirectiveProcessor.ts";
+import { TransactionProcessor } from "../transactionProcessor.ts";
 
 export type JournalReaderAdapterErrorHandler = (e: Error) => void;
 export type JournalReaderAdapterEndHandler = () => void;
@@ -28,13 +30,42 @@ export class JournalReaderAdapter {
   ) { }
 
   begin(): void {
+    // All pricing directives get processed first
+    this.reader.setOnPricing(this.priceDirectiveProcessor.processPriceDirective.bind(this.priceDirectiveProcessor));
+
+    const txnBuilders: TransactionBuilder[] = [];
+    this.reader.setOnData((builder) => {
+      txnBuilders.push(builder.withInsertionOrder(txnBuilders.length));
+      return Ok;
+    });
+
     this.reader
       .setOnError(err => this.onError(err))
-      .setOnEnd(() => this.onEnd());
+      .setOnEnd(() => {
+        // Chronological re-sort
+        txnBuilders.sort((a, b) => a.date! - b.date! || a.insertionOrder - b.insertionOrder);
 
-    this.reader.setOnData(this.txnProcessor.processTransaction.bind(this.txnProcessor));
+        const procFunc = this.txnProcessor.processTransaction.bind(this.txnProcessor);
+        for (let i = 0;i < txnBuilders.length;i++) {
+          const result = procFunc(txnBuilders[i]);
+          if (!isOk(result)) {
+            const source = txnBuilders[i].source;
 
-    this.reader.setOnPricing(this.priceDirectiveProcessor.processPriceDirective.bind(this.priceDirectiveProcessor));
+            const error = new InputStreamJournalReaderParseError(
+              source instanceof InputStreamSourceDescriptor ? source.filePath : '<unknown source>',
+              source.sourceText ?? '<null>',
+              source instanceof InputStreamSourceDescriptor ? source.lineStart : -1,
+              "Error commiting TransactionBuilder.", result
+            );
+
+            this.onError(error);
+
+            return;
+          }
+        }
+
+        this.onEnd();
+      });
 
     this.reader.begin();
   }

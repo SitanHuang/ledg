@@ -1,4 +1,4 @@
-import { None, Ok, OkType, Optional, Result, timestamp, unwrap } from "../types.ts";
+import { isNone, None, Ok, OkType, Optional, Result, timestamp, unwrap } from "../types.ts";
 import { Account, AccountIdentifier } from "./account.ts";
 import { BalanceAssertionService } from "./balanceAssertionService.ts";
 
@@ -270,34 +270,53 @@ export class DefaultAccountManager extends AccountManager {
     objContext: AccountAssignableObject
   ): Result<Account, AccountAssignmentError> {
 
-    const entry = this.accounts.get(identifier);
-    if (!entry || objContext.date === undefined) {
+    const accountResult = this.getAccount(identifier);
+    if (isNone(accountResult)) {
       return new AccountAssignmentError(`Account "${identifier}" was never opened.`);
     }
 
-    const lastEv = entry.events.at(-1)!; // last directive in parse order
+    const account: Account = accountResult;
 
-    // refuse anything parsed after a CLOSE
-    if (lastEv.type === "close") {
-      return new AccountAssignmentError(
-        "Any postings parsed after the previous CLOSE directive are not allowed. " +
-        "This is because closure directives only enforce balance assertions AT PARSE TIME."
-      );
+    const status = this.getAccountStatusByContext(identifier, objContext);
+
+    // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
+    switch (status) {
+      case ACCOUNT_UNOPEN:
+        return new AccountAssignmentError(`Account "${identifier}" was never opened.`);
+      case ACCOUNT_CLOSED:
+        return new AccountAssignmentError(`Account "${identifier}" is closed.`);
     }
 
-    // refuse dates earlier than the previous OPEN
-    const earliest = objContext.date2 === undefined
-        ? objContext.date
-        : Math.min(objContext.date, objContext.date2);
+    return account;
 
-    if (earliest !== undefined && earliest < lastEv.time /* lastEv is OPEN here */) {
-      return new AccountAssignmentError(
-        "Posting dates preceding the most recently parsed OPEN directive are not allowed. " +
-        "This is because closure directives only enforce balance assertions AT PARSE TIME."
-      );
-    }
+    // const entry = this.accounts.get(identifier);
+    // if (!entry || objContext.date === undefined) {
+    //   return new AccountAssignmentError(`Account "${identifier}" was never opened.`);
+    // }
 
-    return entry.account;
+    // const lastEv = entry.events.at(-1)!; // last directive in parse order
+
+    // // refuse anything parsed after a CLOSE
+    // if (lastEv.type === "close") {
+    //   return new AccountAssignmentError(
+    //     "Any postings parsed after the previous CLOSE directive are not allowed. " +
+    //     "This is because closure directives only enforce balance assertions AT PARSE TIME."
+    //   );
+    // }
+
+    // // refuse dates earlier than the previous OPEN
+    // const earliest = objContext.date2 === undefined
+    //     ? objContext.date
+    //     : Math.min(objContext.date, objContext.date2);
+
+    // if (earliest !== undefined && earliest < lastEv.time /* lastEv is OPEN here */) {
+    //   return new AccountAssignmentError(
+    //     "Posting dates preceding the most recently parsed OPEN directive are not allowed. " +
+    //     "This is because closure directives only enforce balance assertions AT PARSE TIME."
+    //   );
+    // }
+
+    // return entry.account;
   }
 
   override getAccountStatusByDateRange(identifier: AccountIdentifier, from: timestamp, to?: timestamp): AccountStatus {

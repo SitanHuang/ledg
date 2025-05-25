@@ -96,7 +96,7 @@ describe.sequential('Integration: JournalReaderAdapter x AccountManager.closeAcc
       '2039-01-01 00:00:01 close Asset.Checking.BoA',
       '  \tAsset.Checking.BoA\t -1 * [1 USD] / 3',
       '  \tEquity.OpeningBalance',
-    ]) as Error)).toMatch(/parsed OPEN directive are not allowed/);
+    ]) as Error)).toMatch(/was never opened/);
     expect(getErrorMessages(await parseSrc([
       '2025-01-01 open Equity.OpeningBalance',
       '2040-01-01 00:00:00 open Asset.Checking.BoA #ffddaazz',
@@ -118,120 +118,224 @@ describe.sequential('Integration: JournalReaderAdapter x AccountManager.closeAcc
       '  \tEquity.OpeningBalance',
     ]) as Error)).toMatch(/Account "Asset.Checking.BoA" cannot be closed due to non-strictly-zero balance of .+-1 \/ 6 USD./);
   });
-  it('enforces account assignment in PARSE ORDER', async () => {
-    expect(getErrorMessages(await parseSrc([
-      '2000-01-01 open null',
-      '2000-01-01 open test',
-      '2001-01-01 00:00:00',
-      '  \ttest\t1',
-      '  ;=2003-01-01',
-      '  \tnull',
-      '2002-01-01 00:00:01 close test',
-      '  \ttest\t-1',
-      '  \tnull',
-    ]) as Error)).toMatch(/cannot be closed due to non-strictly-zero balance of .+-1 \/ 1 \$./);
-    expect(isOk(await parseSrc([
-      '2000-01-01 open null',
-      '2000-01-01 open test',
-      '2001-01-01 00:00:00',
-      '  \ttest\t1',
-      '  \tnull',
-      '2002-01-01 00:00:00',
-      '  \ttest\t0',
-      '  \tnull',
-      '2002-01-01 00:00:01 close test',
-      '  \ttest\t-1',
-      '  \tnull',
-    ]))).toBe(true);
-    expect(getErrorMessages(await parseSrc([
-      '2000-01-01 open null',
-      '2000-01-01 open test',
-      '2001-01-01 00:00:00',
-      '  \ttest\t1',
-      '  \tnull',
-      '2002-01-01 00:00:01 close test',
-      '  \ttest\t-1',
-      '  \tnull',
-      '2002-01-01 00:00:00',
-      '  \ttest\t0',
-      '  \tnull',
-    ]) as Error)).toMatch(/previous CLOSE directive are not allowed/i);
+  // it('enforces account assignment in PARSE ORDER', async () => {
+  //   expect(getErrorMessages(await parseSrc([
+  //     '2000-01-01 open null',
+  //     '2000-01-01 open test',
+  //     '2001-01-01 00:00:00',
+  //     '  \ttest\t1',
+  //     '  ;=2003-01-01',
+  //     '  \tnull',
+  //     '2002-01-01 00:00:01 close test',
+  //     '  \ttest\t-1',
+  //     '  \tnull',
+  //   ]) as Error)).toMatch(/cannot be closed due to non-strictly-zero balance of .+-1 \/ 1 \$./);
+  //   expect(isOk(await parseSrc([
+  //     '2000-01-01 open null',
+  //     '2000-01-01 open test',
+  //     '2001-01-01 00:00:00',
+  //     '  \ttest\t1',
+  //     '  \tnull',
+  //     '2002-01-01 00:00:00',
+  //     '  \ttest\t0',
+  //     '  \tnull',
+  //     '2002-01-01 00:00:01 close test',
+  //     '  \ttest\t-1',
+  //     '  \tnull',
+  //   ]))).toBe(true);
+  //   expect(getErrorMessages(await parseSrc([
+  //     '2000-01-01 open null',
+  //     '2000-01-01 open test',
+  //     '2001-01-01 00:00:00',
+  //     '  \ttest\t1',
+  //     '  \tnull',
+  //     '2002-01-01 00:00:01 close test',
+  //     '  \ttest\t-1',
+  //     '  \tnull',
+  //     '2002-01-01 00:00:00',
+  //     '  \ttest\t0',
+  //     '  \tnull',
+  //   ]) as Error)).toMatch(/previous CLOSE directive are not allowed/i);
 
-    expect(getErrorMessages(await parseSrc([
-      '2000-01-01 open null',
-      '2000-01-01 open test',
-      '2001-01-01 00:00:00',
-      '  \ttest\t1',
-      '  \tnull',
-      '2002-01-01 00:00:01 close test',
-      '  \ttest\t-1',
-      '  \tnull',
-      '2001-05-01 00:00:00',
-      '  \ttest\t0',
-      '  \tnull',
-    ]) as Error)).toMatch(/previous CLOSE directive are not allowed/i);
+  //   expect(getErrorMessages(await parseSrc([
+  //     '2000-01-01 open null',
+  //     '2000-01-01 open test',
+  //     '2001-01-01 00:00:00',
+  //     '  \ttest\t1',
+  //     '  \tnull',
+  //     '2002-01-01 00:00:01 close test',
+  //     '  \ttest\t-1',
+  //     '  \tnull',
+  //     '2001-05-01 00:00:00',
+  //     '  \ttest\t0',
+  //     '  \tnull',
+  //   ]) as Error)).toMatch(/previous CLOSE directive are not allowed/i);
 
-    expect(getErrorMessages(await parseSrc([
-      '2000-01-01 open null',
-      '2000-01-01 open test',
-      '2001-01-01 00:00:00',
-      '  \ttest\t1',
-      '  \tnull',
-      '2002-01-01 00:00:01 close test',
-      '  \ttest\t-1',
-      '  \tnull',
-      '2002-02-01 open test',
-      '2002-02-02 close test',
-      '2002-03-01 open test',
-      '2002-03-02 close test',
-      '2001-05-01 00:00:00',
-      '  \ttest\t0',
-      '  \tnull',
-    ]) as Error)).toMatch(/previous CLOSE directive are not allowed/i);
+  //   expect(getErrorMessages(await parseSrc([
+  //     '2000-01-01 open null',
+  //     '2000-01-01 open test',
+  //     '2001-01-01 00:00:00',
+  //     '  \ttest\t1',
+  //     '  \tnull',
+  //     '2002-01-01 00:00:01 close test',
+  //     '  \ttest\t-1',
+  //     '  \tnull',
+  //     '2002-02-01 open test',
+  //     '2002-02-02 close test',
+  //     '2002-03-01 open test',
+  //     '2002-03-02 close test',
+  //     '2001-05-01 00:00:00',
+  //     '  \ttest\t0',
+  //     '  \tnull',
+  //   ]) as Error)).toMatch(/previous CLOSE directive are not allowed/i);
 
-    expect(isOk(await parseSrc([
-      '2000-01-01 open null',
-      '2000-01-01 open test',
-      '2001-01-01 00:00:00',
-      '  \ttest\t1',
-      '  \tnull',
-      '2002-01-01 00:00:01 close test',
-      '  \ttest\t-1',
-      '  \tnull',
-      '2002-02-01 open test',
-      '2002-05-01 00:00:00',
-      '  \ttest\t0',
-      '  \tnull',
-    ]))).toBe(true);
+  //   expect(isOk(await parseSrc([
+  //     '2000-01-01 open null',
+  //     '2000-01-01 open test',
+  //     '2001-01-01 00:00:00',
+  //     '  \ttest\t1',
+  //     '  \tnull',
+  //     '2002-01-01 00:00:01 close test',
+  //     '  \ttest\t-1',
+  //     '  \tnull',
+  //     '2002-02-01 open test',
+  //     '2002-05-01 00:00:00',
+  //     '  \ttest\t0',
+  //     '  \tnull',
+  //   ]))).toBe(true);
 
-    expect(getErrorMessages(await parseSrc([
-      '2000-01-01 open null',
-      '2000-01-01 open test',
-      '2001-01-01 00:00:00',
-      '  \ttest\t1',
-      '  \tnull',
-      '2002-01-01 00:00:01 close test',
-      '  \ttest\t-1',
-      '  \tnull',
-      '2002-02-01 open test',
-      '2002-01-02 00:00:00',
-      '  \ttest\t0',
-      '  \tnull',
-    ]))).toMatch(/most recently parsed OPEN directive are not allowed/);
+  //   expect(getErrorMessages(await parseSrc([
+  //     '2000-01-01 open null',
+  //     '2000-01-01 open test',
+  //     '2001-01-01 00:00:00',
+  //     '  \ttest\t1',
+  //     '  \tnull',
+  //     '2002-01-01 00:00:01 close test',
+  //     '  \ttest\t-1',
+  //     '  \tnull',
+  //     '2002-02-01 open test',
+  //     '2002-01-02 00:00:00',
+  //     '  \ttest\t0',
+  //     '  \tnull',
+  //   ]))).toMatch(/most recently parsed OPEN directive are not allowed/);
 
-    expect(getErrorMessages(await parseSrc([
-      '2000-01-01 open null',
-      '2000-01-01 open test',
-      '2001-01-01 00:00:00',
-      '  \ttest\t1',
-      '  \tnull',
-      '2002-01-01 00:00:01 close test',
-      '  \ttest\t-1',
-      '  \tnull',
-      '2002-02-01 open test',
-      '2002-05-01=2001-01-02 00:00:00',
-      '  \ttest\t0',
-      '  \tnull',
-    ]))).toMatch(/most recently parsed OPEN directive are not allowed/);
+  //   expect(getErrorMessages(await parseSrc([
+  //     '2000-01-01 open null',
+  //     '2000-01-01 open test',
+  //     '2001-01-01 00:00:00',
+  //     '  \ttest\t1',
+  //     '  \tnull',
+  //     '2002-01-01 00:00:01 close test',
+  //     '  \ttest\t-1',
+  //     '  \tnull',
+  //     '2002-02-01 open test',
+  //     '2002-05-01=2001-01-02 00:00:00',
+  //     '  \ttest\t0',
+  //     '  \tnull',
+  //   ]))).toMatch(/most recently parsed OPEN directive are not allowed/);
+  // });
+
+  describe('enforces chronological processing of transactions', () => {
+    it('accepts a close that appears first in source but is last by date', async () => {
+      const events = [
+        // This close is first in the source, but date=2002-01-02 → runs last
+        '2002-01-02 00:00:00 close test',
+        '  \ttest\t-1',
+        '  \tnull',
+        // Credit at 2001-01-02 → runs second
+        '2001-01-02 00:00:00',
+        '  \ttest\t1',
+        '  \tnull',
+        // Opens at 2001-01-01 → runs first
+        '2001-01-01 open null',
+        '2001-01-01 open test',
+      ];
+
+      expect(isOk(await parseSrc(events))).toBe(true);
+    });
+
+    it('rejects a close when balance is not zero at that date', async () => {
+      const events = [
+        // Close on 2002-01-02
+        '2002-01-02 00:00:00 close test',
+        // Open and credit happen after, but by date the close runs before they cancel
+        '2001-01-01 open null',
+        '2001-01-01 open test',
+        '2001-12-31 23:59:59',
+        '  \ttest\t1',
+        '  \tnull',
+        // Late debit, but too late
+        '2002-01-03 00:00:00',
+        '  \ttest\t-1',
+        '  \tnull',
+      ];
+
+      // At 2002-01-02 close, balance = +1 → should error
+      const err = await parseSrc(events);
+      expect(getErrorMessages(err as Error))
+        .toMatch(/cannot be closed due to non-strictly-zero balance/i);
+    });
+
+    it('uses source order to break ties on identical timestamps', async () => {
+      const events = [
+        '2001-05-01 open test',
+        '2001-05-01 open null',
+
+        // Two postings at exactly the same moment:
+        '2001-05-02 10:00:00',
+        '  \ttest\t1',   // credit first
+        '  \tnull',
+        '2001-05-02 10:00:00',
+        '  \ttest\t-1',  // debit second
+        '  \tnull',
+
+        // Close at same date again—should see balance zero
+        '2001-05-02 10:00:00 close test',
+        '  \ttest\t0',
+        '  \tnull',
+      ];
+
+      expect(isOk(await parseSrc(events))).toBe(true);
+    });
+
+    it('rejects a close when identical-timestamp tiebreak ordering leaves nonzero', async () => {
+      const events = [
+        '2001-05-01 open test',
+        '2001-05-01 open null',
+
+        // Debit first, then credit, then close—all same timestamp:
+        '2001-05-02 10:00:00',
+        '  \ttest\t-1',  // debit first → -1
+        '  \tnull',
+        '2001-05-02 10:00:00',
+        '  \ttest\t1',   // credit second → 0
+        '  \tnull',
+        '2001-05-02 10:00:00 close test',
+        '  \ttest\t0',
+        '  \tnull',
+      ];
+
+      // Source order: debit(-1) → credit(+1) → close sees balance 0 → OK
+      expect(isOk(await parseSrc(events))).toBe(true);
+
+      // Now swap credit/debit order so close sees -1:
+      const bad = [
+        '2001-05-01 open test',
+        '2001-05-01 open null',
+        '2001-05-02 10:00:00',
+        '  \ttest\t-1',  // debit first → -1
+        '  \tnull',
+        '2001-05-02 10:00:00 close test',
+        '  \ttest\t0',
+        '  \tnull',
+        '2001-05-02 10:00:00',
+        '  \ttest\t1',   // credit second → 0
+        '  \tnull',
+      ];
+      const err = await parseSrc(bad);
+      expect(getErrorMessages(err as Error))
+        .toMatch(/cannot be closed due to non-strictly-zero balance/i);
+    });
   });
+
 });

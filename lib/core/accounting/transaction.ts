@@ -16,6 +16,7 @@ export class Transaction implements LedgObject {
     public readonly postings: BoundPosting[] = [],
     public readonly source: SourceDescriptor,
     public readonly metadata: Metadata = {},
+    public readonly insertionOrder = 0,
     // Below is only for "open xxxx" directives
     public readonly accountOpened: AccountIdentifier | undefined = undefined,
     // Below is only for "close xxxx" directives
@@ -28,6 +29,8 @@ export class TransactionBuilder extends LedgObjectBuilder<Transaction> {
   public accountOpened: AccountIdentifier | undefined = undefined;
   public accountClosed: AccountIdentifier | undefined = undefined;
   public transactionValidationService?: TransactionValidationService;
+
+  public insertionOrder = 0;
 
   constructor(
     transactionValidationService?: TransactionValidationService
@@ -42,6 +45,11 @@ export class TransactionBuilder extends LedgObjectBuilder<Transaction> {
   }
   withAccountClosed(accountClosed: AccountIdentifier): this {
     this.accountClosed = accountClosed;
+    return this;
+  }
+
+  withInsertionOrder(index: number): this {
+    this.insertionOrder = index;
     return this;
   }
 
@@ -158,6 +166,7 @@ export class TransactionBuilder extends LedgObjectBuilder<Transaction> {
       (postings as BoundPosting[]), // force it but we make sure it's right type later
       this.source,
       this.metadata,
+      this.insertionOrder,
       this.accountOpened,
       this.accountClosed,
     );

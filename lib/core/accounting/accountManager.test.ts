@@ -150,22 +150,22 @@ describe('AccountManager', () => {
     let result = accountManager.requestAccountAssignment("A", { date: 0, date2: 150 } as LedgObject);
     expect(result).toBeInstanceOf(AccountAssignmentError);
     if (result instanceof AccountAssignmentError) {
-      expect(result.message).toContain("not allowed");
+      expect(result.message).toContain("never opened");
     }
     result = accountManager.requestAccountAssignment("A", { date: 150, date2: 250 } as LedgObject);
     expect(result).toBeInstanceOf(AccountAssignmentError);
     if (result instanceof AccountAssignmentError) {
-      expect(result.message).toContain("not allowed");
+      expect(result.message).toContain("closed");
     }
     result = accountManager.requestAccountAssignment("A", { date: 190, date2: 50 } as LedgObject);
     expect(result).toBeInstanceOf(AccountAssignmentError);
     if (result instanceof AccountAssignmentError) {
-      expect(result.message).toContain("not allowed");
+      expect(result.message).toContain("never opened");
     }
     result = accountManager.requestAccountAssignment("A", { date: 200, date2: 200 } as LedgObject);
     expect(result).toBeInstanceOf(AccountAssignmentError);
     if (result instanceof AccountAssignmentError) {
-      expect(result.message).toContain("not allowed");
+      expect(result.message).toContain("closed");
     }
   });
 
