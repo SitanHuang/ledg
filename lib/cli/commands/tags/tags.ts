@@ -13,7 +13,7 @@ export class TagsCommand extends QueryCommand {
   protected readonly fieldOption = new Option({
     name: "field",
     type: "string",
-    description: "The metadata field to perform split(\",\") and groupBy on. {description, desc, id} are valid too. `id` refers to transaction ID.",
+    description: "The metadata field to perform split(\",\") and groupBy on. {description, desc, id} are valid too. `id` refers to transaction ID. Use \".\" to group by metadata field names.",
     defaultValueDisplay: "tags",
   });
 
@@ -74,13 +74,18 @@ export class TagsCommand extends QueryCommand {
     };
 
     const acceptor: TransactionAcceptor & PostingAcceptor = (obj: LedgObject) => {
-      const val = extractUserSpecifiedModifierVal(obj, this.fieldVal);
-      if (!val) return;
+      let split: string[];
+      if (this.fieldVal === ".") {
+        split = Object.keys(obj.metadata);
+      } else {
+        const val = extractUserSpecifiedModifierVal(obj, this.fieldVal);
+        if (!val) return;
 
-      const split = String(val).split(",");
+        split = this.fieldVal === "tags" ? String(val).split(",") : [String(val)];
+      }
 
       for (let i = 0;i < split.length;i++) {
-        add(split[i].toLocaleUpperCase());
+        add(split[i]);
       }
     };
 
