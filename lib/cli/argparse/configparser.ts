@@ -19,11 +19,18 @@ export class ConfigParser {
   }
 
   getConfigGroup(key: ConfigGroupKey) {
+    const defaults = new Map(this.configGroups.get(ConfigParser.DEFAULT_GROUP_KEY) ?? new Map());
+
+    const result = this.getOrCreateGroupMap(key);
+
+    return new Map([...defaults, ...result]);
+  }
+
+  private getOrCreateGroupMap(key: ConfigGroupKey) {
     let result = this.configGroups.get(key);
     if (!result) {
       this.configGroups.set(key, result = new Map());
     }
-
     return result;
   }
 
@@ -43,7 +50,7 @@ export class ConfigParser {
 
   private readLines(lines: string[]): Maybe<SourceableError> {
     let currentGroupKey: ConfigGroupKey = ConfigParser.DEFAULT_GROUP_KEY;
-    let currentGroup = this.getConfigGroup(currentGroupKey);
+    let currentGroup = this.getOrCreateGroupMap(currentGroupKey);
 
     for (let i = 0;i < lines.length;i++) {
       const line = lines[i].replace(/(?:#|\/\/|;)[^"']*$/g, '').trim();
@@ -55,7 +62,7 @@ export class ConfigParser {
       const groupMatch = /^\[([^[\]]+)\]$/.exec(line);
       if (groupMatch?.[1]) {
         currentGroupKey = groupMatch[1];
-        currentGroup = this.getConfigGroup(currentGroupKey);
+        currentGroup = this.getOrCreateGroupMap(currentGroupKey);
         continue;
       }
 
