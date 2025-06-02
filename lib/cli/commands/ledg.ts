@@ -178,6 +178,10 @@ export abstract class LedgCommand extends ConfigurableCommand {
       return result;
     }
 
+    if (DEBUG) {
+      console.debug('OPT: ', option.name, value);
+    }
+
     this.pipeConsoleLongOptionVal = this.pipeConsoleLongOption.extractValue(option, value) ?? this.pipeConsoleLongOptionVal;
     this.pipeConsoleShortOptionVal = this.pipeConsoleShortOption.extractValue(option, value) ?? this.pipeConsoleShortOptionVal;
 

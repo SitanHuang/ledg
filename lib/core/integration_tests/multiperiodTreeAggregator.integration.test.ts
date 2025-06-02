@@ -1057,6 +1057,16 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
         new ReportPolicy()
           .withAccount("..{retail}*")
           .withHideZero(true)
+        , 0
+      )).toEqual([
+        '"Account","Depth","-inf => inf"',
+        '"Expense.Free.Retail.Fitness.Cycling","1","1 $"',
+      ].join("\n"));
+      expect(getCSV(
+        journal,
+        new ReportPolicy()
+          .withAccount("..{retail}*")
+          .withHideZero(true)
           .withSumParent(true)
         , 0
       )).toEqual([
@@ -1073,6 +1083,47 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
           .withAccount("..{retail}*")
           .withHideZero(true)
           .withSumParent(true)
+          .withMinDepth(2)
+        , 0
+      )).toEqual([
+        '"Account","Depth","-inf => inf"',
+        '"Free","1","1 $"',
+        '"Free.Retail","1","1 $"',
+        '"Free.Retail.Fitness","1","1 $"',
+        '"Free.Retail.Fitness.Cycling","1","1 $"',
+      ].join("\n"));
+      expect(getCSV(
+        journal,
+        new ReportPolicy()
+          .withAccount("..{retail}*")
+          .withHideZero(true)
+          .withSumParent(true)
+          .withMinDepth(2)
+          .withMaxDepth(3)
+        , 0
+      )).toEqual([
+        '"Account","Depth","-inf => inf"',
+        '"Free","1","1 $"',
+        '"Free.Retail","1","1 $"',
+      ].join("\n"));
+      expect(getCSV(
+        journal,
+        new ReportPolicy()
+          .withAccount("..{retail}*")
+          .withHideZero(true)
+          .withSumParent(true)
+          .withMinDepth(5)
+        , 0
+      )).toEqual([
+        '"Account","Depth","-inf => inf"',
+        '"Cycling","1","1 $"',
+      ].join("\n"));
+      expect(getCSV(
+        journal,
+        new ReportPolicy()
+          .withAccount("..{retail}*")
+          .withHideZero(true)
+          .withSumParent(true)
           .withTree(true)
         , 0
       )).toEqual([
@@ -1082,6 +1133,36 @@ describe.sequential('Integration: MultiperiodTreeAggregator', () => {
         '"Retail","3","1 $"',
         '"Fitness","4","1 $"',
         '"Cycling","5","1 $"',
+      ].join("\n"));
+      expect(getCSV(
+        journal,
+        new ReportPolicy()
+          .withAccount("..{retail}*")
+          .withHideZero(true)
+          .withSumParent(true)
+          .withTree(true)
+          .withMinDepth(2)
+        , 0
+      )).toEqual([
+        '"Account","Depth","-inf => inf"',
+        '"Free","1","1 $"',
+        '"Retail","2","1 $"',
+        '"Fitness","3","1 $"',
+        '"Cycling","4","1 $"',
+      ].join("\n"));
+      expect(getCSV(
+        journal,
+        new ReportPolicy()
+          .withAccount("..{retail}*")
+          .withHideZero(true)
+          .withSumParent(true)
+          .withTree(true)
+          .withMinDepth(2)
+          .withMaxDepth(2)
+        , 0
+      )).toEqual([
+        '"Account","Depth","-inf => inf"',
+        '"Free","1","1 $"',
       ].join("\n"));
     });
   });

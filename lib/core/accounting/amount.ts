@@ -327,7 +327,7 @@ export class Amount {
     for (const { currency, value } of this.amounts.values()) {
       if (options instanceof AmountFormatOptions) {
         const formatOpts = options.getPolicy(currency);
-        const amtString = value.toString(options);
+        const amtString = value.toString(formatOpts);
         const contentEntry: DisplayContentEntry = {
           rational: value,
           currencyCode: currency.id,
