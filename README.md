@@ -2,7 +2,6 @@
 
 - [ledg2](#ledg2)
   - [Features](#features)
-    - [Breaking Changes since v2 rewrite](#breaking-changes-since-v2-rewrite)
   - [Getting Started](#getting-started)
     - [Install](#install)
     - [Basic Usage](#basic-usage)
@@ -36,20 +35,7 @@ Current v2.0 todos:
 - git integration
 - specify JSON-based metadata down to posting level
 
-### Breaking Changes since v2 rewrite
-
-- v2 spec allows splitting of files and unifies transaction declarations with price directives in one syntax
-  - this breaks the auto-year-splitting feature from v1 to grant the user more control of file management
-- v2 edits are scoped strictly to the portion of the source text that relate to
-  the specific transaction/posting you're modifying, preserving unrelated comments and
-  other annotations
-- removed timeclock support
-- allows posting-specific attributes, dates & metadata
-- add auxiliary date support
-- add second-level precision to transactions
-- use infinite precision rather than fixed-point arithmetic
-- queries are performed on a posting-level by default
-- 30% to 100% slower than v1 due to more rigorous accounting validations
+[Breaking Changes from v1 to v2](https://github.com/SitanHuang/ledg/releases/tag/v2.0.0-alpha)
 
 ## Getting Started
 
@@ -82,7 +68,11 @@ YYYY-MM-DD [!] Description [#UUID]
 
 *The mixture of space and tabs is admittedly quirky and is a legacy design from v1, which was written with the assumption that the user never touches the journal files and only use ledg commands to modify. It is therefore strongly recommended to use the official VIM plugin (follow [Install](#install) guide bulletpoint 5) to work with the whitespaces correctly.*
 
-An example:
+To add transactions, use the `add` command (just make sure to open the corresponding accounts in journal file first). Example:
+
+![add command](assets/add.png)
+
+More syntax examples:
 ```
 2025-01-01 open Equity.OpeningBalance
 
@@ -126,6 +116,7 @@ include ./prices/**/*.ledg
 ## Screenshots
 ![plotting & query engine](assets/burn.png)
 ![incomestatement reports](assets/is.png)
+![add command](assets/add.png)
 ![info command](assets/inf.png)
 ![register reports](assets/reg.png)
 ![event reports](assets/events.png)
