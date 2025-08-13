@@ -7,7 +7,7 @@
     - [Basic Usage](#basic-usage)
   - [Screenshots](#screenshots)
 
-`ledg2` is rewritten from ground up to replace the legacy [v1.0 version](https://github.com/SitanHuang/ledg/tree/ledg1). Most major commands are backwards compatible, and file syntax is completely backwards compatible.
+`ledg2` is rewritten from ground up to replace the legacy [v1.0 version](https://github.com/SitanHuang/ledg/tree/ledg1). Most major commands are backwards compatible, and v1 file syntax is a subset of v2's language.
 
 Current v2.0 todos:
 - [ ] re-implement v1.0 batch editing commands, now with scoped edits per v2.0 spec
