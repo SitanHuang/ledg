@@ -92,6 +92,7 @@ export class QueryEngineExecutor {
 
         if (acceptLedgObject(posting)) {
           filtered.push(transaction);
+          return;
         }
       }
     });
