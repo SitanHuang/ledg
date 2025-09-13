@@ -113,3 +113,15 @@ include ./prices/**/*.ledg
 
 ```
 
+
+## Screenshots
+
+*Numbers in the below plots and reports may not make sense because they were artificially created for testing purposes.*
+
+
+![plotting & query engine](assets/burn.png)
+![incomestatement reports](assets/is.png)
+![add command](assets/add.png)
+![info command](assets/inf.png)
+![register reports](assets/reg.png)
+![cashflow reports](assets/cf.png)
