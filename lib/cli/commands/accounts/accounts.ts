@@ -17,6 +17,15 @@ export class AccountsCommand extends ReportCommand {
 
   protected sumOptionValue = false;
 
+  protected readonly percOption = new Option({
+    name: "percent",
+    alias: "%",
+    type: "boolean",
+    defaultValue: false,
+    description: "Display values as percentages of each subreport's total.",
+  });
+  protected percOptionValue = false;
+
   constructor() {
     super("accounts", "Show account balances.")
   }
@@ -43,6 +52,7 @@ export class AccountsCommand extends ReportCommand {
     this.removeOption(this.cumulativeOption);
 
     this.setOption(this.sumOption);
+    this.setOption(this.percOption);
   }
 
   protected override consumeOption(option: Option, value: OptionValue): Maybe<ArgParseError> {
@@ -52,6 +62,8 @@ export class AccountsCommand extends ReportCommand {
     this.sumOption.extractValue(option, value, (v: boolean) => {
       this.sumOptionValue = v;
     });
+
+    this.percOptionValue = this.percOption.extractValue(option, value) ?? this.percOptionValue;
 
     return Ok;
   }
@@ -96,7 +108,11 @@ export class AccountsCommand extends ReportCommand {
 
     const renderer = new MultiperiodTreeRenderer(context.amountDisplayPolicy);
 
-    renderer.renderBalances(rootItem, table);
+    const output = renderer.renderBalances(rootItem, table, false, this.percOptionValue);
+
+    if (!isOk(output)) {
+      return output;
+    }
 
     if (this.sumOptionValue) {
       renderer.renderSum(rootItem, table);
