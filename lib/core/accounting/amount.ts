@@ -24,7 +24,7 @@ export class AmountFormatOptions implements RationalFormatOptions {
    */
   forceSerializable = false;
 
-  protected readonly currencyOverrides = new Map<string, AmountFormatOptions>();
+  protected currencyOverrides = new Map<string, AmountFormatOptions>();
 
   constructor(opts: RationalFormatOptions = {}) {
     Object.assign(this, opts);
@@ -40,7 +40,9 @@ export class AmountFormatOptions implements RationalFormatOptions {
   }
 
   naiveCopy(): AmountFormatOptions {
-    return new AmountFormatOptions(this);
+    const copy = new AmountFormatOptions(this);
+    copy.currencyOverrides = new Map(this.currencyOverrides);
+    return copy;
   }
 }
 

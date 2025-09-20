@@ -59,6 +59,15 @@ export abstract class CompoundReportCommand extends ReportCommand {
   });
   protected avgOptionValue = false;
 
+  protected readonly percOption = new Option({
+    name: "percent",
+    alias: "%",
+    type: "boolean",
+    defaultValue: false,
+    description: "Display values as percentages of each subreport's total.",
+  });
+  protected percOptionValue = false;
+
   override build(): void {
     super.build();
 
@@ -78,6 +87,7 @@ export abstract class CompoundReportCommand extends ReportCommand {
     this.setOption(this.liabilityAccOption);
     this.setOption(this.equityAccOption);
     this.setOption(this.avgOption);
+    this.setOption(this.percOption);
   }
 
   protected override consumeOption(option: Option, value: OptionValue): Maybe<ArgParseError> {
@@ -91,6 +101,7 @@ export abstract class CompoundReportCommand extends ReportCommand {
     this.equityAccPattern = this.equityAccOption.extractValue(option, value) ?? this.equityAccPattern;
 
     this.avgOptionValue = this.avgOption.extractValue(option, value) ?? this.avgOptionValue;
+    this.percOptionValue = this.percOption.extractValue(option, value) ?? this.percOptionValue;
 
     return Ok;
   }
@@ -118,14 +129,19 @@ export abstract class CompoundReportCommand extends ReportCommand {
       return result;
     }
 
-    console.log(
-      new CompoundTreeRenderer(
-        report,
-        context.amountDisplayPolicy,
-        context.dateFormat,
-        this.avgOptionValue,
-      ).render(result).render(context.renderFormat)
-    );
+    const output = new CompoundTreeRenderer(
+      report,
+      context.amountDisplayPolicy,
+      context.dateFormat,
+      this.avgOptionValue,
+      this.percOptionValue,
+    ).render(result);
+
+    if (!hasResult(output)) {
+      return output;
+    }
+
+    console.log(output.render(context.renderFormat));
 
     return Ok;
   }

@@ -1,6 +1,7 @@
 import { CompoundReport } from "../core/reports/compoundReport.ts";
 import { DateFormat } from "../core/reports/dateFormat.ts";
 import { MultiperiodTableBuckets, MultiperiodTreeItem } from "../core/reports/multiperiodTreeAggregator.ts";
+import { isOk, Result } from "../core/types.ts";
 import { AmountDisplayPolicy } from "./amount.ts";
 import { JoinedEmbeddable, renderable } from "./embeddable.ts";
 import { MultiperiodTreeRenderer } from "./multiperiodTree.ts";
@@ -15,9 +16,10 @@ export class CompoundTreeRenderer {
     public displayPolicy: AmountDisplayPolicy,
     public dateFormat: DateFormat,
     public displayAvgs = false,
+    public displayPerc = false,
   ) {}
 
-  render(results: readonly MultiperiodTreeItem[]): Renderable {
+  render(results: readonly MultiperiodTreeItem[]): Result<Renderable> {
     const { report, displayPolicy, dateFormat } = this;
     const { reportPolicy, subreports } = report;
     const { reportFrom, reportTo } = reportPolicy;
@@ -53,7 +55,12 @@ export class CompoundTreeRenderer {
       treeRenderer.displayPolicy.positiveIsGreen = subreport.positiveIsGreen;
       treeRenderer.displayPolicy.showPlus = subreport.showPlus;
 
-      treeRenderer.renderBalances(subreportTree, table, this.displayAvgs);
+      const result = treeRenderer.renderBalances(subreportTree, table, this.displayAvgs, this.displayPerc);
+
+      if (!isOk(result)) {
+        return result;
+      }
+
       treeRenderer.renderSum(subreportTree, table, "", { header: false, boldline: false, topline: true, underline: true }, this.displayAvgs);
 
       grandTotal.addBucketsFrom(
